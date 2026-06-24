@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casinha da Ya — editor HTML de alta fidelidade (MVP)</title>
+<!--
+  CASINHA DA YA — MVP (opção B do briefing)
+  ----------------------------------------------------------------
+  Ideia central: o navegador desenha o HTML DE VERDADE dentro de um
+  <iframe>. A gente NUNCA reprocessa nem regenera o CSS do usuário —
+  por isso gradiente, glow, sombra, blend, pseudo-elementos etc. ficam
+  100% fiéis (é o oposto do GrapesJS).
+
+  O que esta versão faz:
+   1. Carrega um HTML (arquivo, colar ou exemplo) e mostra na esquerda.
+   2. Você CLICA num elemento da prévia -> ele acende e o código dele
+      aparece na direita (a "ponte clicar -> código" que o usuário pediu).
+   3. Você edita o código daquele elemento e clica "Aplicar" -> a prévia
+      atualiza ao vivo, sem tocar no resto.
+
+  Tudo em um arquivo só, sem dependências, roda offline.
+-->
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171c22; --line:#262d36; --ink:#e6edf3;
+    --muted:#8b97a6; --accent:#2BC4C4; --accent2:#FF7A2F; --sel:#2BC4C4;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); display:flex; flex-direction:column;
+  }
+  header{
+    padding:10px 14px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--panel);
+  }
+  header h1{font-size:14px;margin:0;font-weight:600}
+  header h1 small{color:var(--muted);font-weight:400}
+  .spacer{flex:1}
+  button,label.btn{
+    background:var(--line); color:var(--ink); border:1px solid #36404c;
+    padding:6px 12px; border-radius:8px; cursor:pointer; font-size:13px;
+  }
+  button:hover,label.btn:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:600}
+  input[type=file]{display:none}
+  main{flex:1; display:flex; min-height:0}
+  .pane{display:flex;flex-direction:column;min-width:0}
+  .left{flex:1.4;border-right:1px solid var(--line)}
+  .right{flex:1;background:var(--panel)}
+  .pane h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    margin:0;padding:8px 12px;border-bottom:1px solid var(--line)
+  }
+  #preview{flex:1;border:0;width:100%;background:#fff}
+  .right .body{flex:1;display:flex;flex-direction:column;min-height:0;padding:12px;gap:10px}
+  #crumb{color:var(--accent);font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:18px;word-break:break-all}
+  #code{
+    flex:1;width:100%;resize:none;background:#0b0e12;color:#d6dee7;border:1px solid var(--line);
+    border-radius:8px;padding:10px;font:12px/1.6 ui-monospace,Consolas,monospace;tab-size:2;
+  }
+  .hint{color:var(--muted);font-size:12px}
+  .row{display:flex;gap:8px;align-items:center}
+  .empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:24px}
+</style>
+</head>
+<body>
+  <header>
+    <h1>🏠 Casinha da Ya <small>· editor HTML fiel (MVP)</small></h1>
+    <div class="spacer"></div>
+    <label class="btn">📂 Abrir HTML<input type="file" id="file" accept=".html,.htm,text/html"></label>
+    <button id="sample">▶️ Exemplo</button>
+    <button id="paste">📋 Colar HTML</button>
+  </header>
+
+  <main>
+    <section class="pane left">
+      <h2>Prévia (o navegador desenha de verdade — clique num elemento)</h2>
+      <iframe id="preview" title="prévia"></iframe>
+    </section>
+
+    <section class="pane right">
+      <h2>Código do elemento clicado</h2>
+      <div class="body">
+        <div id="crumb"></div>
+        <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
+        <div class="row">
+          <button id="apply" class="primary">✓ Aplicar mudança</button>
+          <button id="full">Ver código todo</button>
+          <span class="hint">a prévia atualiza ao vivo · o CSS nunca é reprocessado</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+"use strict";
+const iframe = document.getElementById('preview');
+const codeEl = document.getElementById('code');
+const crumbEl = document.getElementById('crumb');
+let selected = null;     // o elemento clicado dentro da prévia
+let showingFull = false; // se a caixa está mostrando o documento inteiro
+
+// ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
+function loadHtml(html){
+  showingFull = false;
+  iframe.onload = wirePreview;   // quando a prévia terminar de carregar, ligamos os cliques
+  iframe.srcdoc = html;
+}
+
+// ---- 2) Liga a "ponte clicar -> código" dentro da prévia ----
+function wirePreview(){
+  const doc = iframe.contentDocument;
+  if(!doc) return;
+  // captura cliques antes de qualquer ação (impede links de navegar)
+  doc.addEventListener('click', function(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+    selectElement(ev.target);
+  }, true);
+  // realce visual do elemento sob o cursor
+  const hover = doc.createElement('style');
+  hover.textContent = '*{outline-offset:-1px} .__ya_sel{outline:2px solid '
+    + getComputedStyle(document.documentElement).getPropertyValue('--sel').trim()
+    + ' !important}';
+  doc.head && doc.head.appendChild(hover);
+}
+
+// tira o marcador de seleção SEM deixar um class="" vazio para trás
+function clearSel(el){
+  if(!el) return;
+  el.classList.remove('__ya_sel');
+  if(el.getAttribute('class') === '') el.removeAttribute('class');
+}
+
+function selectElement(el){
+  clearSel(selected);
+  selected = el;
+  showingFull = false;
+  crumbEl.textContent = breadcrumb(el);
+  // lemos o código de uma CÓPIA limpa — o elemento real nunca é poluído
+  const clone = el.cloneNode(true);
+  clone.classList.remove('__ya_sel');
+  if(clone.getAttribute('class') === '') clone.removeAttribute('class');
+  codeEl.value = clone.outerHTML;
+  // só agora acendemos o realce no elemento de verdade
+  selected.classList.add('__ya_sel');
+}
+
+// caminho legível tipo  body > section.card > h1
+function breadcrumb(el){
+  const parts = [];
+  let n = el;
+  while(n && n.nodeType === 1 && n.tagName !== 'HTML'){
+    let s = n.tagName.toLowerCase();
+    if(n.id) s += '#' + n.id;
+    else if(n.className && typeof n.className === 'string'){
+      const cls = n.className.trim().split(/\s+/).filter(c=>c && c!=='__ya_sel');
+      if(cls.length) s += '.' + cls.join('.');
+    }
+    parts.unshift(s);
+    n = n.parentElement;
+  }
+  return parts.join('  ›  ');
+}
+
+// ---- 3) Aplica a edição: troca só aquele elemento, ao vivo ----
+document.getElementById('apply').addEventListener('click', function(){
+  if(showingFull){ alert('Você está vendo o código todo. Clique num elemento na prévia para editar só ele.'); return; }
+  if(!selected){ alert('Clique num elemento na prévia primeiro.'); return; }
+  try{
+    clearSel(selected);
+    selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
+    selected = null;
+    crumbEl.textContent = '✓ aplicado — clique de novo num elemento para continuar';
+  }catch(err){
+    alert('Não consegui aplicar: ' + err.message);
+  }
+});
+
+// ---- ver o documento inteiro como está agora ----
+document.getElementById('full').addEventListener('click', function(){
+  const doc = iframe.contentDocument;
+  if(!doc) return;
+  clearSel(selected);
+  showingFull = true;
+  crumbEl.textContent = '(documento inteiro — somente leitura)';
+  // remove os marcadores internos antes de mostrar
+  doc.querySelectorAll('.__ya_sel').forEach(clearSel);
+  codeEl.value = '<!doctype html>\n' + doc.documentElement.outerHTML;
+});
+
+// ---- botões de carregar ----
+document.getElementById('file').addEventListener('change', function(e){
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => loadHtml(r.result);
+  r.readAsText(f);
+});
+document.getElementById('paste').addEventListener('click', async function(){
+  try{ const t = await navigator.clipboard.readText(); if(t) loadHtml(t); }
+  catch{ const t = prompt('Cole o HTML aqui:'); if(t) loadHtml(t); }
+});
+
+// ---- exemplo de boas-vindas (com efeitos que o GrapesJS quebrava) ----
+const SAMPLE = `<!doctype html><html><head><meta charset="utf-8"><style>
+  body{margin:0;font-family:system-ui;background:#0C6E6E;color:#fff;
+       display:flex;align-items:center;justify-content:center;height:100vh}
+  .card{padding:48px 56px;border-radius:24px;text-align:center;
+        background:rgba(255,255,255,.08);backdrop-filter:blur(8px);
+        box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  h1{font-size:46px;margin:0 0 8px;
+     background:linear-gradient(90deg,#2BC4C4,#FF7A2F);
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+  p{margin:0;opacity:.85}
+</style></head><body>
+  <div class="card">
+    <h1>Olá, eu sou a Ya</h1>
+    <p>Clique neste texto e veja o código dele à direita →</p>
+  </div>
+</body></html>`;
+document.getElementById('sample').addEventListener('click', () => loadHtml(SAMPLE));
+
+// começa com o exemplo na tela
+loadHtml(SAMPLE);
+</script>
+</body>
+</html>
