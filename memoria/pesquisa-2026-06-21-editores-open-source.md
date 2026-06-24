@@ -46,7 +46,7 @@ Só as ferramentas que **não regeneram o CSS**: as de **código + prévia ao vi
 
 1. **VS Code Live Preview** (Microsoft, MIT) — código + prévia ao vivo, risco zero de quebra de CSS. Caminho mais simples e seguro. **Não** tem "clicar→código".
 2. **vscode-web-visual-editor** (MIT) — clica no elemento → acende no código-fonte; edita estrutura/posição sem reprocessar o CSS. É o que mais se aproxima do desejo do usuário ("clicar e achar"), mantendo fidelidade. Ajuste fino de estilo ainda é editar o texto do CSS, mas **sabendo onde**.
-3. **Construir um editor pequeno próprio** (a "casinha da Ya") sobre o `.idea.json` + render real em iframe — elimina 100% o problema de reprocessamento e alinha com a arquitetura já existente do Portal IDEA.
+3. **Construir um editor pequeno próprio** (a "casinha da IA do editor") sobre o `.idea.json` + render real em iframe — elimina 100% o problema de reprocessamento e alinha com a arquitetura já existente do Portal IDEA.
 
 ---
 

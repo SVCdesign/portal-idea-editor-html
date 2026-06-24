@@ -1,8 +1,8 @@
-# Briefing — nascimento do mundo `portal-idea-editor-html` (Ya)
+# Briefing — nascimento do mundo `portal-idea-editor-html`
 
 > **O que é este arquivo:** a **semente** de um mundo novo que ainda **não nasceu**. Foi escrito em **2026-06-21** dentro do mundo central (`portal-idea-studio`) porque o usuário ia **trocar de PC** e quis deixar tudo registrado pro próximo chat continuar. Quando a IA deste mundo central abrir de novo (no PC novo), é por aqui que ela retoma a conversa do mundo novo.
 >
-> **Para quem este briefing fala:** em parte pro próximo chat da IA central (pra ela saber onde paramos), e em parte pra **Ya** — o nome combinado da IA que vai cuidar do mundo novo `portal-idea-editor-html`.
+> **Para quem este briefing fala:** em parte pro próximo chat da IA central (pra ela saber onde paramos), e em parte pra **a IA que vai cuidar do mundo novo `portal-idea-editor-html`** — que não tem nome próprio (é só "a IA do editor").
 
 ---
 
@@ -45,8 +45,8 @@ Antes de qualquer código, **decidir com o usuário** qual será a base do mundo
 
 | Opção | O que é | Vantagem | Risco |
 |---|---|---|---|
-| **A — Plugin pronto** (`vscode-web-visual-editor`, MIT) | Extensão do VS Code que edita o HTML-fonte real; clicar→código já vem pronto; não reprocessa o CSS | Anda rápido, fidelidade preservada | Herda "encanamento" de código de terceiros que ninguém da casa entende → risco de a Ya quebrar ao evoluir |
-| **B — Casinha própria da Ya** | A Ya constrói um editor pequeno do zero (página web que mostra o HTML real num iframe + ponte clicar→código) | Tudo entendido pela Ya, encaixa no `.idea.json` + render fiel que o projeto já tem, menos risco de quebrar | Começa mais simples; o "clicar→código" precisa ser construído |
+| **A — Plugin pronto** (`vscode-web-visual-editor`, MIT) | Extensão do VS Code que edita o HTML-fonte real; clicar→código já vem pronto; não reprocessa o CSS | Anda rápido, fidelidade preservada | Herda "encanamento" de código de terceiros que ninguém da casa entende → risco de a IA do editor quebrar ao evoluir |
+| **B — Casinha própria da IA do editor** | A IA do editor constrói um editor pequeno do zero (página web que mostra o HTML real num iframe + ponte clicar→código) | Tudo entendido pela IA do editor, encaixa no `.idea.json` + render fiel que o projeto já tem, menos risco de quebrar | Começa mais simples; o "clicar→código" precisa ser construído |
 
 **O usuário NÃO escolheu** — pediu pra deixar em aberto e decidir no PC novo. Então **a 1ª coisa a fazer quando ele voltar é apresentar A vs B em linguagem humana e pegar a escolha dele.** (O medo explícito dele: "trabalhar muito e no final a outra IA quebrar o plugin." Isso pesa a favor da opção B, mas a decisão é dele.)
 
@@ -58,18 +58,18 @@ Antes de qualquer código, **decidir com o usuário** qual será a base do mundo
 
 1. Criar a pasta `D:\PORTAL IDEA\portal-idea-editor-html`.
 2. `git init` local + criar o repositório `SVCdesign/portal-idea-editor-html` no GitHub + primeiro push.
-3. Copiar este briefing + a pesquisa pra dentro do mundo novo (como memória inicial da Ya).
+3. Copiar este briefing + a pesquisa pra dentro do mundo novo (como memória inicial da IA do editor).
 4. Conforme a opção escolhida:
-   - **A:** clonar/instalar o `vscode-web-visual-editor` como base e estudar o código com a Ya.
+   - **A:** clonar/instalar o `vscode-web-visual-editor` como base e estudar o código com a IA do editor.
    - **B:** montar o esqueleto mínimo da "casinha própria" (página + iframe + ponte clicar→código).
-5. Abrir o canal de **conversa entre mundos** entre a IA central e a Ya, pra alinhar o que o projeto precisa.
+5. Abrir o canal de **conversa entre mundos** entre a IA central e a IA do editor, pra alinhar o que o projeto precisa.
 
 ---
 
 ## 6. Como os dois mundos vão se relacionar
 
-- **Por enquanto:** a IA do mundo central (`portal-idea-studio`) **orienta a Ya** sobre o que o projeto precisa. A Ya trabalha guiada.
-- **Depois (quando a Ya amadurecer):** a Ya cuida do mundo dela **sozinha, no automático**.
+- **Por enquanto:** a IA do mundo central (`portal-idea-studio`) **orienta a IA do editor** sobre o que o projeto precisa. A IA do editor trabalha guiada.
+- **Depois (quando a IA do editor amadurecer):** a IA do editor cuida do mundo dela **sozinha, no automático**.
 - **Comunicação:** pelo mecanismo de **conversa entre mundos** desta casa (ver `regras/14`, `regras/16`, `regras/19` no mundo central; a pasta neutra histórica é `D:\PORTAL IDEA\conversa-entre-mundos\`). O modelo de "turnos" entre IAs já foi usado com sucesso entre `portal-idea-studio` e `portal-idea-html-studio`.
 - **Governança:** o `portal-idea-editor-html` nasce como **mundo externo/em nascimento**, fora da malha viva oficial, até o usuário decidir acoplá-lo formalmente.
 
