@@ -51,6 +51,27 @@ opcional/cosmético (ver no fim).
 - GitHub (privado): https://github.com/SVCdesign/portal-idea-editor-html
 - Arquivo de teste do usuário: `D:\TEMPORARIA\01\` (capa + pasta `assets`)
 
+## Sistema anti-esquecimento (troca de PC / de chat)
+> Baseado no modelo `MODELO-sistema-anti-esquecimento-troca-de-pc.md` (criado no studio).
+> **Vigia:** `scripts/sync-guard.mjs` — só LÊ o Git e avisa o estado (igual/atrasado/
+> adiantado/divergente). Rode `node scripts/sync-guard.mjs boot` pra ver o quadro.
+> ⏳ **Pendente do "vai" do usuário:** (1) ligar os gatilhos automáticos em
+> `.claude/settings.json` (pra o vigia rodar sozinho no início/fim da sessão) e
+> (2) a lista de permissões seguras. Ambos são auto-modificação → exigem aprovação.
+
+### Ao CHEGAR num PC/chat (abrir o mundo)
+1. **Git:** rode `node scripts/sync-guard.mjs boot` (ou o vigia avisa no boot, se os
+   gatilhos já estiverem ligados). Se disser ATRASADO, baixe antes: `git pull`.
+2. **🟢 Google Drive:** confirme que os ASSETS das peças (imagens/fontes) terminaram
+   de baixar (ícone verde). Eles viajam pelo Drive, **não** pelo Git.
+3. **Ler o retrato vivo:** este `STATUS-AGORA.md`.
+4. **`conversa-entre-mundos`** é local-only (fora do Git) — copie à mão se for o caso.
+
+### Ao SAIR de um PC/chat (antes de desligar / trocar)
+- [ ] **Git publicado:** tudo commitado e empurrado (o vigia avisa se sobrou commit).
+- [ ] **🟢 Google Drive sincronizado** (verde) antes de desligar — causa #1 de PC desatualizado.
+- [ ] **`conversa-entre-mundos` com backup**, se mexeu nela.
+
 ## Próximo passo (OPCIONAL) — PRÓXIMA IA, RETOME ASSIM
 - Tudo acima foi **validado com o usuário** (testes no navegador via Playwright,
   que ele autorizou). **Não há bug em aberto.**
