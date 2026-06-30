@@ -55,9 +55,11 @@ opcional/cosmético (ver no fim).
 > Baseado no modelo `MODELO-sistema-anti-esquecimento-troca-de-pc.md` (criado no studio).
 > **Vigia:** `scripts/sync-guard.mjs` — só LÊ o Git e avisa o estado (igual/atrasado/
 > adiantado/divergente). Rode `node scripts/sync-guard.mjs boot` pra ver o quadro.
-> ⏳ **Pendente do "vai" do usuário:** (1) ligar os gatilhos automáticos em
-> `.claude/settings.json` (pra o vigia rodar sozinho no início/fim da sessão) e
-> (2) a lista de permissões seguras. Ambos são auto-modificação → exigem aprovação.
+> ✅ **Ativos (com OK do usuário em 2026-06-30):** gatilhos automáticos em
+> `.claude/settings.json` (o vigia roda sozinho no início/fim da sessão) + lista de
+> permissões seguras de Git, **incluindo commit/push** (operações destrutivas seguem
+> pedindo confirmação). ⚠️ Os gatilhos costumam "acordar" só no PRÓXIMO boot da
+> sessão — nesta sessão em que foram criados podem ainda não ter rodado.
 
 ### Ao CHEGAR num PC/chat (abrir o mundo)
 1. **Git:** rode `node scripts/sync-guard.mjs boot` (ou o vigia avisa no boot, se os
