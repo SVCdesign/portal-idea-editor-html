@@ -1,6 +1,7 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-06-30 · **Motivo:** sessão grande de evolução do editor (troca de chat — a janela de contexto ficou grande)
+**Atualizado:** 2026-06-30 · **Motivo:** começou a CONVERSA ENTRE MUNDOS com o
+`html-studio` (quem cria os HTMLs) + ajuste da FOTO pra casar com o padrão dele
 
 ## Em uma frente
 O `editor.html` deixou de ser só o MVP "clicar → ver código" e virou um **editor
@@ -9,6 +10,18 @@ carrossel e **salva direto na pasta**. O nome oficial agora é **"Editor HTML"**
 (antes era "Casinha"). Continua tudo num arquivo só, sem dependências, rodando
 local. Não há frente de código em aberto nem bug conhecido. O próximo passo é
 opcional/cosmético (ver no fim).
+
+## Conversa entre mundos (NOVO — começou em 2026-06-30)
+Começou o diálogo com o **`html-studio`** (o mundo que CRIA os HTMLs dos
+carrosséis; nós aqui REFINAMOS). O método: cada mundo guarda os turnos em `.md`
+datado, no SEU repositório, e o usuário (Carlos) é a ponte que leva/traz.
+- Pasta: `dialogos-entre-mundos/portal-idea-html-studio/conversas/2026-06-30-boas-vindas-e-sistema/`
+  (turnos 01–04 + `RESUMO.md`). No boot, conferir essa pasta pra ver o que está aberto.
+- **Contrato técnico FECHADO:** aspas curvas do texto visível ficam intactas no
+  salvar; a foto segue o padrão do studio (ver bullet "Ajustar FOTO" acima).
+- **Próximo passo do diálogo:** o studio vai mandar a 1ª peça real — a capa
+  **"7 palavras"** (pedido: dar um "respiro" subindo o bloco do subtítulo uns px).
+  Quando chegar, abrir pela pasta, calibrar os px e devolver a cópia `-editado`.
 
 ## Como ABRIR e FECHAR o editor (IMPORTANTE — mudou)
 - **Abrir:** dois cliques em `Abrir-Editor-HTML.bat`. Ele liga um endereço local
@@ -29,8 +42,13 @@ opcional/cosmético (ver no fim).
   fotos (mostra versão **encolhida** na prévia; o original no PC fica intacto) e
   ignora imagens não usadas (deixa leve).
 - **Ajustar FOTO** (aparece ao selecionar `<img>`): zoom + **arrastar com o mouse**
-  + setas — mexe SÓ na foto (object-fit cover + object-position/scale), sem tocar
-  no texto, mantendo o 4:5. `↺ desfazer`.
+  + setas — mexe SÓ na foto, sem tocar no texto, mantendo o 4:5. `↺ desfazer`.
+  **NOVO (acordo com o html-studio, 2026-06-30):** uma fonte de verdade só, nunca
+  as duas — **sem zoom** reposiciona pelo `object-position` (e herda o valor de
+  fábrica do design como ponto de partida); **com zoom** usa `transform`
+  translate+scale e neutraliza o object-position (pan travado na folga, sem
+  buraco). Agora dá pra reposicionar **mesmo sem dar zoom** (antes não dava).
+  Validado em 5 cenários no navegador + testado pelo usuário.
 - **Ajustar TEXTO** (aparece ao selecionar texto): `A− / A+` (tamanho da fonte —
   nítido, sem distorcer), `◄/► caixa` (largura — re-quebra a linha sozinha, **sem
   trava**; o que passar da borda do slide só fica recortado pela arte), `⤡ encaixar`

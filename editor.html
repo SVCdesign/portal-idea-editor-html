@@ -397,48 +397,96 @@ toolsEl.addEventListener('click', function(ev){
 });
 
 // ---- ajustar FOTO: mexe no ENQUADRAMENTO da imagem, não no texto -------
-// usa object-fit:cover (nunca distorce, mantém o 4:5 do slide) + object-position
-// (escolhe que pedaço aparece) + scale (aproxima). Tudo só no <img>.
-// move a foto com translate (funciona nos 2 sentidos quando há zoom) + scale.
-// object-fit:cover garante sem distorção e mantém o 4:5. tudo só no <img>.
-function getPhoto(el){
-  let tx = 0, ty = 0, s = 1;
-  const t = el.style.transform || '';
-  const mt = t.match(/translate\((-?[\d.]+)%,\s*(-?[\d.]+)%\)/);
-  if(mt){ tx = +mt[1]; ty = +mt[2]; }
-  const ms = t.match(/scale\(([\d.]+)\)/);
-  if(ms) s = +ms[1];
-  return { tx, ty, s };
+// object-fit:cover (nunca distorce, mantém o 4:5 do slide). Tudo só no <img>.
+// REGRA combinada com o html-studio (uma fonte de verdade só, nunca as duas):
+//   • SEM zoom (s===1): reposicionar = mexe no object-position (mecanismo do
+//     studio; a foto "cover" transborda, então desloca sem abrir buraco).
+//   • COM zoom (s>1): aproximar/arrastar = transform translate(%)+scale, e o
+//     object-position fica neutro (idêntico ao comportamento de sempre).
+function getZoom(el){
+  const ms = (el.style.transform || '').match(/scale\(([\d.]+)\)/);
+  return ms ? +ms[1] : 1;
 }
-function setPhoto(el, v){
-  // só dá pra mover até onde a foto "sobra" por causa do zoom (senão abriria buraco)
-  const room = Math.max(0, (v.s - 1) * 50);   // % de folga de cada lado
-  v.tx = Math.max(-room, Math.min(room, v.tx));
-  v.ty = Math.max(-room, Math.min(room, v.ty));
-  el.style.removeProperty('object-position');  // limpa o modo antigo, se houver
-  if(v.tx === 0 && v.ty === 0 && v.s === 1){
-    el.style.removeProperty('object-fit');
-    el.style.removeProperty('transform');
-  }else{
+function getTranslate(el){
+  const mt = (el.style.transform || '').match(/translate\((-?[\d.]+)%,\s*(-?[\d.]+)%\)/);
+  return mt ? { tx: +mt[1], ty: +mt[2] } : { tx: 0, ty: 0 };
+}
+// enquadramento atual no modo sem-zoom: usa o object-position inline; se não
+// houver, herda o do design (folha de estilo) pra não "pular" ao começar a mexer
+function getObjPos(el){
+  let v = el.style.objectPosition;
+  if(!v){ v = getComputedStyle(el).objectPosition; }
+  const m = (v || '').match(/(-?[\d.]+)%\s+(-?[\d.]+)%/);
+  return m ? { x: +m[1], y: +m[2] } : { x: 50, y: 50 };
+}
+function cleanStyle(el){ if(!el.getAttribute('style')) el.removeAttribute('style'); }
+// move o enquadramento em % do quadro, no mecanismo certo conforme o zoom
+function applyPanPhoto(ddx, ddy){
+  const el = selected; if(!el || el.tagName !== 'IMG') return;
+  const s = getZoom(el);
+  if(s > 1){
+    // COM zoom: pan via transform, limitado pela "folga" do zoom (sem buraco)
+    const room = (s - 1) * 50;
+    let { tx, ty } = getTranslate(el);
+    tx = Math.max(-room, Math.min(room, tx + ddx));
+    ty = Math.max(-room, Math.min(room, ty + ddy));
+    el.style.removeProperty('object-position');
     el.style.objectFit = 'cover';
-    el.style.transform = 'translate(' + (+v.tx.toFixed(2)) + '%, ' + (+v.ty.toFixed(2)) + '%) scale(' + (+v.s.toFixed(3)) + ')';
+    el.style.transform = 'translate(' + (+tx.toFixed(2)) + '%, ' + (+ty.toFixed(2)) + '%) scale(' + (+s.toFixed(3)) + ')';
+  }else{
+    // SEM zoom: pan via object-position (0–100%, 50% = centro). Sinal negativo
+    // pra a foto "seguir o cursor" (arrastar p/ direita revela o lado esquerdo)
+    let { x, y } = getObjPos(el);
+    x = Math.max(0, Math.min(100, x - ddx));
+    y = Math.max(0, Math.min(100, y - ddy));
+    el.style.removeProperty('transform');
+    el.style.objectFit = 'cover';
+    el.style.objectPosition = (+x.toFixed(2)) + '% ' + (+y.toFixed(2)) + '%';
   }
-  if(!el.getAttribute('style')) el.removeAttribute('style');
+  cleanStyle(el);
   refreshCodeBox();
 }
 // arrastar a foto com o mouse: converte o movimento (px) em % do quadro
 function dragPhotoBy(dxPx, dyPx){
   if(!selected || selected.tagName !== 'IMG') return;
   const w = selected.clientWidth || 1, h = selected.clientHeight || 1;
-  const v = getPhoto(selected);
-  v.tx += dxPx / w * 100;
-  v.ty += dyPx / h * 100;
-  setPhoto(selected, v);
+  applyPanPhoto(dxPx / w * 100, dyPx / h * 100);
 }
 // setas = "arrastar a foto" naquele sentido
-function panPhoto(dx, dy){ if(!selected) return; const v = getPhoto(selected); v.tx += dx; v.ty += dy; setPhoto(selected, v); }
-function zoomPhoto(f){ if(!selected) return; const v = getPhoto(selected); v.s = Math.max(1, Math.min(5, v.s * f)); setPhoto(selected, v); }
-function resetPhoto(){ if(!selected) return; setPhoto(selected, { tx:0, ty:0, s:1 }); }
+function panPhoto(dx, dy){ applyPanPhoto(dx, dy); }
+function zoomPhoto(f){
+  const el = selected; if(!el || el.tagName !== 'IMG') return;
+  let s = getZoom(el);
+  const wasZoom = s > 1;
+  s = Math.max(1, Math.min(5, s * f));
+  if(s > 1){
+    // entrar/ajustar zoom: vai pro transform e neutraliza o object-position.
+    // ao ENTRAR no zoom, recentra o pan (regra do studio: nunca os dois ativos)
+    let { tx, ty } = wasZoom ? getTranslate(el) : { tx: 0, ty: 0 };
+    const room = (s - 1) * 50;
+    tx = Math.max(-room, Math.min(room, tx));
+    ty = Math.max(-room, Math.min(room, ty));
+    el.style.removeProperty('object-position');
+    el.style.objectFit = 'cover';
+    el.style.transform = 'translate(' + (+tx.toFixed(2)) + '%, ' + (+ty.toFixed(2)) + '%) scale(' + (+s.toFixed(3)) + ')';
+  }else{
+    // voltou pro 1×: tira o zoom e volta ao enquadramento de origem do design
+    el.style.removeProperty('transform');
+    el.style.removeProperty('object-position');
+    el.style.removeProperty('object-fit');
+  }
+  cleanStyle(el);
+  refreshCodeBox();
+}
+// ↺ desfazer: volta ao enquadramento original do design (tira tudo que injetei)
+function resetPhoto(){
+  const el = selected; if(!el || el.tagName !== 'IMG') return;
+  el.style.removeProperty('transform');
+  el.style.removeProperty('object-position');
+  el.style.removeProperty('object-fit');
+  cleanStyle(el);
+  refreshCodeBox();
+}
 
 photoToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
