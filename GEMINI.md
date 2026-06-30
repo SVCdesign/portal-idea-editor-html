@@ -7,7 +7,9 @@
 1. Leia este guia.
 2. Leia `STATUS-AGORA.md` (raiz) — onde paramos e qual o próximo passo.
 3. Leia `memoria/LEIA-PRIMEIRO-BRIEFING.md` — a semente: por que este mundo existe.
-4. Se for mexer no editor, abra `editor.html` no navegador pra ver o estado atual.
+4. Se for mexer no editor, abra-o pelo atalho `Abrir-Editor-HTML.bat` (dois cliques —
+   liga o endereço local e abre no Chrome). NÃO abra `editor.html` direto: vira
+   `file://` e o "salvar na pasta" não funciona.
 
 ## O que é este mundo
 Um laboratório paralelo de **edição HTML de alta fidelidade**. Existe porque o
@@ -16,7 +18,7 @@ traduzir HTML pra camadas. Aqui o HTML é renderizado **de verdade** num `<ifram
 e o CSS **nunca é reprocessado** — gradiente em texto, glow, blend, sombras e
 fontes ficam 100% fiéis. NÃO substitui o editor central; é o experimento ao lado.
 
-O coração já pronto é o `editor.html` (a "casinha", opção B): clica num elemento
+O coração é o `editor.html` (o **Editor HTML**, opção B): clica num elemento
 na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no resto.
 
 ## Regras que NUNCA se quebram (o jeito do usuário)
@@ -31,7 +33,8 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
 - **Guias espelhados:** mudou `GEMINI.md`, replique em `CLAUDE.md` e `AGENTS.md`.
 
 ## Mapa rápido
-- `editor.html` — a casinha (o editor em si).
+- `editor.html` — o **Editor HTML** (o editor em si). Abrir/fechar pelos atalhos
+  `Abrir-Editor-HTML.bat` / `Desligar-Editor-HTML.bat`.
 - `memoria/` — a semente do mundo (briefing + pesquisa). Fica no Git, é leve.
 - `STATUS-AGORA.md` — retrato vivo de onde paramos.
 - Conversa com o mundo central: pasta neutra `D:\PORTAL IDEA\conversa-entre-mundos\`

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Casinha — editor HTML de alta fidelidade (MVP)</title>
+<title>Editor HTML — alta fidelidade</title>
 <!--
-  CASINHA — MVP (opção B do briefing)
+  EDITOR HTML — (opção B do briefing)
   ----------------------------------------------------------------
   Ideia central: o navegador desenha o HTML DE VERDADE dentro de um
   <iframe>. A gente NUNCA reprocessa nem regenera o CSS do usuário —
@@ -64,20 +64,51 @@
   .hint{color:var(--muted);font-size:12px}
   .row{display:flex;gap:8px;align-items:center}
   .empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;padding:24px}
+
+  /* navegação clicável (caminho + "dentro") */
+  #crumb .crumb-link{cursor:pointer;border-bottom:1px dotted transparent}
+  #crumb .crumb-link:hover{border-bottom-color:var(--accent)}
+  #crumb .crumb-link.cur{color:var(--accent2)}
+  #nav{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  #nav .nav-label{color:var(--muted);font-size:12px}
+  .chip{background:#0b0e12;border:1px solid var(--line);color:var(--ink);
+        padding:3px 8px;border-radius:6px;cursor:pointer;
+        font:12px ui-monospace,Consolas,monospace}
+  .chip:hover{border-color:var(--accent)}
+
+  /* painel de ajustes visuais (sem mexer no código na mão) */
+  .tools{background:#0b0e12;border:1px solid var(--line);border-radius:8px;padding:10px}
+  .tools .tlabel{color:var(--muted);font-size:12px;margin-bottom:8px}
+  .tools .tgrid{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .tools .sep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
+  .tools button{min-width:40px;font-size:14px}
+
+  /* barra de navegação entre slides */
+  #slidebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+            padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+  #slidebar .sb-label{color:var(--muted);font-size:12px;margin-right:2px}
+  .sb-btn{background:var(--line);color:var(--ink);border:1px solid #36404c;
+          min-width:30px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;padding:0 8px}
+  .sb-btn:hover{border-color:var(--accent)}
+  .sb-btn.cur{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:700}
 </style>
 </head>
 <body>
   <header>
-    <h1>🏠 Casinha <small>· editor HTML fiel (MVP)</small></h1>
+    <h1>🖥️ Editor HTML <small>· edição de alta fidelidade</small></h1>
     <div class="spacer"></div>
     <label class="btn">📂 Abrir HTML<input type="file" id="file" accept=".html,.htm,text/html"></label>
+    <button id="folder">📁 Abrir pasta (com imagens)</button>
+    <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
     <button id="sample">▶️ Exemplo</button>
     <button id="paste">📋 Colar HTML</button>
+    <button id="save" class="primary">💾 Salvar</button>
   </header>
 
   <main>
     <section class="pane left">
       <h2>Prévia (o navegador desenha de verdade — clique num elemento)</h2>
+      <div id="slidebar" style="display:none"></div>
       <iframe id="preview" title="prévia"></iframe>
     </section>
 
@@ -85,6 +116,53 @@
       <h2>Código do elemento clicado</h2>
       <div class="body">
         <div id="crumb"></div>
+        <div id="nav" style="display:none"></div>
+        <div id="tools" class="tools" hidden>
+          <div class="tlabel">Ajustes rápidos — o Editor HTML escreve o código pra você:</div>
+          <div class="tgrid">
+            <button data-act="left"  title="mover para a esquerda">←</button>
+            <button data-act="up"    title="mover para cima">↑</button>
+            <button data-act="down"  title="mover para baixo">↓</button>
+            <button data-act="right" title="mover para a direita">→</button>
+            <span class="sep"></span>
+            <button data-act="zin"   title="aproximar / aumentar">🔍 +</button>
+            <button data-act="zout"  title="afastar / diminuir">🔍 −</button>
+            <span class="sep"></span>
+            <button data-act="reset" title="desfazer os ajustes visuais deste elemento">↺ desfazer</button>
+          </div>
+        </div>
+        <div id="phototools" class="tools" hidden>
+          <div class="tlabel">✂️ Ajustar foto — dê zoom e <b>arraste a foto com o mouse</b> (ou use as setas). Mantém o 4:5 e não toca no texto:</div>
+          <div class="tgrid">
+            <button data-pact="left"  title="enquadrar mais à esquerda">←</button>
+            <button data-pact="up"    title="enquadrar mais acima">↑</button>
+            <button data-pact="down"  title="enquadrar mais abaixo">↓</button>
+            <button data-pact="right" title="enquadrar mais à direita">→</button>
+            <span class="sep"></span>
+            <button data-pact="zin"   title="aproximar a foto (zoom +)">🔍 +</button>
+            <button data-pact="zout"  title="afastar a foto (zoom −)">🔍 −</button>
+            <span class="sep"></span>
+            <button data-pact="reset" title="voltar a foto ao enquadramento original">↺ desfazer</button>
+          </div>
+        </div>
+        <div id="texttools" class="tools" hidden>
+          <div class="tlabel">✍️ Ajustar texto — tamanho e largura da caixa (a quebra de linha se ajusta sozinha), sem distorcer:</div>
+          <div class="tgrid">
+            <button data-tact="left"  title="mover para a esquerda">←</button>
+            <button data-tact="up"    title="mover para cima">↑</button>
+            <button data-tact="down"  title="mover para baixo">↓</button>
+            <button data-tact="right" title="mover para a direita">→</button>
+            <span class="sep"></span>
+            <button data-tact="smaller" title="diminuir o tamanho do texto">A−</button>
+            <button data-tact="bigger"  title="aumentar o tamanho do texto">A+</button>
+            <span class="sep"></span>
+            <button data-tact="narrow" title="estreitar a caixa (o texto quebra mais cedo)">◄ caixa</button>
+            <button data-tact="widen"  title="alargar a caixa (o texto quebra mais tarde)">caixa ►</button>
+            <button data-tact="fit"    title="encaixar a caixa no texto (tira o espaço vazio)">⤡ encaixar</button>
+            <span class="sep"></span>
+            <button data-tact="reset" title="desfazer os ajustes de texto">↺ desfazer</button>
+          </div>
+        </div>
         <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
         <div class="row">
           <button id="apply" class="primary">✓ Aplicar mudança</button>
@@ -100,8 +178,16 @@
 const iframe = document.getElementById('preview');
 const codeEl = document.getElementById('code');
 const crumbEl = document.getElementById('crumb');
+const navEl = document.getElementById('nav');
+const toolsEl = document.getElementById('tools');
+const photoToolsEl = document.getElementById('phototools');
+const textToolsEl = document.getElementById('texttools');
+const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
 let showingFull = false; // se a caixa está mostrando o documento inteiro
+let dirHandle = null;            // pasta com permissão de escrita (modo poderoso)
+let lastBaseName = null;         // nome-base do HTML aberto (para nomear o salvar)
+let originalRefByBlob = new Map();// imagem da prévia -> caminho real (para salvar)
 
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
 function loadHtml(html){
@@ -114,18 +200,73 @@ function loadHtml(html){
 function wirePreview(){
   const doc = iframe.contentDocument;
   if(!doc) return;
-  // captura cliques antes de qualquer ação (impede links de navegar)
+
+  let dragging = false, dragMoved = false, accum = 0, lastX = 0, lastY = 0, suppressClick = false;
+
+  // ARRASTAR A FOTO COM O MOUSE — quando uma imagem está selecionada (e com zoom)
+  doc.addEventListener('mousedown', function(ev){
+    if(selected && selected.tagName === 'IMG'){
+      dragging = true; dragMoved = false; accum = 0;
+      lastX = ev.clientX; lastY = ev.clientY;
+      if(doc.body) doc.body.style.cursor = 'grabbing';
+      ev.preventDefault();   // impede o "fantasma" de arrastar imagem / seleção de texto
+    }
+  }, true);
+  doc.addEventListener('mousemove', function(ev){
+    if(!dragging) return;
+    const dx = ev.clientX - lastX, dy = ev.clientY - lastY;
+    lastX = ev.clientX; lastY = ev.clientY;
+    if(!dragMoved){ accum += Math.abs(dx) + Math.abs(dy); if(accum > 3) dragMoved = true; else return; }
+    dragPhotoBy(dx, dy);
+    ev.preventDefault();
+  }, true);
+  doc.addEventListener('mouseup', function(ev){
+    if(!dragging) return;
+    dragging = false;
+    if(doc.body) doc.body.style.cursor = (selected && selected.tagName === 'IMG') ? 'grab' : '';
+    if(dragMoved){ suppressClick = true; ev.preventDefault(); ev.stopPropagation(); }
+  }, true);
+
+  // CLIQUE = selecionar (mas ignora o clique que apenas terminou um arrasto)
   doc.addEventListener('click', function(ev){
     ev.preventDefault();
     ev.stopPropagation();
+    if(suppressClick){ suppressClick = false; return; }
     selectElement(ev.target);
   }, true);
-  // realce visual do elemento sob o cursor
+
+  // realce visual do elemento selecionado
   const hover = doc.createElement('style');
+  hover.id = '__ya_style';
   hover.textContent = '*{outline-offset:-1px} .__ya_sel{outline:2px solid '
     + getComputedStyle(document.documentElement).getPropertyValue('--sel').trim()
     + ' !important}';
   doc.head && doc.head.appendChild(hover);
+
+  renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
+}
+
+// barra de navegação: um botão por slide; clicar pula a prévia até ele
+function renderSlideBar(){
+  const doc = iframe.contentDocument;
+  slideBar.innerHTML = '';
+  if(!doc){ slideBar.style.display = 'none'; return; }
+  let slides = Array.from(doc.querySelectorAll('.slide-wrapper'));
+  if(!slides.length) slides = Array.from(doc.querySelectorAll('.slide'));
+  if(slides.length < 2){ slideBar.style.display = 'none'; return; }  // só aparece com 2+ slides
+  slideBar.style.display = '';
+  const lab = document.createElement('span'); lab.className = 'sb-label'; lab.textContent = 'Ir para o slide:';
+  slideBar.appendChild(lab);
+  slides.forEach((s, i) => {
+    const b = document.createElement('button'); b.className = 'sb-btn';
+    b.textContent = (s.dataset && s.dataset.n) ? s.dataset.n : (i + 1);
+    b.onclick = () => {
+      s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      slideBar.querySelectorAll('.sb-btn').forEach(x => x.classList.remove('cur'));
+      b.classList.add('cur');
+    };
+    slideBar.appendChild(b);
+  });
 }
 
 // tira o marcador de seleção SEM deixar um class="" vazio para trás
@@ -136,35 +277,235 @@ function clearSel(el){
 }
 
 function selectElement(el){
+  if(!el || el.nodeType !== 1) return;
   clearSel(selected);
   selected = el;
   showingFull = false;
-  crumbEl.textContent = breadcrumb(el);
-  // lemos o código de uma CÓPIA limpa — o elemento real nunca é poluído
-  const clone = el.cloneNode(true);
+  selected.classList.add('__ya_sel');   // acende o realce no elemento de verdade
+  renderCrumb(el);                       // caminho clicável (subir para o que está em volta)
+  renderChildren(el);                    // "Dentro:" — entrar nos elementos de dentro
+  refreshCodeBox();                      // mostra o código (de uma cópia limpa)
+  showToolsFor(el);                      // foto -> ajustar foto; resto -> mover/zoom comum
+}
+
+// mostra o código do elemento selecionado, sempre de uma CÓPIA limpa
+function refreshCodeBox(){
+  if(!selected){ codeEl.value = ''; return; }
+  const clone = selected.cloneNode(true);
   clone.classList.remove('__ya_sel');
   if(clone.getAttribute('class') === '') clone.removeAttribute('class');
   codeEl.value = clone.outerHTML;
-  // só agora acendemos o realce no elemento de verdade
-  selected.classList.add('__ya_sel');
 }
 
-// caminho legível tipo  body > section.card > h1
-function breadcrumb(el){
-  const parts = [];
-  let n = el;
-  while(n && n.nodeType === 1 && n.tagName !== 'HTML'){
-    let s = n.tagName.toLowerCase();
-    if(n.id) s += '#' + n.id;
-    else if(n.className && typeof n.className === 'string'){
-      const cls = n.className.trim().split(/\s+/).filter(c=>c && c!=='__ya_sel');
-      if(cls.length) s += '.' + cls.join('.');
-    }
-    parts.unshift(s);
-    n = n.parentElement;
+// rótulo curto de um elemento, tipo  h1.hero-title.grad-title
+function labelFor(n){
+  let s = n.tagName.toLowerCase();
+  if(n.id) s += '#' + n.id;
+  else if(n.className && typeof n.className === 'string'){
+    const cls = n.className.trim().split(/\s+/).filter(c=>c && c!=='__ya_sel');
+    if(cls.length) s += '.' + cls.join('.');
   }
-  return parts.join('  ›  ');
+  return s;
 }
+
+// caminho clicável: body › div.slide › div.hero › …  (clique para subir)
+function renderCrumb(el){
+  crumbEl.innerHTML = '';
+  const chain = []; let n = el;
+  while(n && n.nodeType === 1 && n.tagName !== 'HTML'){ chain.unshift(n); n = n.parentElement; }
+  chain.forEach((node, i) => {
+    if(i) crumbEl.appendChild(document.createTextNode('  ›  '));
+    const a = document.createElement('span');
+    a.className = 'crumb-link' + (node === el ? ' cur' : '');
+    a.textContent = labelFor(node);
+    a.onclick = () => selectElement(node);
+    crumbEl.appendChild(a);
+  });
+}
+
+// "Dentro:" — botões para entrar nos elementos filhos (ex.: chegar na foto)
+function renderChildren(el){
+  navEl.innerHTML = '';
+  const kids = Array.from(el.children);
+  if(!kids.length){ navEl.style.display = 'none'; return; }
+  navEl.style.display = '';
+  const lab = document.createElement('span'); lab.className = 'nav-label'; lab.textContent = 'Dentro:';
+  navEl.appendChild(lab);
+  kids.forEach(k => {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = labelFor(k);
+    b.onclick = () => selectElement(k);
+    navEl.appendChild(b);
+  });
+}
+
+function setPreviewCursor(c){
+  const body = iframe.contentDocument && iframe.contentDocument.body;
+  if(body) body.style.cursor = c;
+}
+function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; setPreviewCursor(''); }
+
+// é um elemento de texto? (tag de texto comum, ou tem texto escrito direto nele)
+const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
+  'BLOCKQUOTE','FIGCAPTION','LABEL','STRONG','EM','SMALL','B','I','TD','TH']);
+function isTextEl(el){
+  if(!el || el.nodeType !== 1) return false;
+  if(TEXT_TAGS.has(el.tagName)) return true;
+  return Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
+}
+function showToolsFor(el){
+  const img = (el && el.tagName === 'IMG');
+  const txt = !img && isTextEl(el);
+  toolsEl.hidden = img || txt;   // comum (mover/zoom) só para o resto
+  photoToolsEl.hidden = !img;    // imagens: ajustar a foto
+  textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
+  setPreviewCursor(img ? 'grab' : '');
+}
+
+// ---- ajustes visuais: o Editor HTML escreve o transform por você ------
+// lê os ajustes já aplicados (mover/zoom) que estão no style do elemento
+function getTf(el){
+  const t = el.style.transform || '';
+  const mt = t.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+  const ms = t.match(/scale\(([-\d.]+)\)/);
+  return { tx: mt ? +mt[1] : 0, ty: mt ? +mt[2] : 0, s: ms ? +ms[1] : 1 };
+}
+function setTf(el, v){
+  if(v.tx === 0 && v.ty === 0 && v.s === 1){
+    el.style.removeProperty('transform');
+    if(!el.getAttribute('style')) el.removeAttribute('style');
+  }else{
+    el.style.transform = 'translate(' + v.tx + 'px, ' + v.ty + 'px) scale(' + (+v.s.toFixed(3)) + ')';
+  }
+  refreshCodeBox();
+}
+function nudge(dx, dy){ if(!selected) return; const v = getTf(selected); v.tx += dx; v.ty += dy; setTf(selected, v); }
+function zoom(f){ if(!selected) return; const v = getTf(selected); v.s = Math.max(0.1, v.s * f); setTf(selected, v); }
+function resetTf(){ if(!selected) return; setTf(selected, { tx:0, ty:0, s:1 }); }
+
+toolsEl.addEventListener('click', function(ev){
+  const b = ev.target.closest('button'); if(!b || !selected) return;
+  const STEP = 6;
+  switch(b.dataset.act){
+    case 'up':    nudge(0, -STEP); break;
+    case 'down':  nudge(0,  STEP); break;
+    case 'left':  nudge(-STEP, 0); break;
+    case 'right': nudge( STEP, 0); break;
+    case 'zin':   zoom(1.08); break;
+    case 'zout':  zoom(1/1.08); break;
+    case 'reset': resetTf(); break;
+  }
+});
+
+// ---- ajustar FOTO: mexe no ENQUADRAMENTO da imagem, não no texto -------
+// usa object-fit:cover (nunca distorce, mantém o 4:5 do slide) + object-position
+// (escolhe que pedaço aparece) + scale (aproxima). Tudo só no <img>.
+// move a foto com translate (funciona nos 2 sentidos quando há zoom) + scale.
+// object-fit:cover garante sem distorção e mantém o 4:5. tudo só no <img>.
+function getPhoto(el){
+  let tx = 0, ty = 0, s = 1;
+  const t = el.style.transform || '';
+  const mt = t.match(/translate\((-?[\d.]+)%,\s*(-?[\d.]+)%\)/);
+  if(mt){ tx = +mt[1]; ty = +mt[2]; }
+  const ms = t.match(/scale\(([\d.]+)\)/);
+  if(ms) s = +ms[1];
+  return { tx, ty, s };
+}
+function setPhoto(el, v){
+  // só dá pra mover até onde a foto "sobra" por causa do zoom (senão abriria buraco)
+  const room = Math.max(0, (v.s - 1) * 50);   // % de folga de cada lado
+  v.tx = Math.max(-room, Math.min(room, v.tx));
+  v.ty = Math.max(-room, Math.min(room, v.ty));
+  el.style.removeProperty('object-position');  // limpa o modo antigo, se houver
+  if(v.tx === 0 && v.ty === 0 && v.s === 1){
+    el.style.removeProperty('object-fit');
+    el.style.removeProperty('transform');
+  }else{
+    el.style.objectFit = 'cover';
+    el.style.transform = 'translate(' + (+v.tx.toFixed(2)) + '%, ' + (+v.ty.toFixed(2)) + '%) scale(' + (+v.s.toFixed(3)) + ')';
+  }
+  if(!el.getAttribute('style')) el.removeAttribute('style');
+  refreshCodeBox();
+}
+// arrastar a foto com o mouse: converte o movimento (px) em % do quadro
+function dragPhotoBy(dxPx, dyPx){
+  if(!selected || selected.tagName !== 'IMG') return;
+  const w = selected.clientWidth || 1, h = selected.clientHeight || 1;
+  const v = getPhoto(selected);
+  v.tx += dxPx / w * 100;
+  v.ty += dyPx / h * 100;
+  setPhoto(selected, v);
+}
+// setas = "arrastar a foto" naquele sentido
+function panPhoto(dx, dy){ if(!selected) return; const v = getPhoto(selected); v.tx += dx; v.ty += dy; setPhoto(selected, v); }
+function zoomPhoto(f){ if(!selected) return; const v = getPhoto(selected); v.s = Math.max(1, Math.min(5, v.s * f)); setPhoto(selected, v); }
+function resetPhoto(){ if(!selected) return; setPhoto(selected, { tx:0, ty:0, s:1 }); }
+
+photoToolsEl.addEventListener('click', function(ev){
+  const b = ev.target.closest('button'); if(!b || !selected) return;
+  const STEP = 4;
+  switch(b.dataset.pact){
+    case 'up':    panPhoto(0, -STEP); break;
+    case 'down':  panPhoto(0,  STEP); break;
+    case 'left':  panPhoto(-STEP, 0); break;
+    case 'right': panPhoto( STEP, 0); break;
+    case 'zin':   zoomPhoto(1.08); break;
+    case 'zout':  zoomPhoto(1/1.08); break;
+    case 'reset': resetPhoto(); break;
+  }
+});
+
+// ---- ajustar TEXTO: tamanho da fonte (nítido) + largura da caixa (re-quebra) ----
+function changeFont(delta){
+  if(!selected) return;
+  const cur = parseFloat(getComputedStyle(selected).fontSize) || 16;
+  const nw = Math.max(6, Math.round((cur + delta) * 10) / 10);
+  selected.style.fontSize = nw + 'px';
+  refreshCodeBox();
+}
+function changeWidth(delta){
+  if(!selected) return;
+  if(getComputedStyle(selected).display === 'inline') selected.style.display = 'inline-block';
+  selected.style.maxWidth = 'none';   // libera o limite embutido do design (max-width)
+  // sem trava: a caixa pode crescer à vontade; o que passar da borda do slide
+  // só fica recortado pela arte (não distorce, não mexe no 4:5)
+  const cur = selected.getBoundingClientRect().width || 100;
+  selected.style.width = Math.max(40, Math.round(cur + delta)) + 'px';
+  refreshCodeBox();
+}
+function resetText(){
+  if(!selected) return;
+  ['font-size','width','max-width','display','transform'].forEach(p => selected.style.removeProperty(p));
+  if(!selected.getAttribute('style')) selected.removeAttribute('style');
+  refreshCodeBox();
+}
+// encaixar a caixa no texto (tira o espaço vazio) — alterna ligado/desligado
+function fitBox(){
+  if(!selected) return;
+  if(selected.style.width === 'fit-content'){
+    selected.style.removeProperty('width');     // volta ao normal
+  }else{
+    selected.style.width = 'fit-content';        // caixa cola no texto
+  }
+  if(!selected.getAttribute('style')) selected.removeAttribute('style');
+  refreshCodeBox();
+}
+
+textToolsEl.addEventListener('click', function(ev){
+  const b = ev.target.closest('button'); if(!b || !selected) return;
+  const STEP = 6;
+  switch(b.dataset.tact){
+    case 'up':      nudge(0, -STEP); break;
+    case 'down':    nudge(0,  STEP); break;
+    case 'left':    nudge(-STEP, 0); break;
+    case 'right':   nudge( STEP, 0); break;
+    case 'smaller': changeFont(-2); break;
+    case 'bigger':  changeFont(2); break;
+    case 'narrow':  changeWidth(-10); break;
+    case 'widen':   changeWidth(10); break;
+    case 'fit':     fitBox(); break;
+    case 'reset':   resetText(); break;
+  }
+});
 
 // ---- 3) Aplica a edição: troca só aquele elemento, ao vivo ----
 document.getElementById('apply').addEventListener('click', function(){
@@ -174,6 +515,8 @@ document.getElementById('apply').addEventListener('click', function(){
     clearSel(selected);
     selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
     selected = null;
+    hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none';
+    renderSlideBar();   // mantém a barra de slides em dia se algo mudou
     crumbEl.textContent = '✓ aplicado — clique de novo num elemento para continuar';
   }catch(err){
     alert('Não consegui aplicar: ' + err.message);
@@ -186,6 +529,7 @@ document.getElementById('full').addEventListener('click', function(){
   if(!doc) return;
   clearSel(selected);
   showingFull = true;
+  hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none';
   crumbEl.textContent = '(documento inteiro — somente leitura)';
   // remove os marcadores internos antes de mostrar
   doc.querySelectorAll('.__ya_sel').forEach(clearSel);
@@ -204,6 +548,175 @@ document.getElementById('paste').addEventListener('click', async function(){
   catch{ const t = prompt('Cole o HTML aqui:'); if(t) loadHtml(t); }
 });
 
+// ---- Abrir PASTA (HTML + imagens juntos, e leve) ----------------------
+// O navegador não nos diz onde fica a pasta de um arquivo só; por isso aqui
+// pedimos a pasta inteira. Religamos cada imagem como uma URL interna (blob:)
+// e trocamos o caminho relativo no HTML pela blob — a foto aparece de verdade,
+// sem o CSS ser tocado. Para a edição ficar leve: só carregamos as imagens que
+// o HTML REALMENTE usa, e mostramos uma versão ENCOLHIDA na prévia (o arquivo
+// original no seu PC fica intacto). Nada sai da máquina.
+const MAX_PREVIEW_SIDE = 1400; // px no maior lado: nítido no slide, bem mais leve
+
+function isImageFile(f){
+  return /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|avif|bmp)$/i.test(f.name);
+}
+
+// devolve uma URL interna de uma versão ENCOLHIDA da imagem (origem intacta)
+async function shrinkToUrl(file){
+  const big = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res, rej) => {
+      const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = big;
+    });
+    const maxSide = Math.max(img.naturalWidth, img.naturalHeight);
+    if(maxSide <= MAX_PREVIEW_SIDE) return big;               // já é pequena: usa como está
+    const k = MAX_PREVIEW_SIDE / maxSide;
+    const cw = Math.round(img.naturalWidth * k), ch = Math.round(img.naturalHeight * k);
+    const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+    cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
+    URL.revokeObjectURL(big);                                 // libera a foto pesada
+    return blob ? URL.createObjectURL(blob) : big;
+  }catch(e){ return big; }                                    // qualquer erro: usa a original
+}
+
+// junta os arquivos de uma pasta escolhida pelo modo poderoso (caminho relativo
+// à raiz escolhida, SEM o nome dela na frente)
+async function collectFromHandle(dir, prefix){
+  const out = [];
+  for await (const [name, h] of dir.entries()){
+    if(h.kind === 'file'){ out.push({ file: await h.getFile(), key: prefix + name }); }
+    else if(h.kind === 'directory'){ out.push(...await collectFromHandle(h, prefix + name + '/')); }
+  }
+  return out;
+}
+
+// o miolo: recebe [{file, key}] e monta a prévia religando só as imagens usadas
+async function loadFolder(entries){
+  const htmls = entries.filter(en => /\.html?$/i.test(en.file.name));
+  if(!htmls.length){ alert('Não achei nenhum arquivo .html dentro dessa pasta.'); return; }
+  // HTML principal = o mais "raso" (menos barras no caminho)
+  htmls.sort((a, b) => a.key.split('/').length - b.key.split('/').length);
+  const main = htmls[0];
+  const baseDir = main.key.includes('/') ? main.key.slice(0, main.key.lastIndexOf('/') + 1) : '';
+  lastBaseName = main.file.name.replace(/\.html?$/i, '');
+
+  let html = await main.file.text();
+  crumbEl.textContent = 'preparando as imagens…';
+  originalRefByBlob = new Map();
+
+  // descobre só os arquivos que o HTML realmente referencia (o resto é ignorado)
+  const used = [];
+  for(const en of entries){
+    if(en === main) continue;
+    const rel = en.key.startsWith(baseDir) ? en.key.slice(baseDir.length) : en.key; // relativo ao html
+    const searches = ['"./'+rel+'"', "'./"+rel+"'", '"/'+en.key+'"', "'/"+en.key+"'", '"'+rel+'"', "'"+rel+"'"];
+    if(searches.some(s => html.includes(s))) used.push({ en, rel, searches });
+  }
+
+  // gera a URL interna (imagens ENCOLHIDAS; o resto direto) e guarda o caminho
+  // real de cada uma, pra devolver na hora de salvar
+  const resolved = await Promise.all(used.map(async u => {
+    const url = isImageFile(u.en.file) ? await shrinkToUrl(u.en.file) : URL.createObjectURL(u.en.file);
+    originalRefByBlob.set(url, './' + u.rel);
+    return { searches: u.searches, url };
+  }));
+  for(const { searches, url } of resolved){
+    for(const s of searches){ const q = s[0]; html = html.split(s).join(q + url + q); }
+  }
+
+  crumbEl.textContent = '';
+  loadHtml(html);
+}
+
+// botão "Abrir pasta": modo poderoso (Chrome/Edge: deixa salvar na pasta) quando
+// disponível; senão cai no modo leitura (input comum)
+document.getElementById('folder').addEventListener('click', async function(){
+  if(window.showDirectoryPicker){
+    let handle;
+    try{ handle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+    catch(e){ return; }  // usuário cancelou a janela
+    dirHandle = handle;
+    await loadFolder(await collectFromHandle(handle, ''));
+  }else{
+    dirHandle = null;
+    document.getElementById('folderInput').click();
+  }
+});
+document.getElementById('folderInput').addEventListener('change', function(e){
+  dirHandle = null;
+  const files = Array.from(e.target.files || []);
+  // caminho SEM o nome da pasta-raiz (ex.: "01/assets/x.jpg" -> "assets/x.jpg")
+  const keyOf = f => { const p=(f.webkitRelativePath||f.name).replace(/\\/g,'/'); const i=p.indexOf('/'); return i===-1?p:p.slice(i+1); };
+  loadFolder(files.map(f => ({ file: f, key: keyOf(f) })));
+});
+
+// ---- SALVAR -----------------------------------------------------------
+// monta o HTML final: tira nossos marcadores internos e devolve o caminho REAL
+// das fotos (no lugar da versão encolhida da prévia)
+function buildFinalHtml(){
+  const doc = iframe.contentDocument;
+  const root = doc.documentElement.cloneNode(true);
+  root.querySelectorAll('.__ya_sel').forEach(el => {
+    el.classList.remove('__ya_sel');
+    if(el.getAttribute('class') === '') el.removeAttribute('class');
+  });
+  const inj = root.querySelector('#__ya_style'); if(inj) inj.remove();
+  let html = '<!doctype html>\n' + root.outerHTML;
+  for(const [blobUrl, ref] of originalRefByBlob){ html = html.split(blobUrl).join(ref); }
+  return html;
+}
+
+// escolhe um nome que ainda NÃO existe na pasta (nunca substitui o original)
+function pickName(taken){
+  const base = lastBaseName || 'pagina';
+  let name = base + '-editado.html', i = 2;
+  while(taken.has(name)){ name = base + '-editado-' + i + '.html'; i++; }
+  return name;
+}
+
+async function saveIntoFolder(html){
+  if(dirHandle.queryPermission){
+    const opt = { mode: 'readwrite' };
+    if(await dirHandle.queryPermission(opt) !== 'granted'){
+      if(await dirHandle.requestPermission(opt) !== 'granted') throw new Error('permissão de escrita negada');
+    }
+  }
+  const taken = new Set();
+  for await (const [n] of dirHandle.entries()){ taken.add(n); }
+  const name = pickName(taken);
+  const fh = await dirHandle.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(html); await w.close();
+  return name;
+}
+
+function downloadHtml(html){
+  const name = (lastBaseName || 'pagina') + '-editado.html';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  return name;
+}
+
+document.getElementById('save').addEventListener('click', async function(){
+  const html = buildFinalHtml();
+  try{
+    if(dirHandle){
+      const name = await saveIntoFolder(html);
+      alert('✅ Salvo dentro da pasta como:\n\n' + name + '\n\nSeu arquivo original não foi tocado.');
+    }else{
+      const name = downloadHtml(html);
+      alert('Salvei na sua pasta de Downloads como:\n\n' + name +
+        '\n\n(Para salvar direto na pasta da peça, o Editor HTML precisa ser aberto por um endereço local — é só me pedir o atalho.)');
+    }
+  }catch(err){
+    alert('Não consegui salvar: ' + err.message);
+  }
+});
+
 // ---- exemplo de boas-vindas (com efeitos que o GrapesJS quebrava) ----
 const SAMPLE = `<!doctype html><html><head><meta charset="utf-8"><style>
   body{margin:0;font-family:system-ui;background:#0C6E6E;color:#fff;
@@ -217,7 +730,7 @@ const SAMPLE = `<!doctype html><html><head><meta charset="utf-8"><style>
   p{margin:0;opacity:.85}
 </style></head><body>
   <div class="card">
-    <h1>Olá! Esta é a casinha</h1>
+    <h1>Olá! Este é o Editor HTML</h1>
     <p>Clique neste texto e veja o código dele à direita →</p>
   </div>
 </body></html>`;
