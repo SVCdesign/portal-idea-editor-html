@@ -6,7 +6,10 @@ agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
 **conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
 sempre embrulha o texto colorido num `span` "em linha", que antes ignorava o
 mover); (3) **editar texto NO LUGAR** — dois cliques (ou botão ✏️) e você digita
-direto na prévia, com o estilo real. Contexto que segue valendo: papéis alinhados —
+direto na prévia, com o estilo real (**Shift+Enter** pula linha `<br>`, **Enter**
+termina). **Regra nova (2026-07-01):** implementação bem-sucedida **e testada**
+agora **sobe pro GitHub sozinha**, sem esperar novo "salva" (ver `CLAUDE.md` →
+"Convenção de publicação"). Contexto que segue valendo: papéis alinhados —
 **o Carlos edita as peças; a IA só constrói/evolui o editor**; conversa com o
 `html-studio` ENCERRADA COM ACORDO MÚTUO (turnos 01–07). Sem frente de código em
 aberto nem bug conhecido.
@@ -73,12 +76,13 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   em bloco segue igual; `↺ desfazer` volta ao lugar).
 - **✏️ Editar TEXTO no lugar (digitar na prévia) — NOVO:** dois cliques no texto
   (ou o botão **✏️ Editar aqui** no painel) e você digita direto na prévia, com o
-  estilo real (moldura **tracejada laranja** = modo edição). `Esc`/`Enter` terminam;
-  clicar fora também. Mexe **só nas palavras** — o CSS nunca é tocado. Usa o modo
-  `contenteditable=plaintext-only` (colar do Word entra como **texto puro**, sem
-  sujeira). O código à direita acompanha **ao vivo** e sempre **limpo**; o arquivo
-  salvo sai **sem marca de edição** (buildFinalHtml tira `contenteditable`). Quebra
-  de linha caprichada (`<br>`) ficou pra depois. Validado no navegador.
+  estilo real (moldura **tracejada laranja** = modo edição). **`Enter`** ou `Esc` ou
+  clicar fora **terminam**; **`Shift+Enter` pula linha** (`<br>`, igual o padrão do
+  studio). Mexe **só nas palavras** — o CSS nunca é tocado. Usa `contenteditable`
+  normal, MAS **colar entra como texto puro** (sem sujeira do Word) e `Ctrl+B/I/U`
+  ficam bloqueados. O código à direita acompanha **ao vivo** e sempre **limpo**; ao
+  terminar, tira `<br>` "fantasma" do fim; o arquivo salvo sai **sem marca de
+  edição** (buildFinalHtml tira `contenteditable`). Validado no navegador.
 - **Mover/zoom comum** (demais elementos): setas + zoom (transform), `↺ desfazer`.
 - **💾 Salvar:** no Chrome/Edge salva **direto na pasta** com renome automático
   (`...-editado.html`, depois `-2`, `-3`…), devolvendo o **caminho real das fotos**

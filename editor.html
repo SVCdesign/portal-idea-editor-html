@@ -161,7 +161,7 @@
           </div>
         </div>
         <div id="texttools" class="tools" hidden>
-          <div class="tlabel">✍️ Ajustar texto — <b>dois cliques no texto pra digitar</b> (ou o botão ✏️); e tamanho / largura da caixa / mover, sem distorcer:</div>
+          <div class="tlabel">✍️ Ajustar texto — <b>dois cliques no texto pra digitar</b> (ou o botão ✏️; <b>Shift+Enter</b> pula linha); e tamanho / largura da caixa / mover:</div>
           <div class="tgrid">
             <button data-tact="edit" title="digitar o texto direto na prévia (dois cliques no próprio texto também funciona)">✏️ Editar aqui</button>
             <span class="sep"></span>
@@ -267,10 +267,13 @@ function wirePreview(){
     startTextEdit(ev.target, ev.clientX, ev.clientY);
   }, true);
 
-  // Esc ou Enter terminam a edição (nesta versão o Enter não quebra linha)
+  // teclas na edição: Shift+Enter quebra linha (<br>); Enter/Esc terminam;
+  // Ctrl/Cmd+B/I/U bloqueados (mantém texto puro, sem negrito/itálico acidental)
   doc.addEventListener('keydown', function(ev){
     if(!editingEl) return;
-    if(ev.key === 'Escape' || ev.key === 'Enter'){ ev.preventDefault(); stopTextEdit(); }
+    if((ev.ctrlKey || ev.metaKey) && ['b','i','u'].includes((ev.key||'').toLowerCase())){ ev.preventDefault(); return; }
+    if(ev.key === 'Enter' && ev.shiftKey){ ev.preventDefault(); insertLineBreak(); return; }
+    if(ev.key === 'Enter' || ev.key === 'Escape'){ ev.preventDefault(); stopTextEdit(); }
   }, true);
 
   // realce visual: seleção (linha cheia) e edição de texto (linha tracejada)
@@ -588,15 +591,27 @@ function fitBox(){
 // usa o modo "texto puro" do navegador — nada de sujeira ao colar do Word.
 function onEditBlur(){ stopTextEdit(); }
 function onEditInput(){ if(editingEl && selected === editingEl) refreshCodeBox(); }
+// colar SEMPRE como texto puro (sem sujeira de formatação do Word etc.)
+function onEditPaste(ev){
+  ev.preventDefault();
+  const text = (ev.clipboardData && ev.clipboardData.getData('text/plain')) || '';
+  iframe.contentDocument.execCommand('insertText', false, text);
+}
+// Shift+Enter = quebra de linha (<br>) onde está o cursor
+function insertLineBreak(){
+  iframe.contentDocument.execCommand('insertLineBreak');   // Chromium cuida das bordas
+  onEditInput();                                           // o código à direita acompanha
+}
 function startTextEdit(el, x, y){
   if(!el || !isTextEl(el)) return;
   if(selected !== el) selectElement(el);   // garante seleção + ferramentas certas
   stopTextEdit();                          // fecha uma edição anterior, se houver
   editingEl = el;
-  el.setAttribute('contenteditable', 'plaintext-only');
+  el.setAttribute('contenteditable', 'true');    // normal (permite <br> no Shift+Enter)
   el.classList.add('__ya_editing');
   el.addEventListener('blur', onEditBlur);
-  el.addEventListener('input', onEditInput);   // código à direita acompanha ao vivo
+  el.addEventListener('input', onEditInput);     // código à direita acompanha ao vivo
+  el.addEventListener('paste', onEditPaste);     // colar entra como TEXTO PURO (sem sujeira)
   el.focus();
   // coloca o cursor exatamente onde a pessoa clicou (quando veio de dois cliques)
   const doc = iframe.contentDocument;
@@ -611,9 +626,12 @@ function stopTextEdit(){
   const el = editingEl; editingEl = null;
   el.removeEventListener('blur', onEditBlur);
   el.removeEventListener('input', onEditInput);
+  el.removeEventListener('paste', onEditPaste);
   el.removeAttribute('contenteditable');
   el.classList.remove('__ya_editing');
   if(el.getAttribute('class') === '') el.removeAttribute('class');
+  // tira <br>(s) "fantasma" que o navegador às vezes deixa no fim (texto limpo)
+  while(el.lastChild && el.lastChild.nodeName === 'BR'){ el.removeChild(el.lastChild); }
   setPreviewCursor('');
   if(selected === el) refreshCodeBox();     // o código passa a mostrar o texto novo
 }
