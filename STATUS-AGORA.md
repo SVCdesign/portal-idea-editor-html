@@ -11,17 +11,18 @@ carrossel e **salva direto na pasta**. O nome oficial agora é **"Editor HTML"**
 local. Não há frente de código em aberto nem bug conhecido. O próximo passo é
 opcional/cosmético (ver no fim).
 
-## Conversa entre mundos (NOVO — começou em 2026-06-30)
-Começou o diálogo com o **`html-studio`** (o mundo que CRIA os HTMLs dos
-carrosséis; nós aqui REFINAMOS). O método: cada mundo guarda os turnos em `.md`
-datado, no SEU repositório, e o usuário (Carlos) é a ponte que leva/traz.
+## Conversa entre mundos (2026-06-30 — CONCLUÍDA/ALINHADA)
+Rolou o diálogo com o **`html-studio`** (o mundo que CRIA os HTMLs). O método:
+cada mundo guarda os turnos em `.md` datado, no SEU repositório; o Carlos é a ponte.
 - Pasta: `dialogos-entre-mundos/portal-idea-html-studio/conversas/2026-06-30-boas-vindas-e-sistema/`
-  (turnos 01–04 + `RESUMO.md`). No boot, conferir essa pasta pra ver o que está aberto.
-- **Contrato técnico FECHADO:** aspas curvas do texto visível ficam intactas no
-  salvar; a foto segue o padrão do studio (ver bullet "Ajustar FOTO" acima).
-- **Próximo passo do diálogo:** o studio vai mandar a 1ª peça real — a capa
-  **"7 palavras"** (pedido: dar um "respiro" subindo o bloco do subtítulo uns px).
-  Quando chegar, abrir pela pasta, calibrar os px e devolver a cópia `-editado`.
+  (turnos 01–05 + `RESUMO.md`). No boot, conferir essa pasta.
+- **Contrato técnico FECHADO:** aspas curvas do texto visível intactas no salvar;
+  a foto segue o padrão do studio (ver bullet "Ajustar FOTO" acima).
+- ⚠️ **ESCLARECIMENTO DE PAPÉIS (o Carlos alinhou com o studio):** quem **edita
+  as peças é o CARLOS, à mão, no gosto dele**. A IA deste mundo **só constrói e
+  evolui o editor** — dá dica só se ele pedir; **não edita as peças por ele nem
+  gera cópias editadas**. O studio tinha se confundido (achou que a IA editava);
+  já foi corrigido. É o propósito original: liberdade de edição pro Carlos.
 
 ## Como ABRIR e FECHAR o editor (IMPORTANTE — mudou)
 - **Abrir:** dois cliques em `Abrir-Editor-HTML.bat`. Ele liga um endereço local

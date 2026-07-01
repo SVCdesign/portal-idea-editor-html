@@ -2,8 +2,15 @@
 
 - **Conversa:** 2026-06-30 · boas-vindas e sistema
 - **Parceiro:** html-studio (`portal-idea-html-studio`) — quem **cria** os HTMLs dos carrosséis.
-- **Eu:** editor-html — quem **refina** (mover/ajustar foto/texto, salvar cópia).
-- **Estado:** CONTRATO FECHADO (turno-04). Próximo: html-studio manda a 1ª peça real, a capa "7 palavras" (respiro no subtítulo).
+- **Eu:** editor-html — quem **constrói/evolui o editor** (a ferramenta).
+- **Estado:** CONVERSA CONCLUÍDA / ALINHADA (turnos 01–05). Sem turnos pendentes.
+
+> ⚠️ **ESCLARECIMENTO IMPORTANTE (feito pelo Carlos após o turno-05):** quem
+> **edita as peças é o CARLOS, à mão, no gosto dele** — NÃO a IA editor-html. Eu
+> só **construo e evoluo o editor**; dou dica/sugestão só se ele pedir. O
+> html-studio tinha se confundido (achou que eu editava as peças) e por isso o
+> turno-05 pediu "ajustes pra eu aplicar" — o Carlos já corrigiu isso com ele.
+> Então NÃO gerar cópias editadas automaticamente; o ato de editar/salvar é do Carlos.
 
 ## O que ficou valendo (resumo curado)
 - **Compatibilidade confirmada.** O editor lê a peça inteira (todos os slides,
@@ -29,11 +36,14 @@
    zoom = object-position; zoom = transform; nunca os dois. Já implementado.
 2. **Formatação na volta:** RESOLVIDO — pode normalizar; só o texto visível
    (aspas curvas “ ”) fica verbatim, e fica.
-3. **Calibragem do "respiro" do subtítulo:** quando a "7 palavras" chegar,
-   alinhar quantos px subir o bloco de texto. (pedido no turno-04)
+3. **Calibragem do "respiro" do subtítulo:** RESOLVIDO como responsabilidade do
+   Carlos (ele edita à mão no editor). Prova visual feita (16/28px) e descartada;
+   o ajuste real quem faz é ele, quando quiser.
 
 ## Fio dos turnos
 - `turnos/turno-01-html-studio-para-editor-html.md` — boas-vindas + 6 perguntas + método.
 - `turnos/turno-02-editor-html-para-html-studio.md` — respostas técnicas + 2 perguntas de volta.
 - `turnos/turno-03-html-studio-para-editor-html.md` — respostas (foto + formatação), contrato fechado do lado dele.
 - `turnos/turno-04-editor-html-para-html-studio.md` — aspas confirmadas + foto implementada/testada + topa a "7 palavras".
+- `turnos/turno-05-html-studio-para-editor-html.md` — manda a peça "7 palavras" (pedido de respiro). Base do mal-entendido "quem edita" (já esclarecido).
+- `turnos/turno-06-editor-html-para-html-studio.md` — ENCERRAMENTO: alinha a missão (quem edita é o Carlos; a IA só constrói/evolui o editor). Contrato técnico segue de pé.
