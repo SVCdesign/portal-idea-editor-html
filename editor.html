@@ -283,7 +283,8 @@ function wirePreview(){
   const cEdit = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
   hover.textContent = '*{outline-offset:-1px}'
     + ' .__ya_sel{outline:2px solid ' + cSel + ' !important}'
-    + ' .__ya_editing{outline:2px dashed ' + cEdit + ' !important; cursor:text !important}';
+    + ' .__ya_editing{outline:2px dashed ' + cEdit + ' !important; cursor:text !important;'
+    + ' caret-color:' + cEdit + ' !important}';   // cursor visível mesmo em texto com gradiente (que é transparente)
   doc.head && doc.head.appendChild(hover);
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
@@ -599,8 +600,16 @@ function onEditPaste(ev){
 }
 // Shift+Enter = quebra de linha (<br>) onde está o cursor
 function insertLineBreak(){
-  iframe.contentDocument.execCommand('insertLineBreak');   // Chromium cuida das bordas
-  onEditInput();                                           // o código à direita acompanha
+  const doc = iframe.contentDocument;
+  if(!editingEl) return;
+  const sel = doc.getSelection();
+  // garante o cursor DENTRO do texto em edição (senão joga pro fim dele)
+  if(!sel.rangeCount || !editingEl.contains(sel.anchorNode)){
+    const r = doc.createRange(); r.selectNodeContents(editingEl); r.collapse(false);
+    sel.removeAllRanges(); sel.addRange(r);
+  }
+  doc.execCommand('insertLineBreak');   // insere o <br> no cursor
+  onEditInput();                        // o código à direita acompanha
 }
 function startTextEdit(el, x, y){
   if(!el || !isTextEl(el)) return;

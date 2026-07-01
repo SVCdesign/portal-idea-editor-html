@@ -76,9 +76,10 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   em bloco segue igual; `↺ desfazer` volta ao lugar).
 - **✏️ Editar TEXTO no lugar (digitar na prévia) — NOVO:** dois cliques no texto
   (ou o botão **✏️ Editar aqui** no painel) e você digita direto na prévia, com o
-  estilo real (moldura **tracejada laranja** = modo edição). **`Enter`** ou `Esc` ou
-  clicar fora **terminam**; **`Shift+Enter` pula linha** (`<br>`, igual o padrão do
-  studio). Mexe **só nas palavras** — o CSS nunca é tocado. Usa `contenteditable`
+  estilo real (moldura **tracejada laranja** = modo edição; **cursor laranja
+  visível até em título com gradiente** — senão herdava a cor transparente do
+  gradiente e sumia). **`Enter`** ou `Esc` ou clicar fora **terminam**;
+  **`Shift+Enter` pula linha** (`<br>`, igual o padrão do studio). Mexe **só nas palavras** — o CSS nunca é tocado. Usa `contenteditable`
   normal, MAS **colar entra como texto puro** (sem sujeira do Word) e `Ctrl+B/I/U`
   ficam bloqueados. O código à direita acompanha **ao vivo** e sempre **limpo**; ao
   terminar, tira `<br>` "fantasma" do fim; o arquivo salvo sai **sem marca de
