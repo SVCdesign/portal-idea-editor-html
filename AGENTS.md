@@ -26,6 +26,8 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   Antes de rodar qualquer comando, diga o que faz e se é seguro/reversível.
 - **Aprovação obrigatória.** Nada de criar/editar/instalar/publicar sem o "vai"
   explícito dele. Descreva → espere o sim → só então execute. Silêncio não é sim.
+  (Única exceção: **publicar no GitHub logo após uma implementação bem-sucedida e
+  testada** é pré-autorizado — ver "Convenção de publicação".)
 - **Conversa antes de código.** "Vamos conversar" = discutir, não implementar.
 - **MVP primeiro.** Comece enxuto, cresça guiado.
 - **No fim de cada chat:** atualize o `STATUS-AGORA.md` e repita os caminhos das
@@ -41,6 +43,13 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   (local-only, fora do Git). O usuário é a ponte.
 
 ## Convenção de publicação (casa)
+- **Auto-publicar após SUCESSO (regra do Carlos, 2026-07-01):** toda implementação
+  **bem-sucedida** — feita **E** testada/verificada funcionando (no navegador) —
+  deve ser **commitada e empurrada pro GitHub na hora**, sem esperar um novo "salva".
+  Junto, atualize o `STATUS-AGORA.md` e diga o que subiu. **SÓ se bem-sucedida:** se
+  o teste falhar, ficar pela metade ou houver qualquer dúvida, **NÃO suba** — pare e
+  reporte. (A trava do "vai" continua valendo pra COMEÇAR a implementar; só o
+  PUBLICAR depois do sucesso fica pré-autorizado.)
 - Galho principal: `main`. Repositório: **privado**.
 - Sobe pro Git: código leve + texto (inclui `memoria/`).
 - NÃO sobe: assets pesados (imagens/fontes/PNG/vídeo → Google Drive) nem a
