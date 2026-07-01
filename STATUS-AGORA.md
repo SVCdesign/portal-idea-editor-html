@@ -1,10 +1,13 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-01 · **Motivo:** ENTREGA pra outra IA (troca de PC). Nesta
-sessão: (1) ajuste da FOTO pra casar com o padrão do `html-studio`, implementado
-e testado; (2) conversa entre mundos com o `html-studio` ENCERRADA COM ACORDO
-MÚTUO (turnos 01–07); (3) papéis alinhados — **o Carlos edita as peças; a IA só
-constrói/evolui o editor**. Sem frente de código em aberto nem bug conhecido.
+**Atualizado:** 2026-07-01 · **Motivo:** duas melhorias no editor (pedidas e
+aprovadas pelo Carlos, testadas no navegador e salvas no Git): (1) **"Abrir pasta"
+agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
+**conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
+sempre embrulha o texto colorido num `span` "em linha", que antes ignorava o
+mover). Contexto que segue valendo: papéis alinhados — **o Carlos edita as peças;
+a IA só constrói/evolui o editor**; conversa com o `html-studio` ENCERRADA COM
+ACORDO MÚTUO (turnos 01–07). Sem frente de código em aberto nem bug conhecido.
 
 ## Em uma frente
 O `editor.html` deixou de ser só o MVP "clicar → ver código" e virou um **editor
@@ -45,7 +48,9 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   **barra `[1]…[N]`** no topo da prévia pra pular entre slides (só aparece com 2+).
 - **📁 Abrir pasta (com imagens):** acha o HTML + as imagens que ele usa, religa as
   fotos (mostra versão **encolhida** na prévia; o original no PC fica intacto) e
-  ignora imagens não usadas (deixa leve).
+  ignora imagens não usadas (deixa leve). **NOVO:** se a pasta tiver **2+ HTMLs**,
+  abre uma **janelinha pra escolher qual** (mostra a subpasta se houver); com 1 só,
+  abre direto (igual antes).
 - **Ajustar FOTO** (aparece ao selecionar `<img>`): zoom + **arrastar com o mouse**
   + setas — mexe SÓ na foto, sem tocar no texto, mantendo o 4:5. `↺ desfazer`.
   **NOVO (acordo com o html-studio, 2026-06-30):** uma fonte de verdade só, nunca
@@ -58,6 +63,12 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   nítido, sem distorcer), `◄/► caixa` (largura — re-quebra a linha sozinha, **sem
   trava**; o que passar da borda do slide só fica recortado pela arte), `⤡ encaixar`
   (caixa cola no texto, liga/desliga), setas pra mover, `↺ desfazer`.
+  **NOVO (conserto):** o **mover/zoom** agora vale também pros textos "em linha"
+  (ex.: o `span` do título com gradiente, padrão do html-studio) — antes o ajuste
+  era escrito mas o navegador ignorava. Por baixo: se o elemento é `display:inline`,
+  vira `inline-block` na hora de mover (mesma técnica da ferramenta de caixa).
+  Validado no navegador (título com gradiente move e mantém o gradiente; título
+  em bloco segue igual; `↺ desfazer` volta ao lugar).
 - **Mover/zoom comum** (demais elementos): setas + zoom (transform), `↺ desfazer`.
 - **💾 Salvar:** no Chrome/Edge salva **direto na pasta** com renome automático
   (`...-editado.html`, depois `-2`, `-3`…), devolvendo o **caminho real das fotos**

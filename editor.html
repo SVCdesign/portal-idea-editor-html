@@ -90,6 +90,21 @@
   .sb-btn{background:var(--line);color:var(--ink);border:1px solid #36404c;
           min-width:30px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;padding:0 8px}
   .sb-btn:hover{border-color:var(--accent)}
+
+  /* janelinha pra escolher qual HTML abrir (quando a pasta tem vários) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
+                 display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+             padding:18px;width:100%;max-width:520px;max-height:80vh;
+             display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .modal-box h3{margin:0 0 4px;font-size:15px}
+  .modal-sub{margin:0 0 12px;color:var(--muted);font-size:12px}
+  .modal-list{display:flex;flex-direction:column;gap:6px;overflow:auto}
+  .modal-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+              width:100%;text-align:left;padding:10px 12px}
+  .modal-item .mi-name{font-size:13px}
+  .modal-item .mi-folder{color:var(--muted);font-size:11px;font-family:ui-monospace,Consolas,monospace}
+  .modal-cancel{align-self:flex-end;margin-top:12px}
   .sb-btn.cur{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:700}
 </style>
 </head>
@@ -374,6 +389,9 @@ function setTf(el, v){
     el.style.removeProperty('transform');
     if(!el.getAttribute('style')) el.removeAttribute('style');
   }else{
+    // texto "em linha" (ex.: o <span> do título com gradiente) IGNORA transform;
+    // vira inline-block pra o mover/zoom valer (mesma técnica da ferramenta de caixa)
+    if(getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
     el.style.transform = 'translate(' + v.tx + 'px, ' + v.ty + 'px) scale(' + (+v.s.toFixed(3)) + ')';
   }
   refreshCodeBox();
@@ -639,13 +657,68 @@ async function collectFromHandle(dir, prefix){
   return out;
 }
 
+// quando a pasta tem 2+ HTMLs, mostra uma janelinha pra o usuário escolher qual
+// abrir. devolve a entrada escolhida ({file,key}) ou null se ele cancelar.
+function chooseHtml(htmls){
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+    const h = document.createElement('h3');
+    h.textContent = 'Qual HTML você quer abrir?';
+    const sub = document.createElement('p');
+    sub.className = 'modal-sub';
+    sub.textContent = 'Esta pasta tem mais de um. Clique no que você quer editar.';
+    const list = document.createElement('div');
+    list.className = 'modal-list';
+    htmls.forEach(en => {
+      const name = en.file.name;
+      const folder = en.key.length > name.length ? en.key.slice(0, en.key.length - name.length) : '';
+      const item = document.createElement('button');
+      item.className = 'modal-item';
+      const nm = document.createElement('span');
+      nm.className = 'mi-name';
+      nm.textContent = '📄 ' + name;
+      item.appendChild(nm);
+      if(folder){
+        const fd = document.createElement('span');
+        fd.className = 'mi-folder';
+        fd.textContent = 'pasta: ' + folder;
+        item.appendChild(fd);
+      }
+      item.addEventListener('click', () => close(en));
+      list.appendChild(item);
+    });
+    const cancel = document.createElement('button');
+    cancel.className = 'modal-cancel';
+    cancel.textContent = 'Cancelar';
+    cancel.addEventListener('click', () => close(null));
+    box.append(h, sub, list, cancel);
+    overlay.appendChild(box);
+    overlay.addEventListener('click', e => { if(e.target === overlay) close(null); });
+    function onKey(e){ if(e.key === 'Escape') close(null); }
+    function close(val){ document.removeEventListener('keydown', onKey); overlay.remove(); resolve(val); }
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+  });
+}
+
 // o miolo: recebe [{file, key}] e monta a prévia religando só as imagens usadas
 async function loadFolder(entries){
   const htmls = entries.filter(en => /\.html?$/i.test(en.file.name));
   if(!htmls.length){ alert('Não achei nenhum arquivo .html dentro dessa pasta.'); return; }
-  // HTML principal = o mais "raso" (menos barras no caminho)
-  htmls.sort((a, b) => a.key.split('/').length - b.key.split('/').length);
-  const main = htmls[0];
+  // ordena: o mais "raso" (menos barras no caminho) primeiro, depois por nome
+  htmls.sort((a, b) => (a.key.split('/').length - b.key.split('/').length)
+                       || a.key.localeCompare(b.key));
+  // 1 HTML => abre direto; 2+ => o usuário escolhe qual (janelinha)
+  let main;
+  if(htmls.length === 1){
+    main = htmls[0];
+  }else{
+    main = await chooseHtml(htmls);
+    if(!main) return;  // usuário fechou/cancelou a janelinha
+  }
   const baseDir = main.key.includes('/') ? main.key.slice(0, main.key.lastIndexOf('/') + 1) : '';
   lastBaseName = main.file.name.replace(/\.html?$/i, '');
 
