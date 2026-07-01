@@ -161,8 +161,10 @@
           </div>
         </div>
         <div id="texttools" class="tools" hidden>
-          <div class="tlabel">✍️ Ajustar texto — tamanho e largura da caixa (a quebra de linha se ajusta sozinha), sem distorcer:</div>
+          <div class="tlabel">✍️ Ajustar texto — <b>dois cliques no texto pra digitar</b> (ou o botão ✏️); e tamanho / largura da caixa / mover, sem distorcer:</div>
           <div class="tgrid">
+            <button data-tact="edit" title="digitar o texto direto na prévia (dois cliques no próprio texto também funciona)">✏️ Editar aqui</button>
+            <span class="sep"></span>
             <button data-tact="left"  title="mover para a esquerda">←</button>
             <button data-tact="up"    title="mover para cima">↑</button>
             <button data-tact="down"  title="mover para baixo">↓</button>
@@ -199,6 +201,7 @@ const photoToolsEl = document.getElementById('phototools');
 const textToolsEl = document.getElementById('texttools');
 const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
+let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
 let showingFull = false; // se a caixa está mostrando o documento inteiro
 let dirHandle = null;            // pasta com permissão de escrita (modo poderoso)
 let lastBaseName = null;         // nome-base do HTML aberto (para nomear o salvar)
@@ -207,6 +210,7 @@ let originalRefByBlob = new Map();// imagem da prévia -> caminho real (para sal
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
 function loadHtml(html){
   showingFull = false;
+  editingEl = null;              // a prévia antiga sai; nada mais em edição
   iframe.onload = wirePreview;   // quando a prévia terminar de carregar, ligamos os cliques
   iframe.srcdoc = html;
 }
@@ -244,18 +248,39 @@ function wirePreview(){
 
   // CLIQUE = selecionar (mas ignora o clique que apenas terminou um arrasto)
   doc.addEventListener('click', function(ev){
+    // se estou digitando num texto e o clique é DENTRO dele, deixo o navegador
+    // posicionar o cursor (não seleciono de novo nem bloqueio o clique)
+    if(editingEl){
+      if(ev.target === editingEl || editingEl.contains(ev.target)) return;
+      stopTextEdit();   // clicou fora: encerra a edição de texto
+    }
     ev.preventDefault();
     ev.stopPropagation();
     if(suppressClick){ suppressClick = false; return; }
     selectElement(ev.target);
   }, true);
 
-  // realce visual do elemento selecionado
+  // DOIS CLIQUES num texto = digitar direto ali (edição "no lugar")
+  doc.addEventListener('dblclick', function(ev){
+    if(!isTextEl(ev.target)) return;
+    ev.preventDefault(); ev.stopPropagation();
+    startTextEdit(ev.target, ev.clientX, ev.clientY);
+  }, true);
+
+  // Esc ou Enter terminam a edição (nesta versão o Enter não quebra linha)
+  doc.addEventListener('keydown', function(ev){
+    if(!editingEl) return;
+    if(ev.key === 'Escape' || ev.key === 'Enter'){ ev.preventDefault(); stopTextEdit(); }
+  }, true);
+
+  // realce visual: seleção (linha cheia) e edição de texto (linha tracejada)
   const hover = doc.createElement('style');
   hover.id = '__ya_style';
-  hover.textContent = '*{outline-offset:-1px} .__ya_sel{outline:2px solid '
-    + getComputedStyle(document.documentElement).getPropertyValue('--sel').trim()
-    + ' !important}';
+  const cSel  = getComputedStyle(document.documentElement).getPropertyValue('--sel').trim();
+  const cEdit = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
+  hover.textContent = '*{outline-offset:-1px}'
+    + ' .__ya_sel{outline:2px solid ' + cSel + ' !important}'
+    + ' .__ya_editing{outline:2px dashed ' + cEdit + ' !important; cursor:text !important}';
   doc.head && doc.head.appendChild(hover);
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
@@ -308,6 +333,8 @@ function refreshCodeBox(){
   if(!selected){ codeEl.value = ''; return; }
   const clone = selected.cloneNode(true);
   clone.classList.remove('__ya_sel');
+  clone.classList.remove('__ya_editing');       // nunca mostra marcas internas
+  clone.removeAttribute('contenteditable');      // no código
   if(clone.getAttribute('class') === '') clone.removeAttribute('class');
   codeEl.value = clone.outerHTML;
 }
@@ -556,10 +583,46 @@ function fitBox(){
   refreshCodeBox();
 }
 
+// ---- editar o TEXTO no lugar: digitar direto na prévia -----------------
+// mexe SÓ nas palavras; o CSS (gradiente, fonte, brilho) fica 100% intacto.
+// usa o modo "texto puro" do navegador — nada de sujeira ao colar do Word.
+function onEditBlur(){ stopTextEdit(); }
+function onEditInput(){ if(editingEl && selected === editingEl) refreshCodeBox(); }
+function startTextEdit(el, x, y){
+  if(!el || !isTextEl(el)) return;
+  if(selected !== el) selectElement(el);   // garante seleção + ferramentas certas
+  stopTextEdit();                          // fecha uma edição anterior, se houver
+  editingEl = el;
+  el.setAttribute('contenteditable', 'plaintext-only');
+  el.classList.add('__ya_editing');
+  el.addEventListener('blur', onEditBlur);
+  el.addEventListener('input', onEditInput);   // código à direita acompanha ao vivo
+  el.focus();
+  // coloca o cursor exatamente onde a pessoa clicou (quando veio de dois cliques)
+  const doc = iframe.contentDocument;
+  if(x != null && doc && doc.caretRangeFromPoint){
+    const r = doc.caretRangeFromPoint(x, y);
+    if(r){ const s = doc.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }
+  setPreviewCursor('text');
+}
+function stopTextEdit(){
+  if(!editingEl) return;
+  const el = editingEl; editingEl = null;
+  el.removeEventListener('blur', onEditBlur);
+  el.removeEventListener('input', onEditInput);
+  el.removeAttribute('contenteditable');
+  el.classList.remove('__ya_editing');
+  if(el.getAttribute('class') === '') el.removeAttribute('class');
+  setPreviewCursor('');
+  if(selected === el) refreshCodeBox();     // o código passa a mostrar o texto novo
+}
+
 textToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
   const STEP = 6;
   switch(b.dataset.tact){
+    case 'edit':    startTextEdit(selected); break;
     case 'up':      nudge(0, -STEP); break;
     case 'down':    nudge(0,  STEP); break;
     case 'left':    nudge(-STEP, 0); break;
@@ -778,10 +841,11 @@ document.getElementById('folderInput').addEventListener('change', function(e){
 function buildFinalHtml(){
   const doc = iframe.contentDocument;
   const root = doc.documentElement.cloneNode(true);
-  root.querySelectorAll('.__ya_sel').forEach(el => {
-    el.classList.remove('__ya_sel');
+  root.querySelectorAll('.__ya_sel, .__ya_editing').forEach(el => {
+    el.classList.remove('__ya_sel'); el.classList.remove('__ya_editing');
     if(el.getAttribute('class') === '') el.removeAttribute('class');
   });
+  root.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
   const inj = root.querySelector('#__ya_style'); if(inj) inj.remove();
   let html = '<!doctype html>\n' + root.outerHTML;
   for(const [blobUrl, ref] of originalRefByBlob){ html = html.split(blobUrl).join(ref); }
