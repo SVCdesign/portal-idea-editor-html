@@ -1,7 +1,10 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-06-30 · **Motivo:** começou a CONVERSA ENTRE MUNDOS com o
-`html-studio` (quem cria os HTMLs) + ajuste da FOTO pra casar com o padrão dele
+**Atualizado:** 2026-07-01 · **Motivo:** ENTREGA pra outra IA (troca de PC). Nesta
+sessão: (1) ajuste da FOTO pra casar com o padrão do `html-studio`, implementado
+e testado; (2) conversa entre mundos com o `html-studio` ENCERRADA COM ACORDO
+MÚTUO (turnos 01–07); (3) papéis alinhados — **o Carlos edita as peças; a IA só
+constrói/evolui o editor**. Sem frente de código em aberto nem bug conhecido.
 
 ## Em uma frente
 O `editor.html` deixou de ser só o MVP "clicar → ver código" e virou um **editor
