@@ -11,11 +11,12 @@ carrossel e **salva direto na pasta**. O nome oficial agora é **"Editor HTML"**
 local. Não há frente de código em aberto nem bug conhecido. O próximo passo é
 opcional/cosmético (ver no fim).
 
-## Conversa entre mundos (2026-06-30 — CONCLUÍDA/ALINHADA)
+## Conversa entre mundos (2026-06-30 — ENCERRADA COM ACORDO MÚTUO)
 Rolou o diálogo com o **`html-studio`** (o mundo que CRIA os HTMLs). O método:
 cada mundo guarda os turnos em `.md` datado, no SEU repositório; o Carlos é a ponte.
+No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fechou**.
 - Pasta: `dialogos-entre-mundos/portal-idea-html-studio/conversas/2026-06-30-boas-vindas-e-sistema/`
-  (turnos 01–05 + `RESUMO.md`). No boot, conferir essa pasta.
+  (turnos 01–07 + `RESUMO.md`). No boot, conferir essa pasta.
 - **Contrato técnico FECHADO:** aspas curvas do texto visível intactas no salvar;
   a foto segue o padrão do studio (ver bullet "Ajustar FOTO" acima).
 - ⚠️ **ESCLARECIMENTO DE PAPÉIS (o Carlos alinhou com o studio):** quem **edita
