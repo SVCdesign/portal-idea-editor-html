@@ -1,6 +1,8 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-01 · **Motivo:** três melhorias no editor (pedidas e
+**Atualizado:** 2026-07-01 · **Motivo:** ENTREGA pra outra IA (troca de PC) — tudo
+commitado e empurrado (este PC = remoto), sem frente de código em aberto nem bug
+conhecido. Nesta sessão: três melhorias no editor (pedidas e
 aprovadas pelo Carlos, testadas no navegador e salvas no Git): (1) **"Abrir pasta"
 agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
 **conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
