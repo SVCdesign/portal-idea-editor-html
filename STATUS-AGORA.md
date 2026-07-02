@@ -1,6 +1,22 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-02 · **Motivo:** NOVIDADE — **🎚️ Escurecer / Clarear a foto
+**Atualizado:** 2026-07-02 · **Motivo:** 📦 **ENTREGA pra outra IA (troca de PC).** Tudo
+commitado e empurrado — **este PC = remoto**, **sem frente de código em aberto nem bug
+conhecido**. Próxima IA: leia este arquivo + `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+
+> ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
+> - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
+>   precisa ter o **Node instalado** (o `Abrir-Editor-HTML.bat` avisa se faltar). No 1º
+>   uso, o `.bat` instala sozinho a `playwright-core` (leve — usa o Chrome do PC pra o
+>   "Gerar PNG", sem baixar Chromium). O `Desligar-Editor-HTML.bat` mata a porta 4599.
+> - Os `.bat` estão em **CRLF** (travado por `.gitattributes`). A ferramenta Write gera
+>   LF — se editar um `.bat`, **converter pra CRLF** (senão o duplo-clique não roda nada).
+> - `node_modules/` e `previas/` ficam **FORA do Git** (local-only): num PC novo o `.bat`
+>   recria o `node_modules`; `previas/` (só rascunhos) é recriada quando precisar.
+> - **Google Drive VERDE** antes de mexer: os assets pesados das peças (imagens/fontes)
+>   viajam pelo Drive, **não** pelo Git.
+
+**O que saiu nesta sessão (tudo testado e no GitHub):** **🎚️ Escurecer / Clarear a foto
 (overlay)** no editor. Ao selecionar a "película" (`.overlay`) por cima da imagem da
 capa, aparece um painel: **Cor** (Preto/Branco + presets **oficiais da marca** — Roxo
 `#3E3B75`, Lilás `#6B66CC`, Ciano `#8BE6F5` — + **seletor livre**) e barras **Escurecer
@@ -67,11 +83,12 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   já foi corrigido. É o propósito original: liberdade de edição pro Carlos.
 
 ## Como ABRIR e FECHAR o editor (IMPORTANTE — mudou)
-- **Abrir:** dois cliques em `Abrir-Editor-HTML.bat`. Ele liga um endereço local
-  (`http://localhost:4599`) e abre o **Chrome** sozinho (com anti-cache: sempre a
-  versão mais nova). **NÃO** abrir o `editor.html` com dois cliques direto — vira
-  `file://`, e nesse modo o "salvar na pasta" não funciona (regra de segurança do
-  navegador). Precisa ser Chrome/Edge.
+- **Abrir:** dois cliques em `Abrir-Editor-HTML.bat`. Ele liga o **motorzinho Node**
+  (`server.mjs`) num endereço local (`http://localhost:4599`) e abre o **Chrome**
+  sozinho. **No 1º uso num PC novo** pode demorar uns segundos (o `.bat` instala a
+  `playwright-core`). Precisa ter o **Node** instalado (o `.bat` avisa se faltar).
+  **NÃO** abrir o `editor.html` com dois cliques direto — vira `file://`, e nesse modo
+  o "salvar na pasta" e o "Gerar PNG" não funcionam. Precisa ser Chrome/Edge.
 - **Fechar:** feche a janela preta, OU dois cliques em `Desligar-Editor-HTML.bat`
   (desliga o servidor com segurança — mira só a porta 4599).
 
