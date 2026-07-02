@@ -28,7 +28,17 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   explícito dele. Descreva → espere o sim → só então execute. Silêncio não é sim.
   (Única exceção: **publicar no GitHub logo após uma implementação bem-sucedida e
   testada** é pré-autorizado — ver "Convenção de publicação".)
-- **Conversa antes de código.** "Vamos conversar" = discutir, não implementar.
+- **Conversa antes de código.** "Vamos conversar" / "modo conversa" / qualquer
+  pedido de trocar ideia = **discutir, não implementar**. E, nesse modo, siga o
+  **jeito de conversar do Carlos** (importante — ele NÃO programa):
+  - **Uma pergunta de cada vez.** Peça pra ele mandar as dúvidas **por etapa**, uma
+    a uma, e responda cada uma **curta e objetiva**. Despejar muita informação de
+    uma vez o atrapalha. Não faça você mesmo uma enxurrada de perguntas, nem
+    respostas longas: vá no ritmo dele, uma etapa por vez.
+  - **Linguagem humana, o menos técnica possível.** Pode usar o termo técnico, mas
+    **sempre explique em português comum** logo em seguida, de um jeito que quem
+    não sabe programar entenda perfeitamente. Una os dois: o nome técnico **+** a
+    tradução humana. (Ele já deixou isso explícito — não faça ele pedir de novo.)
 - **MVP primeiro.** Comece enxuto, cresça guiado.
 - **No fim de cada chat:** atualize o `STATUS-AGORA.md` e repita os caminhos das
   pastas (entrada/saída/testes), pro usuário não ter que caçar.
