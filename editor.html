@@ -226,7 +226,7 @@
       <p class="modal-sub" id="pngCount"></p>
       <div class="png-banner" id="pngBanner"></div>
       <div class="png-actions">
-        <button class="primary" id="pngZip" style="display:none">⬇️ Baixar tudo</button>
+        <button class="primary" id="pngZip" style="display:none">⬇️ Baixar tudo (.zip)</button>
         <button class="btn png-cancel">Fechar</button>
       </div>
       <div id="pngGrid" class="png-grid"></div>
@@ -1126,11 +1126,39 @@ loadHtml(SAMPLE);
   let gerando = false;
 
   function fechar(){ overlay.style.display = 'none'; }
-  function baixar(nome, base64){
+  // base64 -> bytes; e download via Blob (aguenta arquivos grandes, ao contrário do data: URL)
+  function b64ToBytes(base64){ return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)); }
+  function baixarBlob(nome, blob){
+    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = 'data:image/png;base64,' + base64;
-    a.download = (lastBaseName ? lastBaseName + '-' : '') + nome;
+    a.href = url; a.download = nome;
     document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  function baixarPng(nome, base64){
+    baixarBlob((lastBaseName ? lastBaseName + '-' : '') + nome, new Blob([b64ToBytes(base64)], { type: 'image/png' }));
+  }
+  // --- ZIP mínimo, método "stored" (os PNGs já são comprimidos) — sem biblioteca externa ---
+  const _crcTab = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); } t[n] = c >>> 0; } return t; })();
+  function _crc32(b){ let c = 0xFFFFFFFF; for(let i = 0; i < b.length; i++){ c = (c >>> 8) ^ _crcTab[(c ^ b[i]) & 0xFF]; } return (c ^ 0xFFFFFFFF) >>> 0; }
+  function _u16(n){ return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF]); }
+  function _u32(n){ return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]); }
+  function _concat(arrs){ let len = 0; for(const a of arrs) len += a.length; const out = new Uint8Array(len); let o = 0; for(const a of arrs){ out.set(a, o); o += a.length; } return out; }
+  function makeZip(files){   // files: [{name, bytes:Uint8Array}]
+    const enc = new TextEncoder();
+    const partes = [], central = [];
+    let offset = 0, centralSize = 0;
+    for(const f of files){
+      const nb = enc.encode(f.name), crc = _crc32(f.bytes), sz = f.bytes.length;
+      const local = _concat([_u32(0x04034b50), _u16(20), _u16(0), _u16(0), _u16(0), _u16(0), _u32(crc), _u32(sz), _u32(sz), _u16(nb.length), _u16(0), nb, f.bytes]);
+      partes.push(local);
+      central.push(_concat([_u32(0x02014b50), _u16(20), _u16(20), _u16(0), _u16(0), _u16(0), _u16(0), _u32(crc), _u32(sz), _u32(sz), _u16(nb.length), _u16(0), _u16(0), _u16(0), _u16(0), _u32(0), _u32(offset), nb]));
+      offset += local.length;
+    }
+    const centralStart = offset;
+    for(const c of central){ partes.push(c); centralSize += c.length; }
+    partes.push(_concat([_u32(0x06054b50), _u16(0), _u16(0), _u16(files.length), _u16(files.length), _u32(centralSize), _u32(centralStart), _u16(0)]));
+    return new Blob(partes, { type: 'application/zip' });
   }
   function fileToBase64(file){
     return new Promise((res, rej) => {
@@ -1144,8 +1172,12 @@ loadHtml(SAMPLE);
   overlay.addEventListener('click', function(ev){
     if(ev.target === overlay || ev.target.classList.contains('png-cancel')){ fechar(); return; }
     const dl = ev.target.closest('.png-dl');
-    if(dl){ const i = +dl.dataset.i; if(ultimos[i]) baixar(ultimos[i].nome, ultimos[i].base64); return; }
-    if(ev.target === zipBtn){ ultimos.forEach(s => baixar(s.nome, s.base64)); }
+    if(dl){ const i = +dl.dataset.i; if(ultimos[i]) baixarPng(ultimos[i].nome, ultimos[i].base64); return; }
+    if(ev.target === zipBtn){
+      if(!ultimos.length) return;
+      const files = ultimos.map((s) => ({ name: s.nome, bytes: b64ToBytes(s.base64) }));
+      baixarBlob((lastBaseName || 'carrossel') + '.zip', makeZip(files));
+    }
   });
 
   async function gerar(){
@@ -1192,7 +1224,7 @@ loadHtml(SAMPLE);
       ultimos = Array.isArray(data.slides) ? data.slides : [];
       const n = ultimos.length;
       banner.className = 'png-banner';
-      banner.textContent = '✅ Pronto! PNGs fiéis em 2160×2700 (retina). Clique em "Baixar" em cada slide, ou "Baixar tudo".';
+      banner.textContent = '✅ Pronto! PNGs fiéis em 2160×2700 (retina). Clique em "Baixar" em cada slide, ou "Baixar tudo (.zip)".';
       if(Array.isArray(data.avisos) && data.avisos.length){
         banner.className = 'png-banner erro';
         banner.textContent += ' ⚠️ Atenção: ' + data.avisos.length + ' imagem(ns) pode não ter carregado — confira o resultado.';

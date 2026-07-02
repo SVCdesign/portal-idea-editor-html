@@ -124,7 +124,10 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   no lugar da versão encolhida; **nunca toca no original**. Sem o recurso (ex.:
   Firefox) cai em download na pasta Downloads.
 - **🖼️ Gerar PNG (alta resolução) — NOVO:** botão no topo → painel "Carrossel pronto"
-  com **PNG 2160×2700 (retina)** por slide + "Baixar tudo" (espelha a ferramenta
+  com **PNG 2160×2700 (retina)** por slide. **Baixar** individual (via Blob, aguenta
+  arquivos grandes) e **Baixar tudo (.zip)** = **um arquivo só** (evita o bloqueio do
+  Chrome a "vários downloads"; o ZIP é montado no próprio editor, sem biblioteca).
+  Espelha a ferramenta
   Carrossel do Portal SV Team). Um **navegador robô** (Chrome do PC, via
   `server.mjs`+`scripts/render-core.mjs`) "fotografa" cada `.slide` — **100% fiel**
   (fonte, gradiente, brilho), pois o CSS **nunca é reprocessado**. Roda **local**
