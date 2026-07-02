@@ -1,7 +1,18 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-02 · **Motivo:** GRANDE NOVIDADE — **🖼️ Gerar PNG (alta
-resolução, fiel)** funcionando no editor. Botão no topo → painel "Carrossel pronto"
+**Atualizado:** 2026-07-02 · **Motivo:** NOVIDADE — **🎚️ Escurecer / Clarear a foto
+(overlay)** no editor. Ao selecionar a "película" (`.overlay`) por cima da imagem da
+capa, aparece um painel: **Cor** (Preto/Branco + presets de marca Roxo/Ciano/Laranja
++ **seletor livre**) e barras **Intensidade geral / Topo / Meio / Baixo** ("Jeito A":
+no máximo tudo escurece). Ao selecionar, o painel **lê o gradiente atual** (do CSS ou
+inline) pra iniciar sem "pulo"; ao mexer, escreve um `linear-gradient` **inline** no
+overlay (o CSS global nunca é reprocessado); **"Voltar ao original"** tira o inline e
+restaura o CSS de fábrica. O ajuste é **preservado ao salvar**. Alinhado com a IA do
+**HTML Studio** (recado + 2 HTMLs de exemplo). Validado no navegador (leitura do
+gradiente do CSS, ajuste, salvar preserva, reset restaura). Aprovado via **Prévia A
+dentro da interface real** (em `previas/`). Empurrado pro GitHub. **PENDENTE:** as
+cores de marca (Roxo/Ciano/Laranja) são chute — trocar pelas oficiais do Portal IDEA
+quando o Carlos passar. — Antes: **🖼️ Gerar PNG (alta resolução, fiel)** no editor. Botão no topo → painel "Carrossel pronto"
 com **PNG 2160×2700 (retina)** por slide + "Baixar tudo", **espelhando a ferramenta
 Carrossel do Portal SV Team**. Por baixo: o "motorzinho" local mudou de **Python pra
 Node** (`server.mjs`) — serve o editor **e** atende o botão, chamando um **navegador
@@ -134,6 +145,14 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   (só 127.0.0.1), **sem token** e **sem baixar Chromium** (usa o Chrome já instalado).
   Manda as imagens em **qualidade original**. Passou por revisão adversarial (13
   achados corrigidos: segurança, fidelidade do seletor de slide, robustez).
+- **🎚️ Escurecer / Clarear a foto (overlay) — NOVO:** clique na área da foto pra
+  selecionar a "película" (`.overlay`) → painel com **Cor** (Preto/Branco + presets
+  de marca + **seletor livre**) e barras **Intensidade geral / Topo / Meio / Baixo**
+  (no máximo, tudo escurece). Ao selecionar, **lê o gradiente atual** pra iniciar sem
+  pulo; ao ajustar, escreve `linear-gradient` **inline** (o CSS global nunca é
+  tocado); **↺ Voltar ao original** restaura o CSS de fábrica; o ajuste é **salvo**
+  junto. Espelha a técnica de overlay do html-studio. Cores de marca ainda são chute
+  (trocar pelas oficiais). Validado no navegador.
 
 ## Atalhos e arquivos novos (tudo já no Git)
 - `Abrir-Editor-HTML.bat` — liga o **motorzinho Node** (`server.mjs`) e abre no Chrome.
