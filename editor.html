@@ -76,6 +76,12 @@
         padding:3px 8px;border-radius:6px;cursor:pointer;
         font:12px ui-monospace,Consolas,monospace}
   .chip:hover{border-color:var(--accent)}
+  /* atalhos da capa: botões diretos pra imagem / escurecer-clarear (sem caçar no código) */
+  #capa-atalhos{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  #capa-atalhos .nav-label{color:var(--muted);font-size:12px}
+  .atalho-btn{background:#0b0e12;color:var(--accent);border:1px solid var(--accent);
+              border-radius:8px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
+  .atalho-btn:hover{background:var(--accent);color:#04201f}
 
   /* painel de ajustes visuais (sem mexer no código na mão) */
   .tools{background:#0b0e12;border:1px solid var(--line);border-radius:8px;padding:10px}
@@ -169,6 +175,7 @@
       <h2>Código do elemento clicado</h2>
       <div class="body">
         <div id="crumb"></div>
+        <div id="capa-atalhos" style="display:none"></div>
         <div id="nav" style="display:none"></div>
         <div id="tools" class="tools" hidden>
           <div class="tlabel">Ajustes rápidos — o Editor HTML escreve o código pra você:</div>
@@ -424,6 +431,7 @@ function selectElement(el){
   selected.classList.add('__ya_sel');   // acende o realce no elemento de verdade
   renderCrumb(el);                       // caminho clicável (subir para o que está em volta)
   renderChildren(el);                    // "Dentro:" — entrar nos elementos de dentro
+  renderCapaAtalhos(el);                 // atalhos da capa: imagem / escurecer-clarear
   refreshCodeBox();                      // mostra o código (de uma cópia limpa)
   showToolsFor(el);                      // foto -> ajustar foto; resto -> mover/zoom comum
 }
@@ -478,6 +486,34 @@ function renderChildren(el){
     b.onclick = () => selectElement(k);
     navEl.appendChild(b);
   });
+}
+
+// atalhos da capa: botões diretos pra Imagem e pra Escurecer/Clarear — sem precisar
+// caçar na árvore do código (num slide de capa, a foto e a película ficam ATRÁS do
+// texto, então clicar na capa pega o texto). Aparece quando o slide tem foto/película.
+function renderCapaAtalhos(el){
+  const bar = document.getElementById('capa-atalhos');
+  bar.innerHTML = '';
+  const slide = el.closest && el.closest('.slide-wrapper, .slide');
+  if(!slide){ bar.style.display = 'none'; return; }
+  const foto = slide.querySelector('img.hero-photo') || slide.querySelector('[class*="photo"] img') || slide.querySelector('img');
+  const pelicula = slide.querySelector('[class*="scrim"], [class*="overlay"]');
+  if(!foto && !pelicula){ bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  const lab = document.createElement('span'); lab.className = 'nav-label'; lab.textContent = 'Atalhos da capa:';
+  bar.appendChild(lab);
+  if(foto){
+    const b = document.createElement('button'); b.className = 'atalho-btn';
+    b.textContent = '🖼️ Editar imagem'; b.title = 'selecionar a foto pra ajustar (zoom / enquadrar / arrastar)';
+    b.onclick = () => selectElement(foto);
+    bar.appendChild(b);
+  }
+  if(pelicula){
+    const b = document.createElement('button'); b.className = 'atalho-btn';
+    b.textContent = '🎚️ Escurecer/Clarear'; b.title = 'abrir os controles de escurecer / clarear / cor da foto';
+    b.onclick = () => selectElement(pelicula);
+    bar.appendChild(b);
+  }
 }
 
 function setPreviewCursor(c){
@@ -879,7 +915,7 @@ document.getElementById('apply').addEventListener('click', function(){
     clearSel(selected);
     selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
     selected = null;
-    hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none';
+    hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
     renderSlideBar();   // mantém a barra de slides em dia se algo mudou
     crumbEl.textContent = '✓ aplicado — clique de novo num elemento para continuar';
   }catch(err){
@@ -893,7 +929,7 @@ document.getElementById('full').addEventListener('click', function(){
   if(!doc) return;
   clearSel(selected);
   showingFull = true;
-  hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none';
+  hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
   crumbEl.textContent = '(documento inteiro — somente leitura)';
   // remove os marcadores internos antes de mostrar
   doc.querySelectorAll('.__ya_sel').forEach(clearSel);

@@ -148,8 +148,10 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 - **🎚️ Escurecer / Clarear a foto (overlay) — NOVO:** reconhece a "película" tanto
   como **`overlay`** (wiki/runv) quanto **`hero-scrim`** (7-palavras) — qualquer classe
   com "overlay" ou "scrim". Como o scrim costuma ficar ATRÁS do texto (difícil de
-  clicar), ao selecionar a **foto** aparece o botão **🎚️ Escurecer/Clarear** que pula
-  direto pra película. Painel com **Cor** (Preto/Branco + presets
+  clicar), tem a **barra "Atalhos da capa"** (aparece ao clicar em qualquer parte de
+  um slide com foto): botões **🖼️ Editar imagem** e **🎚️ Escurecer/Clarear** que pulam
+  DIRETO pro elemento certo (sem caçar na árvore do código). Painel com **Cor**
+  (Preto/Branco + presets
   de marca + **seletor livre**) e barras **Intensidade geral / Topo / Meio / Baixo**
   (no máximo, tudo escurece). Ao selecionar, **lê o gradiente atual** pra iniciar sem
   pulo; ao ajustar, escreve `linear-gradient` **inline** (o CSS global nunca é
