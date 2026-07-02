@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# prévias/rascunhos são descartáveis e ficam SÓ no PC (fora do GitHub) — decisão do Carlos, 2026-07-02
+previas/
