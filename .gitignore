@@ -5,3 +5,7 @@ __pycache__/
 
 # prévias/rascunhos são descartáveis e ficam SÓ no PC (fora do GitHub) — decisão do Carlos, 2026-07-02
 previas/
+
+# dependências instaladas (pesadas, baixáveis de novo) e saídas de PNG — ficam SÓ no PC
+node_modules/
+png-saida/
