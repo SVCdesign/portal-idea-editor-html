@@ -146,6 +146,9 @@
             <button data-act="down"  title="mover para baixo">↓</button>
             <button data-act="right" title="mover para a direita">→</button>
             <span class="sep"></span>
+            <button data-act="cx" title="centralizar no meio do slide (esquerda↔direita)">↔ centro</button>
+            <button data-act="cy" title="centralizar no meio do slide (cima↕baixo)">↕ centro</button>
+            <span class="sep"></span>
             <button data-act="zin"   title="aproximar / aumentar">🔍 +</button>
             <button data-act="zout"  title="afastar / diminuir">🔍 −</button>
             <span class="sep"></span>
@@ -175,6 +178,9 @@
             <button data-tact="up"    title="mover para cima">↑</button>
             <button data-tact="down"  title="mover para baixo">↓</button>
             <button data-tact="right" title="mover para a direita">→</button>
+            <span class="sep"></span>
+            <button data-tact="cx" title="centralizar no meio do slide (esquerda↔direita)">↔ centro</button>
+            <button data-tact="cy" title="centralizar no meio do slide (cima↕baixo)">↕ centro</button>
             <span class="sep"></span>
             <button data-tact="smaller" title="diminuir o tamanho do texto">A−</button>
             <button data-tact="bigger"  title="aumentar o tamanho do texto">A+</button>
@@ -227,28 +233,40 @@ function wirePreview(){
   if(!doc) return;
 
   let dragging = false, dragMoved = false, accum = 0, lastX = 0, lastY = 0, suppressClick = false;
+  let dragKind = null, rawTx = 0, rawTy = 0;   // 'img' = reenquadrar foto; 'move' = mover texto/elemento
 
-  // ARRASTAR A FOTO COM O MOUSE — quando uma imagem está selecionada (e com zoom)
+  // ARRASTAR COM O MOUSE:
+  //  • foto selecionada -> reenquadra a foto (como antes)
+  //  • texto/elemento   -> MOVE o elemento (transform), com a linha-guia ao vivo
   doc.addEventListener('mousedown', function(ev){
-    if(selected && selected.tagName === 'IMG'){
-      dragging = true; dragMoved = false; accum = 0;
-      lastX = ev.clientX; lastY = ev.clientY;
-      if(doc.body) doc.body.style.cursor = 'grabbing';
-      ev.preventDefault();   // impede o "fantasma" de arrastar imagem / seleção de texto
+    if(editingEl) return;                 // digitando: deixa o navegador posicionar o cursor
+    if(!selected) return;
+    if(selected.tagName === 'IMG'){
+      dragKind = 'img';
+    }else if(ev.target === selected || selected.contains(ev.target)){
+      dragKind = 'move';
+      const v = getTf(selected); rawTx = v.tx; rawTy = v.ty;   // parte de onde já está
+    }else{
+      return;                             // clicou fora do selecionado: deixa selecionar outro
     }
+    dragging = true; dragMoved = false; accum = 0;
+    lastX = ev.clientX; lastY = ev.clientY;
+    if(doc.body) doc.body.style.cursor = (dragKind === 'img') ? 'grabbing' : 'move';
+    ev.preventDefault();   // impede o "fantasma" de arrastar imagem / seleção de texto
   }, true);
   doc.addEventListener('mousemove', function(ev){
     if(!dragging) return;
     const dx = ev.clientX - lastX, dy = ev.clientY - lastY;
     lastX = ev.clientX; lastY = ev.clientY;
     if(!dragMoved){ accum += Math.abs(dx) + Math.abs(dy); if(accum > 3) dragMoved = true; else return; }
-    dragPhotoBy(dx, dy);
+    if(dragKind === 'img'){ dragPhotoBy(dx, dy); }
+    else if(dragKind === 'move'){ rawTx += dx; rawTy += dy; dragMoveTo(rawTx, rawTy); }
     ev.preventDefault();
   }, true);
   doc.addEventListener('mouseup', function(ev){
     if(!dragging) return;
-    dragging = false;
-    if(doc.body) doc.body.style.cursor = (selected && selected.tagName === 'IMG') ? 'grab' : '';
+    dragging = false; dragKind = null;
+    if(doc.body) doc.body.style.cursor = (selected && selected.tagName === 'IMG') ? 'grab' : (selected ? 'move' : '');
     if(dragMoved){ suppressClick = true; ev.preventDefault(); ev.stopPropagation(); }
   }, true);
 
@@ -411,7 +429,7 @@ function showToolsFor(el){
   toolsEl.hidden = img || txt;   // comum (mover/zoom) só para o resto
   photoToolsEl.hidden = !img;    // imagens: ajustar a foto
   textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
-  setPreviewCursor(img ? 'grab' : '');
+  setPreviewCursor(img ? 'grab' : (el ? 'move' : ''));   // texto/elemento: dá pra arrastar
 }
 
 // ---- ajustes visuais: o Editor HTML escreve o transform por você ------
@@ -503,6 +521,38 @@ function drawGuides(slide, showV, showH){
   if(guideHideTimer) clearTimeout(guideHideTimer);
   if(showV || showH) guideHideTimer = setTimeout(hideGuides, 1200);
 }
+// botão "centralizar": leva o elemento ao centro do slide (horizontal, vertical
+// ou os dois) de uma vez e acende a guia correspondente
+function centerOnSlide(axis){
+  if(!selected || selected.tagName === 'IMG') return;
+  const slide = slideOf(selected); if(!slide) return;
+  const er = selected.getBoundingClientRect(), sr = slide.getBoundingClientRect();
+  const v = getTf(selected);
+  let showV = false, showH = false;
+  if(axis === 'h' || axis === 'both'){ v.tx = Math.round(v.tx + (sr.left + sr.width / 2)  - (er.left + er.width / 2));  showV = true; }
+  if(axis === 'v' || axis === 'both'){ v.ty = Math.round(v.ty + (sr.top  + sr.height / 2) - (er.top  + er.height / 2)); showH = true; }
+  setTf(selected, v);
+  drawGuides(slide, showV, showH);
+}
+// arrastar o elemento com o mouse: aplica a posição "crua" do mouse; se o centro
+// chegar perto do centro do slide, GRUDA no centro (imã) e acende a guia ao vivo.
+// A posição crua (rawTx/rawTy) é guardada FORA (no wirePreview) pra não ficar preso.
+function dragMoveTo(rawTx, rawTy){
+  const el = selected; if(!el || el.tagName === 'IMG') return;
+  const v = getTf(el); v.tx = rawTx; v.ty = rawTy; setTf(el, v);   // segue o mouse
+  const slide = slideOf(el);
+  let showV = false, showH = false;
+  if(slide){
+    const er = el.getBoundingClientRect(), sr = slide.getBoundingClientRect();
+    const dx = (sr.left + sr.width / 2)  - (er.left + er.width / 2);
+    const dy = (sr.top  + sr.height / 2) - (er.top  + er.height / 2);
+    const v2 = getTf(el);
+    if(Math.abs(dx) <= SNAP_TOL){ v2.tx = Math.round(rawTx + dx); showV = true; }
+    if(Math.abs(dy) <= SNAP_TOL){ v2.ty = Math.round(rawTy + dy); showH = true; }
+    if(showV || showH) setTf(el, v2);   // gruda no centro
+    drawGuides(slide, showV, showH);
+  }
+}
 
 toolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
@@ -512,6 +562,8 @@ toolsEl.addEventListener('click', function(ev){
     case 'down':  nudge(0,  STEP); break;
     case 'left':  nudge(-STEP, 0); break;
     case 'right': nudge( STEP, 0); break;
+    case 'cx':    centerOnSlide('h'); break;
+    case 'cy':    centerOnSlide('v'); break;
     case 'zin':   zoom(1.08); break;
     case 'zout':  zoom(1/1.08); break;
     case 'reset': resetTf(); break;
@@ -727,6 +779,8 @@ textToolsEl.addEventListener('click', function(ev){
     case 'down':    nudge(0,  STEP); break;
     case 'left':    nudge(-STEP, 0); break;
     case 'right':   nudge( STEP, 0); break;
+    case 'cx':      centerOnSlide('h'); break;
+    case 'cy':      centerOnSlide('v'); break;
     case 'smaller': changeFont(-2); break;
     case 'bigger':  changeFont(2); break;
     case 'narrow':  changeWidth(-10); break;

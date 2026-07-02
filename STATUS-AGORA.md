@@ -1,15 +1,17 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-01 · **Motivo:** NOVIDADE — **linha-guia de centralização**
-(estilo Photoshop). Ao mover um texto/elemento com as setas e chegar perto do meio
-do slide, ele **gruda no centro exato** e acende uma **linha rosa**: em pé = centrado
-esquerda↔direita, deitada = cima↔baixo, cruz = os dois. A linha vive **na moldura do
-editor** (por cima da prévia) — **nunca entra no HTML nem no arquivo salvo**, zero
-risco pra fidelidade. O "imã" é de 4px (menor que o passo de 6px das setas, senão o
-elemento ficaria preso no centro); a linha some sozinha depois de ~1,2s. A referência
-de centro é o `.slide` (ou o corpo da página, se não houver). Testado no navegador
-(Playwright): sair/voltar ao centro, os dois eixos, e a cruz no `.slide`. Empurrado
-pro GitHub. — Histórico anterior: três melhorias no editor (pedidas e
+**Atualizado:** 2026-07-02 · **Motivo:** NOVIDADES — (1) **botões "↔ centro / ↕ centro"**
+ao clicar num texto/elemento (leva ao meio do slide) e (2) **arrastar com o mouse**
+(não só as setas), com a linha-guia acendendo **ao vivo** e **grudando no centro**
+(efeito Photoshop de verdade). Vêm em cima da base já feita: a **linha-guia de
+centralização** — ao mover e chegar perto do meio do slide, **gruda no centro exato**
+e acende uma **linha rosa** (em pé = esquerda↔direita, deitada = cima↔baixo, cruz =
+os dois). A linha vive **na moldura do editor** (por cima da prévia) — **nunca entra
+no HTML nem no arquivo salvo**, zero risco pra fidelidade. O "imã" é de 4px (menor que
+o passo de 6px das setas, senão ficaria preso no centro). Tudo testado no navegador
+(Playwright) e empurrado pro GitHub. **PENDENTE (aguardando decisão do Carlos):** o
+**item 3 — salvar slide em PNG de alta resolução** — tem uma escolha de fidelidade a
+fazer (ver "Próximo passo"). — Histórico anterior: três melhorias no editor (pedidas e
 aprovadas pelo Carlos, testadas no navegador e salvas no Git): (1) **"Abrir pasta"
 agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
 **conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
@@ -93,6 +95,13 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   ficam bloqueados. O código à direita acompanha **ao vivo** e sempre **limpo**; ao
   terminar, tira `<br>` "fantasma" do fim; o arquivo salvo sai **sem marca de
   edição** (buildFinalHtml tira `contenteditable`). Validado no navegador.
+- **↔↕ Botões "centralizar" + 🖐️ arrastar com o mouse — NOVO:** ao clicar num
+  texto/elemento aparecem os botões **↔ centro** (esquerda↔direita) e **↕ centro**
+  (cima↕baixo) — levam ao meio do slide de uma vez e acendem a guia. E agora dá pra
+  **arrastar o elemento com o mouse** (não só as setas): ele segue o mouse, **gruda
+  no centro** com a linha-guia **ao vivo** (efeito Photoshop de verdade) e **sai** ao
+  afastar. A foto continua arrastando como antes; texto/elemento usam o mesmo
+  `transform` do "mover". Validado no navegador (botões, arraste, grudar e sair).
 - **📏 Linha-guia de centralização (estilo Photoshop) — NOVO:** ao mover um texto
   (ou elemento comum) com as setas e chegar perto do meio do slide, ele **gruda no
   centro exato** e acende uma **linha rosa**: em pé = centrado esquerda↔direita,
