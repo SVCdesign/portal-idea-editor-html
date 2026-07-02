@@ -48,6 +48,10 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   - **Prévia B (rascunho / simples):** um HTML **simples**, só pra **mostrar a
     ideia** do que vai ser implementado (ex.: um botão, uma mudança pequena). Não
     precisa ser fiel nem funcional — é só pra **visualizar o conceito**.
+  - **Onde ficam as prévias:** sempre na pasta **`previas/`** (na raiz). Ela é
+    **local-only** (está no `.gitignore`, **não vem pelo Git**) — num PC novo pode
+    não existir: **se não existir, crie**. Toda prévia nasce aí (nunca solta na
+    raiz). Abre em `http://localhost:4599/previas/nome.html`.
 - **No fim de cada chat:** atualize o `STATUS-AGORA.md` e repita os caminhos das
   pastas (entrada/saída/testes), pro usuário não ter que caçar.
 - **Guias espelhados:** mudou `AGENTS.md`, replique em `CLAUDE.md` e `GEMINI.md`.
