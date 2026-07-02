@@ -1362,11 +1362,14 @@ loadHtml(SAMPLE);
     const g = st.geral / 100;
     const a = (v) => Math.max(0, Math.min(1, (v / 100) * g)).toFixed(2);
     const c = st.cor;
+    // cada zona controla uma FAIXA de verdade (com um "platô"), não um pontinho:
+    // Topo = quarto de cima (0–25%), Meio = miolo (45–60%), Baixo = base (80–100%).
     return 'linear-gradient(180deg, '
       + 'rgba(' + c + ',' + a(st.topo) + ') 0%, '
-      + 'rgba(' + c + ',' + a(st.meio) + ') 30%, '
-      + 'rgba(' + c + ',' + a(st.meio) + ') 58%, '
-      + 'rgba(' + c + ',' + a(st.baixo) + ') 85%, '
+      + 'rgba(' + c + ',' + a(st.topo) + ') 25%, '
+      + 'rgba(' + c + ',' + a(st.meio) + ') 45%, '
+      + 'rgba(' + c + ',' + a(st.meio) + ') 60%, '
+      + 'rgba(' + c + ',' + a(st.baixo) + ') 80%, '
       + 'rgba(' + c + ',' + a(st.baixo) + ') 100%)';
   }
   const overlayEl = () => (selected && selected.classList && [...selected.classList].some(c => /overlay|scrim/i.test(c))) ? selected : null;
