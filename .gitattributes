@@ -1,0 +1,3 @@
+# arquivos .bat/.cmd do Windows precisam de CRLF (senao o duplo-clique falha)
+*.bat text eol=crlf
+*.cmd text eol=crlf

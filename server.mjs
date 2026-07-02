@@ -108,6 +108,16 @@ const server = createServer(async (req, res) => {
   }
 })
 
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error('\n  A porta ' + PORT + ' ja esta em uso — o editor talvez ja esteja aberto.')
+    console.error('  Feche a outra janela preta (ou rode Desligar-Editor-HTML.bat) e tente de novo.\n')
+  } else {
+    console.error('\n  Erro ao iniciar o servidor: ' + (err && err.message ? err.message : err) + '\n')
+  }
+  process.exit(1)
+})
+
 server.listen(PORT, HOST, () => {
   console.log('')
   console.log('  ==================================================')
