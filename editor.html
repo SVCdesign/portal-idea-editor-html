@@ -112,6 +112,22 @@
      por cima da prévia; NUNCA entra no HTML nem no arquivo salvo */
   .__ya_guide{position:fixed;z-index:60;pointer-events:none;background:var(--guide);
               box-shadow:0 0 5px rgba(255,47,214,.8);display:none}
+
+  /* botão "Gerar PNG" + painel "Carrossel pronto" (gera PNGs fiéis via robô local) */
+  .genpng-btn{border-color:var(--accent2);color:var(--accent2);font-weight:600}
+  .genpng-btn:hover{background:var(--accent2);color:#2a1000}
+  .genpng-btn:disabled{opacity:.55;cursor:default;background:var(--line);color:var(--muted)}
+  .png-banner{background:#0b2a22;border:1px solid #1f5a48;color:#a7f0d8;font-size:12px;
+              padding:8px 10px;border-radius:8px;margin-bottom:12px;line-height:1.5}
+  .png-banner.erro{background:#2a1213;border-color:#5a2626;color:#ffb4b4}
+  .png-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+  .png-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;overflow:auto;padding-right:2px}
+  .png-card{background:#0b0e12;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .png-thumb{height:150px;background:#0b0e12 center/contain no-repeat;
+             display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+  .png-foot{display:flex;align-items:center;justify-content:space-between;
+            padding:6px 8px;font-size:11px;color:var(--muted)}
+  .png-dl{min-width:auto;padding:3px 8px;font-size:11px}
 </style>
 </head>
 <body>
@@ -124,6 +140,7 @@
     <button id="sample">▶️ Exemplo</button>
     <button id="paste">📋 Colar HTML</button>
     <button id="save" class="primary">💾 Salvar</button>
+    <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
   </header>
 
   <main>
@@ -202,6 +219,20 @@
     </section>
   </main>
 
+  <!-- painel "Carrossel pronto" — gera os PNGs fiéis (via robô local) -->
+  <div id="pngModal" class="modal-overlay" style="display:none">
+    <div class="modal-box" style="max-width:820px">
+      <h3 id="pngTitulo">🖼️ Gerar PNG (alta resolução)</h3>
+      <p class="modal-sub" id="pngCount"></p>
+      <div class="png-banner" id="pngBanner"></div>
+      <div class="png-actions">
+        <button class="primary" id="pngZip" style="display:none">⬇️ Baixar tudo</button>
+        <button class="btn png-cancel">Fechar</button>
+      </div>
+      <div id="pngGrid" class="png-grid"></div>
+    </div>
+  </div>
+
 <script>
 "use strict";
 const iframe = document.getElementById('preview');
@@ -218,6 +249,7 @@ let showingFull = false; // se a caixa está mostrando o documento inteiro
 let dirHandle = null;            // pasta com permissão de escrita (modo poderoso)
 let lastBaseName = null;         // nome-base do HTML aberto (para nomear o salvar)
 let originalRefByBlob = new Map();// imagem da prévia -> caminho real (para salvar)
+let assetFileByRef = new Map();   // caminho real -> arquivo ORIGINAL (imagem/fonte) p/ o Gerar PNG em alta
 
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
 function loadHtml(html){
@@ -942,6 +974,7 @@ async function loadFolder(entries){
   let html = await main.file.text();
   crumbEl.textContent = 'preparando as imagens…';
   originalRefByBlob = new Map();
+  assetFileByRef = new Map();
 
   // descobre só os arquivos que o HTML realmente referencia (o resto é ignorado)
   const used = [];
@@ -957,6 +990,7 @@ async function loadFolder(entries){
   const resolved = await Promise.all(used.map(async u => {
     const url = isImageFile(u.en.file) ? await shrinkToUrl(u.en.file) : URL.createObjectURL(u.en.file);
     originalRefByBlob.set(url, './' + u.rel);
+    assetFileByRef.set(u.rel, u.en.file);   // guarda o arquivo ORIGINAL (alta) p/ o Gerar PNG
     return { searches: u.searches, url };
   }));
   for(const { searches, url } of resolved){
@@ -1077,6 +1111,124 @@ document.getElementById('sample').addEventListener('click', () => loadHtml(SAMPL
 
 // começa com o exemplo na tela
 loadHtml(SAMPLE);
+</script>
+<script>
+/* ---- 🖼️ Gerar PNG: manda o slide (com os ajustes) + as imagens da pasta pro robô
+   local (server.mjs -> render-core.mjs) e mostra os PNGs fiéis em 2160×2700. ---- */
+(function(){
+  const btn     = document.getElementById('genpng');
+  const overlay = document.getElementById('pngModal');
+  const grid    = document.getElementById('pngGrid');
+  const countEl = document.getElementById('pngCount');
+  const banner  = document.getElementById('pngBanner');
+  const zipBtn  = document.getElementById('pngZip');
+  let ultimos = [];          // [{nome, base64}] do último render (para "Baixar tudo")
+  let gerando = false;
+
+  function fechar(){ overlay.style.display = 'none'; }
+  function baixar(nome, base64){
+    const a = document.createElement('a');
+    a.href = 'data:image/png;base64,' + base64;
+    a.download = (lastBaseName ? lastBaseName + '-' : '') + nome;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function fileToBase64(file){
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => { const s = String(r.result); res(s.slice(s.indexOf(',') + 1)); };
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  overlay.addEventListener('click', function(ev){
+    if(ev.target === overlay || ev.target.classList.contains('png-cancel')){ fechar(); return; }
+    const dl = ev.target.closest('.png-dl');
+    if(dl){ const i = +dl.dataset.i; if(ultimos[i]) baixar(ultimos[i].nome, ultimos[i].base64); return; }
+    if(ev.target === zipBtn){ ultimos.forEach(s => baixar(s.nome, s.base64)); }
+  });
+
+  async function gerar(){
+    if(gerando) return;
+    if(!iframe.contentDocument){ return; }
+    gerando = true;
+    btn.disabled = true;
+
+    // painel em estado "gerando…"
+    ultimos = [];
+    grid.innerHTML = '';
+    zipBtn.style.display = 'none';
+    countEl.textContent = '';
+    banner.className = 'png-banner';
+    banner.textContent = '⏳ Gerando… o robô está fotografando os slides em alta resolução. Leva alguns segundos.';
+    overlay.style.display = 'flex';
+
+    try{
+      // 1) HTML final (com os seus ajustes) — mesma base do "Salvar"
+      const html = buildFinalHtml();
+      // trava de tamanho: as fotos originais somadas não podem passar de ~140 MB
+      let totalBytes = 0;
+      for(const [, file] of assetFileByRef){ totalBytes += (file && file.size) || 0; }
+      if(totalBytes > 140 * 1024 * 1024){
+        banner.className = 'png-banner erro';
+        banner.textContent = '❌ As fotos originais somam ' + Math.round(totalBytes / 1048576)
+          + ' MB, acima do limite (~140 MB). Reduza o tamanho das imagens e tente de novo.';
+        return;
+      }
+      // 2) junta as imagens/fontes da pasta em qualidade ORIGINAL (não a encolhida da prévia)
+      const assets = [];
+      for(const [ref, file] of assetFileByRef){
+        try{ assets.push({ path: ref, base64: await fileToBase64(file) }); }catch(e){}
+      }
+
+      const resp = await fetch('/gerar-png', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, assets })
+      });
+      const data = await resp.json().catch(() => ({ ok:false, erro:'resposta inválida do servidor' }));
+      if(!resp.ok || !data.ok){ throw new Error(data.erro || ('erro ' + resp.status)); }
+
+      ultimos = Array.isArray(data.slides) ? data.slides : [];
+      const n = ultimos.length;
+      banner.className = 'png-banner';
+      banner.textContent = '✅ Pronto! PNGs fiéis em 2160×2700 (retina). Clique em "Baixar" em cada slide, ou "Baixar tudo".';
+      if(Array.isArray(data.avisos) && data.avisos.length){
+        banner.className = 'png-banner erro';
+        banner.textContent += ' ⚠️ Atenção: ' + data.avisos.length + ' imagem(ns) pode não ter carregado — confira o resultado.';
+      }
+      countEl.textContent = n + (n === 1 ? ' slide' : ' slides') + ' · PNG 2160×2700 (retina)';
+      grid.innerHTML = '';
+      ultimos.forEach((s, i) => {
+        const card = document.createElement('div'); card.className = 'png-card';
+        const src = 'data:image/png;base64,' + s.base64;
+        const thumb = document.createElement('div');
+        thumb.className = 'png-thumb';
+        thumb.style.backgroundImage = 'url("' + src + '")';
+        const foot = document.createElement('div');
+        foot.className = 'png-foot';
+        foot.innerHTML = '<span>' + s.nome + '</span>';
+        const b = document.createElement('button');
+        b.className = 'png-dl'; b.dataset.i = String(i); b.textContent = 'Baixar';
+        foot.appendChild(b);
+        card.append(thumb, foot);
+        grid.appendChild(card);
+      });
+      zipBtn.style.display = n ? '' : 'none';
+    }catch(err){
+      banner.className = 'png-banner erro';
+      const msg = String(err && err.message || err);
+      const dica = /Failed to fetch|NetworkError|Load failed|ECONNREFUSED/i.test(msg)
+        ? ' — parece que o editor não está rodando pelo motorzinho novo (Node). Abra pelo "Abrir-Editor-HTML.bat".'
+        : '';
+      banner.textContent = '❌ Não consegui gerar: ' + msg + dica;
+    }finally{
+      gerando = false;
+      btn.disabled = false;
+    }
+  }
+  btn.addEventListener('click', gerar);
+})();
 </script>
 </body>
 </html>

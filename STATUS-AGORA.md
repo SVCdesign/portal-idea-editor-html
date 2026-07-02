@@ -1,17 +1,24 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-02 · **Motivo:** NOVIDADES — (1) **botões "↔ centro / ↕ centro"**
-ao clicar num texto/elemento (leva ao meio do slide) e (2) **arrastar com o mouse**
-(não só as setas), com a linha-guia acendendo **ao vivo** e **grudando no centro**
-(efeito Photoshop de verdade). Vêm em cima da base já feita: a **linha-guia de
-centralização** — ao mover e chegar perto do meio do slide, **gruda no centro exato**
-e acende uma **linha rosa** (em pé = esquerda↔direita, deitada = cima↔baixo, cruz =
-os dois). A linha vive **na moldura do editor** (por cima da prévia) — **nunca entra
-no HTML nem no arquivo salvo**, zero risco pra fidelidade. O "imã" é de 4px (menor que
-o passo de 6px das setas, senão ficaria preso no centro). Tudo testado no navegador
-(Playwright) e empurrado pro GitHub. **PENDENTE (aguardando decisão do Carlos):** o
-**item 3 — salvar slide em PNG de alta resolução** — tem uma escolha de fidelidade a
-fazer (ver "Próximo passo"). — Histórico anterior: três melhorias no editor (pedidas e
+**Atualizado:** 2026-07-02 · **Motivo:** GRANDE NOVIDADE — **🖼️ Gerar PNG (alta
+resolução, fiel)** funcionando no editor. Botão no topo → painel "Carrossel pronto"
+com **PNG 2160×2700 (retina)** por slide + "Baixar tudo", **espelhando a ferramenta
+Carrossel do Portal SV Team**. Por baixo: o "motorzinho" local mudou de **Python pra
+Node** (`server.mjs`) — serve o editor **e** atende o botão, chamando um **navegador
+robô** (`scripts/render-core.mjs` via **playwright-core + o Chrome já instalado**, sem
+baixar os 150 MB do Chromium). O CSS **nunca é reprocessado** (é foto do Chrome de
+verdade). Passou por **revisão adversarial** (workflow, 13 achados) e **todos foram
+corrigidos e re-testados**: segurança (servidor só em 127.0.0.1, bloqueia `.git`/
+código-fonte/`node_modules`, checa origem do POST, 1 render por vez, limite de envio),
+fidelidade (seletor de slide com prioridade `.slide-wrapper`→`.slide` + exclui
+aninhados, não conta em dobro), robustez (Chrome nunca fica órfão, avisa imagem
+quebrada, mensagem amigável se faltar Chrome). Testado no navegador: 3 slides, wrapper
+aninhado (2, não 4), página inteira (fallback), imagens (round-trip), 2160×2700 exato.
+`Abrir-Editor-HTML.bat` agora liga o Node (com auto-preparo no 1º uso). Empurrado pro
+GitHub. — Antes: (1) **botões "↔ centro / ↕ centro"** e (2) **arrastar com o mouse**
+com a linha-guia **ao vivo** e **grudando no centro**; e a base da **linha-guia de
+centralização** (linha rosa no meio do slide; vive na moldura, não entra no arquivo).
+— Histórico anterior: três melhorias no editor (pedidas e
 aprovadas pelo Carlos, testadas no navegador e salvas no Git): (1) **"Abrir pasta"
 agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
 **conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
@@ -116,10 +123,21 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   (`...-editado.html`, depois `-2`, `-3`…), devolvendo o **caminho real das fotos**
   no lugar da versão encolhida; **nunca toca no original**. Sem o recurso (ex.:
   Firefox) cai em download na pasta Downloads.
+- **🖼️ Gerar PNG (alta resolução) — NOVO:** botão no topo → painel "Carrossel pronto"
+  com **PNG 2160×2700 (retina)** por slide + "Baixar tudo" (espelha a ferramenta
+  Carrossel do Portal SV Team). Um **navegador robô** (Chrome do PC, via
+  `server.mjs`+`scripts/render-core.mjs`) "fotografa" cada `.slide` — **100% fiel**
+  (fonte, gradiente, brilho), pois o CSS **nunca é reprocessado**. Roda **local**
+  (só 127.0.0.1), **sem token** e **sem baixar Chromium** (usa o Chrome já instalado).
+  Manda as imagens em **qualidade original**. Passou por revisão adversarial (13
+  achados corrigidos: segurança, fidelidade do seletor de slide, robustez).
 
 ## Atalhos e arquivos novos (tudo já no Git)
-- `Abrir-Editor-HTML.bat` — liga e abre no Chrome.
+- `Abrir-Editor-HTML.bat` — liga o **motorzinho Node** (`server.mjs`) e abre no Chrome.
+  No 1º uso num PC novo, instala sozinho a `playwright-core` (pecinha leve).
 - `Desligar-Editor-HTML.bat` — desliga o servidor (botão de pânico/limpeza).
+- `server.mjs` — motorzinho Node: serve o editor + atende o "Gerar PNG".
+- `scripts/render-core.mjs` — o robô que gera os PNGs fiéis (playwright-core + Chrome).
 
 ## Caminhos importantes
 - Mundo local: `D:\PORTAL IDEA\portal-idea-editor-html`

@@ -9,13 +9,22 @@ echo      EDITOR HTML - edicao de alta fidelidade
 echo   ============================================
 echo.
 
-where python >nul 2>nul
+where node >nul 2>nul
 if errorlevel 1 (
-  echo   [ERRO] Nao encontrei o Python neste computador.
-  echo   Avise o assistente que a gente resolve de outro jeito.
+  echo   [ERRO] Nao encontrei o Node neste computador.
+  echo   O Node e' o motorzinho que roda o editor e o "Gerar PNG".
+  echo   Avise o assistente que a gente instala juntos.
   echo.
   pause
   exit /b
+)
+
+rem primeira vez neste PC: instala a pecinha do robo (Chrome ja instalado e usado)
+if not exist "node_modules\playwright-core\package.json" (
+  echo   Preparando pela primeira vez neste PC (instalando 1 pecinha leve)...
+  echo   Isso so acontece uma vez. Aguarde...
+  call npm install playwright-core
+  echo.
 )
 
 echo   O Editor HTML esta iniciando...
@@ -27,8 +36,7 @@ echo   basta fechar esta janela.
 echo.
 
 rem espera 2 segundos e abre o navegador no endereco certo
-rem o ?v=%RANDOM% forca o navegador a carregar SEMPRE a versao mais nova (sem cache)
-start "" /min cmd /c "timeout /t 2 >nul & start http://localhost:4599/editor.html?v=%RANDOM%"
+start "" /min cmd /c "timeout /t 2 >nul & start http://localhost:4599/editor.html"
 
-rem liga o endereco local (fica rodando ate fechar a janela)
-python -m http.server 4599
+rem liga o motorzinho Node (serve o editor + atende o "Gerar PNG"); roda ate fechar a janela
+node server.mjs
