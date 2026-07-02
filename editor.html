@@ -199,6 +199,8 @@
             <button data-pact="zout"  title="afastar a foto (zoom −)">🔍 −</button>
             <span class="sep"></span>
             <button data-pact="reset" title="voltar a foto ao enquadramento original">↺ desfazer</button>
+            <span class="sep"></span>
+            <button data-pact="overlay" title="escurecer / clarear a foto (a película por cima)">🎚️ Escurecer/Clarear</button>
           </div>
         </div>
         <div id="texttools" class="tools" hidden>
@@ -494,7 +496,7 @@ function isTextEl(el){
 }
 function showToolsFor(el){
   const img = (el && el.tagName === 'IMG');
-  const ovl = !!(el && el.classList && el.classList.contains('overlay'));
+  const ovl = !!(el && el.classList && [...el.classList].some(c => /overlay|scrim/i.test(c)));
   const txt = !img && !ovl && isTextEl(el);
   toolsEl.hidden = img || txt || ovl;   // comum (mover/zoom) só para o resto
   photoToolsEl.hidden = !img;    // imagens: ajustar a foto
@@ -745,6 +747,13 @@ photoToolsEl.addEventListener('click', function(ev){
     case 'zin':   zoomPhoto(1.08); break;
     case 'zout':  zoomPhoto(1/1.08); break;
     case 'reset': resetPhoto(); break;
+    case 'overlay': {
+      const slide = selected.closest('.slide-wrapper, .slide, .hero') || selected.parentNode;
+      const scrim = slide && slide.querySelector('[class*="scrim"], [class*="overlay"]');
+      if(scrim) selectElement(scrim);
+      else alert('Não achei a "película" (overlay/scrim) desta capa pra escurecer/clarear.');
+      break;
+    }
   }
 });
 
@@ -1324,7 +1333,7 @@ loadHtml(SAMPLE);
       + 'rgba(' + c + ',' + a(st.baixo) + ') 85%, '
       + 'rgba(' + c + ',' + a(st.baixo) + ') 100%)';
   }
-  const overlayEl = () => (selected && selected.classList && selected.classList.contains('overlay')) ? selected : null;
+  const overlayEl = () => (selected && selected.classList && [...selected.classList].some(c => /overlay|scrim/i.test(c))) ? selected : null;
   function labels(){ ['geral','topo','meio','baixo'].forEach(k => { const b = el('ov-v-' + k); if(b) b.textContent = st[k] + '%'; }); }
   function marcarCor(btn){ document.querySelectorAll('.ov-cor').forEach(b => b.classList.remove('primary')); if(btn) btn.classList.add('primary'); }
   function sliders(){ ['geral','topo','meio','baixo'].forEach(k => { const r = el('ov-s-' + k); if(r) r.value = st[k]; }); }
