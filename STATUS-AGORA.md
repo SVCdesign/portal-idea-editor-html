@@ -1,8 +1,15 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-01 · **Motivo:** ENTREGA pra outra IA (troca de PC) — tudo
-commitado e empurrado (este PC = remoto), sem frente de código em aberto nem bug
-conhecido. Nesta sessão: três melhorias no editor (pedidas e
+**Atualizado:** 2026-07-01 · **Motivo:** NOVIDADE — **linha-guia de centralização**
+(estilo Photoshop). Ao mover um texto/elemento com as setas e chegar perto do meio
+do slide, ele **gruda no centro exato** e acende uma **linha rosa**: em pé = centrado
+esquerda↔direita, deitada = cima↔baixo, cruz = os dois. A linha vive **na moldura do
+editor** (por cima da prévia) — **nunca entra no HTML nem no arquivo salvo**, zero
+risco pra fidelidade. O "imã" é de 4px (menor que o passo de 6px das setas, senão o
+elemento ficaria preso no centro); a linha some sozinha depois de ~1,2s. A referência
+de centro é o `.slide` (ou o corpo da página, se não houver). Testado no navegador
+(Playwright): sair/voltar ao centro, os dois eixos, e a cruz no `.slide`. Empurrado
+pro GitHub. — Histórico anterior: três melhorias no editor (pedidas e
 aprovadas pelo Carlos, testadas no navegador e salvas no Git): (1) **"Abrir pasta"
 agora deixa ESCOLHER qual HTML** abrir quando a pasta tem 2+ (janelinha); (2)
 **conserto do "mover"** — agora funciona nos títulos com gradiente (o html-studio
@@ -86,6 +93,15 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   ficam bloqueados. O código à direita acompanha **ao vivo** e sempre **limpo**; ao
   terminar, tira `<br>` "fantasma" do fim; o arquivo salvo sai **sem marca de
   edição** (buildFinalHtml tira `contenteditable`). Validado no navegador.
+- **📏 Linha-guia de centralização (estilo Photoshop) — NOVO:** ao mover um texto
+  (ou elemento comum) com as setas e chegar perto do meio do slide, ele **gruda no
+  centro exato** e acende uma **linha rosa**: em pé = centrado esquerda↔direita,
+  deitada = cima↔baixo, cruz = os dois. O "imã" é de 4px (de propósito **menor** que
+  o passo de 6px das setas, senão o elemento ficaria **preso** no centro); a linha
+  **some sozinha** depois de ~1,2s. Referência de centro = o `.slide` (ou o corpo, se
+  não houver `.slide`). A linha é desenhada **na moldura do editor**, por cima da
+  prévia — **não entra no HTML nem no arquivo salvo** (zero risco de fidelidade).
+  Validado no navegador (sair/voltar ao centro, os dois eixos, cruz no `.slide`).
 - **Mover/zoom comum** (demais elementos): setas + zoom (transform), `↺ desfazer`.
 - **💾 Salvar:** no Chrome/Edge salva **direto na pasta** com renome automático
   (`...-editado.html`, depois `-2`, `-3`…), devolvendo o **caminho real das fotos**

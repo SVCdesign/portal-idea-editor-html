@@ -25,6 +25,7 @@
   :root{
     --bg:#0f1216; --panel:#171c22; --line:#262d36; --ink:#e6edf3;
     --muted:#8b97a6; --accent:#2BC4C4; --accent2:#FF7A2F; --sel:#2BC4C4;
+    --guide:#ff2fd6;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
@@ -106,6 +107,11 @@
   .modal-item .mi-folder{color:var(--muted);font-size:11px;font-family:ui-monospace,Consolas,monospace}
   .modal-cancel{align-self:flex-end;margin-top:12px}
   .sb-btn.cur{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:700}
+
+  /* linha-guia de centralização (estilo Photoshop) — vive na MOLDURA do editor,
+     por cima da prévia; NUNCA entra no HTML nem no arquivo salvo */
+  .__ya_guide{position:fixed;z-index:60;pointer-events:none;background:var(--guide);
+              box-shadow:0 0 5px rgba(255,47,214,.8);display:none}
 </style>
 </head>
 <body>
@@ -322,6 +328,7 @@ function clearSel(el){
 
 function selectElement(el){
   if(!el || el.nodeType !== 1) return;
+  hideGuides();
   clearSel(selected);
   selected = el;
   showingFull = false;
@@ -427,9 +434,75 @@ function setTf(el, v){
   }
   refreshCodeBox();
 }
-function nudge(dx, dy){ if(!selected) return; const v = getTf(selected); v.tx += dx; v.ty += dy; setTf(selected, v); }
+function nudge(dx, dy){ if(!selected) return; const v = getTf(selected); v.tx += dx; v.ty += dy; setTf(selected, v); centerGuides(); }
 function zoom(f){ if(!selected) return; const v = getTf(selected); v.s = Math.max(0.1, v.s * f); setTf(selected, v); }
-function resetTf(){ if(!selected) return; setTf(selected, { tx:0, ty:0, s:1 }); }
+function resetTf(){ if(!selected) return; setTf(selected, { tx:0, ty:0, s:1 }); hideGuides(); }
+
+// ---- linha-guia de centralização (estilo Photoshop) -------------------
+// Quando você move um TEXTO/elemento com as setas e o centro dele chega perto
+// do centro do slide, ele "gruda" no centro exato e acende uma linha rosa:
+// em pé = centrado esquerda↔direita; deitada = centrado cima↔baixo.
+// A linha é desenhada na MOLDURA do editor (por cima da prévia), então NUNCA
+// entra no HTML nem no arquivo salvo — zero risco pra fidelidade do CSS.
+const SNAP_TOL = 4;   // "imã": distância (px) em que gruda no centro.
+                      // TEM que ser menor que o passo da seta (6px), senão o
+                      // elemento fica preso no centro (todo clique cai no imã).
+let guideHideTimer = null;
+function slideOf(el){
+  return (el.closest && (el.closest('.slide-wrapper') || el.closest('.slide')))
+         || (iframe.contentDocument && iframe.contentDocument.body) || null;
+}
+function guideDiv(id){
+  let g = document.getElementById(id);
+  if(!g){ g = document.createElement('div'); g.id = id; g.className = '__ya_guide'; document.body.appendChild(g); }
+  return g;
+}
+function hideGuides(){
+  ['__ya_guide_v','__ya_guide_h'].forEach(id => { const g = document.getElementById(id); if(g) g.style.display = 'none'; });
+  if(guideHideTimer){ clearTimeout(guideHideTimer); guideHideTimer = null; }
+}
+// mede o centro do elemento vs. o centro do slide; se estiver dentro do imã,
+// gruda no centro exato e mostra a(s) linha(s) certa(s)
+function centerGuides(){
+  if(!selected || selected.tagName === 'IMG'){ hideGuides(); return; }
+  const slide = slideOf(selected);
+  if(!slide){ hideGuides(); return; }
+  const er = selected.getBoundingClientRect();
+  const sr = slide.getBoundingClientRect();
+  const dx = (sr.left + sr.width / 2)  - (er.left + er.width / 2);
+  const dy = (sr.top  + sr.height / 2) - (er.top  + er.height / 2);
+  let showV = false, showH = false;
+  const v = getTf(selected);
+  if(Math.abs(dx) <= SNAP_TOL){ v.tx = Math.round(v.tx + dx); showV = true; }
+  if(Math.abs(dy) <= SNAP_TOL){ v.ty = Math.round(v.ty + dy); showH = true; }
+  if(showV || showH) setTf(selected, v);   // gruda no centro exato
+  drawGuides(slide, showV, showH);
+}
+// desenha as linhas por cima da prévia, recortadas na área visível do iframe
+function drawGuides(slide, showV, showH){
+  const ifr = iframe.getBoundingClientRect();
+  const sr  = slide.getBoundingClientRect();
+  const top    = Math.max(ifr.top,    ifr.top  + sr.top);
+  const bottom = Math.min(ifr.bottom, ifr.top  + sr.top  + sr.height);
+  const left   = Math.max(ifr.left,   ifr.left + sr.left);
+  const right  = Math.min(ifr.right,  ifr.left + sr.left + sr.width);
+  const vg = guideDiv('__ya_guide_v'), hg = guideDiv('__ya_guide_h');
+  if(showV && bottom > top){
+    const x = ifr.left + sr.left + sr.width / 2;
+    vg.style.left = (x - 1) + 'px'; vg.style.top = top + 'px';
+    vg.style.width = '2px'; vg.style.height = (bottom - top) + 'px';
+    vg.style.display = 'block';
+  }else vg.style.display = 'none';
+  if(showH && right > left){
+    const y = ifr.top + sr.top + sr.height / 2;
+    hg.style.left = left + 'px'; hg.style.top = (y - 1) + 'px';
+    hg.style.width = (right - left) + 'px'; hg.style.height = '2px';
+    hg.style.display = 'block';
+  }else hg.style.display = 'none';
+  // pisca e apaga sozinha (o movimento é em passinhos, não tem "soltar o mouse")
+  if(guideHideTimer) clearTimeout(guideHideTimer);
+  if(showV || showH) guideHideTimer = setTimeout(hideGuides, 1200);
+}
 
 toolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
