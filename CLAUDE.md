@@ -40,6 +40,14 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
     não sabe programar entenda perfeitamente. Una os dois: o nome técnico **+** a
     tradução humana. (Ele já deixou isso explícito — não faça ele pedir de novo.)
 - **MVP primeiro.** Comece enxuto, cresça guiado.
+- **Prévia A vs Prévia B.** Quando o Carlos pedir uma **prévia**, confira qual:
+  - **Prévia A (real / alta fidelidade):** um HTML que ele abre no navegador,
+    **idêntico ao editor de verdade**, funcionando e **navegável** — como se ele
+    estivesse usando o editor real, só que em forma de prévia. É pra **testar de
+    verdade** antes de mexer no código oficial.
+  - **Prévia B (rascunho / simples):** um HTML **simples**, só pra **mostrar a
+    ideia** do que vai ser implementado (ex.: um botão, uma mudança pequena). Não
+    precisa ser fiel nem funcional — é só pra **visualizar o conceito**.
 - **No fim de cada chat:** atualize o `STATUS-AGORA.md` e repita os caminhos das
   pastas (entrada/saída/testes), pro usuário não ter que caçar.
 - **Guias espelhados:** mudou `CLAUDE.md`, replique em `GEMINI.md` e `AGENTS.md`.
