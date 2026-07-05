@@ -1,9 +1,10 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 · **Motivo:** ✅ **Desfazer (Ctrl+Z) + Remover elemento** no
-editor — implementado, **testado no navegador de verdade** e empurrado pro GitHub.
-**Sem frente de código em aberto nem bug conhecido.** Próxima IA: leia este arquivo +
-`CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+**Atualizado:** 2026-07-05 · **Motivo:** ✅ **"Salvar como" + reorganização dos botões**
+(e, antes nesta sessão, **Desfazer/Ctrl+Z + Remover elemento**) — tudo implementado,
+**testado no navegador de verdade** e empurrado pro GitHub. **Sem frente de código em
+aberto nem bug conhecido.** Próxima IA: leia este arquivo + `CLAUDE.md` +
+`memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
 > - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
@@ -17,8 +18,17 @@ editor — implementado, **testado no navegador de verdade** e empurrado pro Git
 > - **Google Drive VERDE** antes de mexer: os assets pesados das peças (imagens/fontes)
 >   viajam pelo Drive, **não** pelo Git.
 
-**O que saiu nesta sessão (tudo testado e no GitHub):** **↩ Desfazer (estilo Photoshop)
-+ 🗑 Remover elemento** no editor. Agora dá pra **apagar qualquer elemento** da peça
+**O que saiu nesta sessão (tudo testado e no GitHub):** **💾 "Salvar como…" + reorganização
+da barra de botões.** Novo botão **Salvar como…** (ao lado do Salvar) abre a **janela nativa
+"salvar aonde"** (`showSaveFilePicker`) pra escolher **pasta + nome** (o **Salvar** continua
+salvando a cópia sozinho, como antes). Botões reorganizados a pedido do Carlos —
+**Cabeçalho:** Abrir HTML · Abrir pasta · Salvar · Salvar como · Desfazer · Remover · Gerar
+PNG; **Rodapé:** Aplicar mudança · Ver código todo · Colar HTML · Exemplo (o **Remover**
+subiu pro topo; **Colar HTML** e **Exemplo** desceram pro rodapé). **Testado no Chrome real:**
+ordem dos botões conferida, "Salvar como" grava o HTML final, botões movidos seguem
+funcionando, e **regressão do Desfazer/Remover OK**. **Prévia A aprovada** pelo Carlos antes
+(em `previas/previa-botoes.html`, local-only). Empurrado pro GitHub. — Antes: **↩ Desfazer
+(estilo Photoshop) + 🗑 Remover elemento** no editor. Agora dá pra **apagar qualquer elemento** da peça
 (um ícone SVG, um bloco, um texto): clica nele na prévia → botão **"🗑 Remover"** (ou
 tecla **Delete**) e ele some. E um **Desfazer de verdade**: **Ctrl+Z** (ou botão **"↩
 Desfazer"** no topo) volta as **últimas 30 edições**, uma a uma — remoção, mover, zoom,

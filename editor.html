@@ -162,10 +162,10 @@
     <label class="btn">📂 Abrir HTML<input type="file" id="file" accept=".html,.htm,text/html"></label>
     <button id="folder">📁 Abrir pasta (com imagens)</button>
     <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
-    <button id="sample">▶️ Exemplo</button>
-    <button id="paste">📋 Colar HTML</button>
-    <button id="undo" title="Desfazer a última mudança (Ctrl+Z)" disabled>↩ Desfazer</button>
     <button id="save" class="primary">💾 Salvar</button>
+    <button id="saveAs" title="Escolher onde salvar — abre a janela 'salvar aonde' (pasta + nome)">💾 Salvar como…</button>
+    <button id="undo" title="Desfazer a última mudança (Ctrl+Z)" disabled>↩ Desfazer</button>
+    <button id="remove" class="danger" title="Remover o elemento selecionado (tecla Delete)" disabled>🗑 Remover</button>
     <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
   </header>
 
@@ -262,8 +262,9 @@
         <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
         <div class="row">
           <button id="apply" class="primary">✓ Aplicar mudança</button>
-          <button id="remove" class="danger" title="Remover o elemento selecionado (tecla Delete)" disabled>🗑 Remover</button>
           <button id="full">Ver código todo</button>
+          <button id="paste">📋 Colar HTML</button>
+          <button id="sample">▶️ Exemplo</button>
           <span class="hint">a prévia atualiza ao vivo · o CSS nunca é reprocessado</span>
         </div>
       </div>
@@ -1328,6 +1329,32 @@ document.getElementById('save').addEventListener('click', async function(){
     }
   }catch(err){
     alert('Não consegui salvar: ' + err.message);
+  }
+});
+
+// ---- SALVAR COMO: abre a janela "salvar aonde" (você escolhe a pasta e o nome) ----
+// Usa a janela nativa do navegador (showSaveFilePicker, o mesmo padrão do "Abrir pasta").
+// Diferença pro "Salvar": aqui VOCÊ decide onde e com que nome — e pode até substituir.
+document.getElementById('saveAs').addEventListener('click', async function(){
+  const html = buildFinalHtml();
+  const sugestao = (lastBaseName || 'pagina') + '-editado.html';
+  if(window.showSaveFilePicker){
+    let handle;
+    try{
+      handle = await window.showSaveFilePicker({
+        suggestedName: sugestao,
+        types: [{ description: 'Página HTML', accept: { 'text/html': ['.html', '.htm'] } }]
+      });
+    }catch(e){ if(e && e.name === 'AbortError') return; alert('Não consegui abrir a janela de salvar: ' + e.message); return; }
+    try{
+      const w = await handle.createWritable();
+      await w.write(html); await w.close();
+      alert('✅ Salvo como:\n\n' + handle.name);
+    }catch(err){ alert('Não consegui salvar: ' + err.message); }
+  }else{
+    // navegador sem a janela nativa: cai no download comum (pasta de Downloads)
+    const name = downloadHtml(html);
+    alert('Seu navegador não tem a janela "salvar aonde". Salvei na pasta de Downloads como:\n\n' + name);
   }
 });
 
