@@ -1,16 +1,27 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** 🗂️ **NOVA ORGANIZAÇÃO: a pasta
-`Subsistemas/`.** Nesta sessão **NÃO mexemos no código do `editor.html`.** O Carlos decidiu
-organizar o mundo por **"subsistemas"**: cada fluxo/ferramenta grande ganha uma **pasta-casa
-própria** (a receita + exemplos + ferramentas), sem misturar com o resto. Nasceu a pasta
-**`Subsistemas/`** e, dentro dela, a 1ª casa — **`Fluxo do Subsistema Slide Mestre/`** — com o
-manual completo do fluxo (`LEIA-PRIMEIRO.md`). Padrão dos próximos: **`Fluxo do Subsistema [nome]`**
-(o próximo cogitado é o de **SVG**). ⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho:
-Slide-mestre"** (detalhado logo abaixo) **ATUALIZA uma regra antiga** deste mundo (a que dizia "a
-IA não edita as peças") e agora tem **casa própria** em `Subsistemas/`. O trabalho anterior no
-editor (Desfazer, Remover, Salvar como, ✨ Adicionar brilho) **continua no ar, testado e no
-GitHub** — histórico completo mais pra baixo. Próxima IA num PC novo: leia este arquivo +
+**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** duas frentes hoje — (1) 🗂️ **nova
+organização `Subsistemas/`** e (2) 🧩 **começou o PAINEL DE CAMADAS no `editor.html`** (passo 1 de
+3, no ar e testado).
+
+**(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
+fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + ferramentas). Nasceu
+**`Subsistemas/`** e a 1ª casa: **`Fluxo do Subsistema Slide Mestre/`** (`LEIA-PRIMEIRO.md`). Padrão
+dos próximos: **`Fluxo do Subsistema [nome]`** (o próximo cogitado: **SVG**).
+
+**(2) Painel de Camadas (⚠️ NOVA FRENTE DE CÓDIGO — EM ANDAMENTO):** o Carlos pediu pra **arrastar
+qualquer elemento** com o mouse (hoje só o **texto** arrasta; **SVG e brilho não**) e pra resolver o
+"como clicar no que está **atrás**". Solução aprovada por ele via **Prévia A**: um **painel de
+camadas estilo Photoshop** na direita do editor. Está sendo feito em **3 passos**: **✅ passo 1 (no
+ar e testado)** — a **lista** das camadas do slide (Foto, Escurecimento, Brilho 1/2, Ícone, Texto)
+com **clicar pra selecionar**, inclusive as escondidas atrás; **⬜ passo 2** — 🔒 **travar (cadeado)
++ arrastar** qualquer elemento sem pegar o vizinho; **⬜ passo 3** — 👁 **olho** (mostrar/esconder).
+Prévia local (fora do Git): `previas/previa-camadas.html`.
+
+⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho: Slide-mestre"** (detalhado logo abaixo)
+**ATUALIZA uma regra antiga** (a IA **PODE** editar/replicar as peças **quando o Carlos pedir**) e
+tem **casa própria** em `Subsistemas/`. O trabalho anterior no editor (Desfazer, Remover, Salvar
+como, ✨ Adicionar brilho) **continua no ar e no GitHub**. Num PC novo: leia este arquivo +
 `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**

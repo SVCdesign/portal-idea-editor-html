@@ -155,6 +155,18 @@
   .ov-row span{display:flex;justify-content:space-between}
   .ov-row b{color:var(--accent);font-variant-numeric:tabular-nums}
   .ov-row input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+  /* Painel de CAMADAS (lista dos elementos do slide à vista) */
+  .layers{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#12161c}
+  .layers .ly-head{padding:8px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
+  .ly-list{max-height:196px;overflow-y:auto}
+  .ly-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #1f262e;cursor:pointer}
+  .ly-row:last-child{border-bottom:none}
+  .ly-row:hover{background:rgba(255,255,255,.05)}
+  .ly-row.sel{background:rgba(43,196,196,.15)}
+  .ly-ic{width:18px;text-align:center;flex:0 0 auto;font-size:13px}
+  .ly-nm{flex:1;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ly-row.sel .ly-nm{color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -182,6 +194,7 @@
     <section class="pane right">
       <h2>Código do elemento clicado</h2>
       <div class="body">
+        <div id="layers" class="layers" hidden></div>
         <div id="crumb"></div>
         <div id="capa-atalhos" style="display:none"></div>
         <div id="nav" style="display:none"></div>
@@ -438,6 +451,8 @@ function wirePreview(){
   doc.addEventListener('keydown', handleGlobalKeys, true);
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
+  renderLayers();     // monta o painel de camadas do slide à vista
+  doc.addEventListener('scroll', () => { clearTimeout(layerScrollT); layerScrollT = setTimeout(renderLayers, 120); }, true);
 }
 
 // barra de navegação: um botão por slide; clicar pula a prévia até ele
@@ -483,6 +498,7 @@ function selectElement(el){
   refreshCodeBox();                      // mostra o código (de uma cópia limpa)
   showToolsFor(el);                      // foto -> ajustar foto; resto -> mover/zoom comum
   updateRemoveBtn();                     // habilita o botão "🗑 Remover"
+  renderLayers();                        // atualiza o painel de camadas (marca o selecionado)
 }
 
 // mostra o código do elemento selecionado, sempre de uma CÓPIA limpa
@@ -568,6 +584,7 @@ function undo(){
   codeEl.value = '';
   crumbEl.textContent = '↩ desfeito' + (history.length ? '' : ' — (nada mais para desfazer)');
   renderSlideBar();
+  renderLayers();
   if(win) win.scrollTo(sx, sy);
   updateUndoBtn(); updateRemoveBtn();
 }
@@ -593,6 +610,7 @@ function removeSelected(){
   codeEl.value = '';
   crumbEl.textContent = '🗑 removido — aperte Ctrl+Z (ou "↩ Desfazer") para trazer de volta';
   renderSlideBar();
+  renderLayers();
   updateRemoveBtn();
 }
 
@@ -682,6 +700,85 @@ function renderCapaAtalhos(el){
     b.onclick = () => selectElement(pelicula);
     bar.appendChild(b);
   }
+}
+
+// ---- Painel de CAMADAS (lista dos elementos "mexíveis" do slide à vista) -----
+// Foto, escurecimento, brilhos, ícones e textos com NOME HUMANO. Clicar numa
+// linha SELECIONA aquele elemento — mesmo escondido atrás de outro — reusando o
+// selectElement (realce + código + ferramentas). A lista é do slide à vista (o do
+// selecionado; senão o que está mais no centro da tela).
+const layersEl = document.getElementById('layers');
+let layerLock = null, layerScrollT = null;   // (passo 2) travar; e o timer do rolar
+
+function directLayerText(el){
+  let t = '';
+  el.childNodes.forEach(n => { if(n.nodeType === 3) t += n.textContent; });
+  return t.trim().replace(/\s+/g, ' ');
+}
+function layerInfo(el){
+  if(!el || el.nodeType !== 1) return null;
+  const tag = el.tagName.toLowerCase();
+  if(tag === 'img') return { kind:'foto', icon:'🖼️', name:'Foto' };
+  const cls = (el.className && typeof el.className === 'string') ? el.className : '';
+  if(el.classList && el.classList.contains('bokeh')) return { kind:'brilho', icon:'✨', name:'Brilho' };
+  if(/overlay|scrim/i.test(cls))                     return { kind:'overlay', icon:'◑', name:'Escurecimento' };
+  if(tag === 'svg')                                  return { kind:'svg', icon:'⬡', name:'Ícone' };
+  const txt = directLayerText(el);
+  if(txt) return { kind:'texto', icon:'T', name:'Texto: “' + (txt.length > 22 ? txt.slice(0,22) + '…' : txt) + '”' };
+  return null;
+}
+// coleta as camadas do slide, sem os aninhados redundantes (um <svg> dentro de
+// outro; um texto dentro de outro texto). Numera "Brilho 1/2…" e "Ícone 1/2…".
+function collectLayers(slide){
+  const cand = [];
+  slide.querySelectorAll('*').forEach(el => {
+    if(el.id === '__ya_style') return;
+    const info = layerInfo(el);
+    if(info) cand.push({ el, info });
+  });
+  const kept = cand.filter(c => {
+    if(c.info.kind === 'svg')
+      return !cand.some(o => o !== c && o.info.kind === 'svg' && o.el.contains(c.el));
+    if(c.info.kind === 'texto')
+      return !cand.some(o => o !== c && o.info.kind === 'texto' && o.el.contains(c.el));
+    return true;
+  });
+  const total = {}, seen = {};
+  kept.forEach(c => { total[c.info.kind] = (total[c.info.kind] || 0) + 1; });
+  kept.forEach(c => {
+    if((c.info.kind === 'brilho' || c.info.kind === 'svg') && total[c.info.kind] > 1){
+      seen[c.info.kind] = (seen[c.info.kind] || 0) + 1;
+      c.info = { kind:c.info.kind, icon:c.info.icon, name:c.info.name + ' ' + seen[c.info.kind] };
+    }
+  });
+  return kept;
+}
+function slideForLayers(){
+  if(selected){ const s = slideOf(selected); if(s) return s; }
+  return targetSlideForInsert();
+}
+function renderLayers(){
+  if(!layersEl) return;
+  const doc = iframe.contentDocument;
+  const slide = doc ? slideForLayers() : null;
+  const items = slide ? collectLayers(slide).reverse() : [];   // frente da arte no TOPO da lista
+  if(!items.length){ layersEl.hidden = true; layersEl.innerHTML = ''; return; }
+  layersEl.hidden = false;
+  layersEl.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'ly-head'; head.textContent = 'Camadas deste slide';
+  layersEl.appendChild(head);
+  const list = document.createElement('div'); list.className = 'ly-list';
+  items.forEach(({ el, info }) => {
+    const row = document.createElement('div');
+    row.className = 'ly-row' + (el === selected ? ' sel' : '') + (el === layerLock ? ' locked' : '');
+    const ic = document.createElement('span'); ic.className = 'ly-ic'; ic.textContent = info.icon;
+    const nm = document.createElement('span'); nm.className = 'ly-nm'; nm.textContent = info.name; nm.title = labelFor(el);
+    row.append(ic, nm);
+    row.onclick = () => selectElement(el);
+    list.appendChild(row);
+  });
+  layersEl.appendChild(list);
 }
 
 function setPreviewCursor(c){
