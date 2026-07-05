@@ -1,10 +1,12 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 · **Motivo:** ✅ **"✨ Adicionar brilho (bokeh)" com painel de
-ajuste** (e, antes nesta sessão: Salvar como, reorganização dos botões, Desfazer/Ctrl+Z,
-Remover elemento) — tudo implementado, **testado no navegador de verdade** e empurrado pro
-GitHub. **Sem frente de código em aberto nem bug conhecido.** Próxima IA: leia este arquivo
-+ `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+**Atualizado:** 2026-07-05 · **Motivo:** 📦 **ENTREGA pra outra IA (troca de chat).** Nesta
+sessão saíram (implementados, **testados no navegador de verdade** e no GitHub): **Desfazer/
+Ctrl+Z (30 passos), Remover elemento, Salvar como (lembra a última pasta), reorganização dos
+botões e ✨ Adicionar brilho (bokeh) com painel de ajuste**. **Este PC = remoto, sem frente de
+código em aberto nem bug conhecido.** 🧠 Brainstorm exaustivo do editor **em andamento** (ver
+"Próximo passo" no fim). Próxima IA: leia este arquivo + `CLAUDE.md` +
+`memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
 > - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
@@ -210,6 +212,30 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   iniciar sem pulo; ao ajustar, escreve `linear-gradient` **inline** (o CSS global
   nunca é tocado); **↺ Voltar ao original** restaura o CSS de fábrica; o ajuste é
   **salvo** junto. Espelha a técnica de overlay do html-studio. Validado no navegador.
+- **↩ Desfazer (Ctrl+Z, 30 passos) — NOVO (2026-07-05):** histórico estilo Photoshop.
+  Botão **↩ Desfazer** no topo + **Ctrl+Z** voltam as últimas **30 edições** (remoção,
+  mover, zoom, texto, escurecer/clarear, brilho). Guarda "retratos" **limpos** do documento
+  (sem marcadores internos, **mantendo as imagens** da prévia); ao desfazer, recoloca
+  head+body **sem recarregar a prévia** (os cliques seguem ligados) e **preserva a rolagem**.
+  Cada gesto = **1 passo** (um arrasto/uma digitação inteiros). Testado no Chrome real.
+- **🗑 Remover elemento — NOVO (2026-07-05):** botão **🗑 Remover** (no topo) + tecla
+  **Delete** apagam o elemento selecionado; entra no Desfazer (Ctrl+Z traz de volta).
+  Não deixa apagar o `<body>`/`<html>`.
+- **💾 Salvar como… — NOVO (2026-07-05):** botão ao lado do Salvar; abre a **janela nativa
+  "salvar aonde"** (`showSaveFilePicker`) pra escolher **pasta + nome** (pode substituir).
+  **Lembra a última pasta** usada (opção `id`, vale entre sessões; na 1ª vez começa na pasta
+  da peça, se aberta). O **Salvar** normal segue salvando a cópia automática como antes.
+- **✨ Adicionar brilho (bokeh) + painel — NOVO (2026-07-05):** botão **✨ Adicionar brilho**
+  insere uma bolinha de luz (bokeh) **"completa em si mesma"** (estilos inline — funciona em
+  qualquer slide) no slide à vista, já selecionada; **quantas quiser**. Ao selecionar um
+  brilho, painel com **Tamanho, Cor** (Ciano/Lilás/Roxo/Branco + cor livre)**, Intensidade,
+  Suavidade** (blur) + **mover/centralizar/arrastar**. Escreve tudo **inline** (CSS nunca
+  reprocessado); também ajusta os bokehs **que já vêm na peça** (lê do CSS). Os adicionados
+  são **clicáveis** (`pointer-events:auto`). Por baixo: `addBokeh()`, painel lê/escreve como
+  o de overlay. Testado no Chrome real (14 checagens + regressão).
+- **Barra de botões reorganizada — NOVO (2026-07-05):** **Cabeçalho:** Abrir HTML · Abrir
+  pasta · Salvar · Salvar como · Desfazer · Remover · Adicionar brilho · Gerar PNG.
+  **Rodapé (embaixo do código):** Aplicar mudança · Ver código todo · Colar HTML · Exemplo.
 
 ## Atalhos e arquivos novos (tudo já no Git)
 - `Abrir-Editor-HTML.bat` — liga o **motorzinho Node** (`server.mjs`) e abre no Chrome.
@@ -247,14 +273,30 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 - [ ] **🟢 Google Drive sincronizado** (verde) antes de desligar — causa #1 de PC desatualizado.
 - [ ] **`conversa-entre-mundos` com backup**, se mexeu nela.
 
-## Próximo passo (OPCIONAL) — PRÓXIMA IA, RETOME ASSIM
+## Próximo passo — PRÓXIMA IA, RETOME ASSIM
 - Tudo acima foi **validado com o usuário** (testes no navegador via Playwright,
   que ele autorizou). **Não há bug em aberto.**
-- Evoluções possíveis, **só se o usuário pedir** (não fazer antes):
-  - **Arrastar as bordas da caixa de texto com o mouse** (alças, igual Photoshop) —
-    hoje a largura é por botões `◄/►`.
-  - **Janela de recorte de foto completa** (quadro 4:5 travado e arrastável), como
-    a do sistema da empresa dele (Portal SV Team / specialvision.design).
+- 🧠 **BRAINSTORM EXAUSTIVO EM ANDAMENTO (2026-07-05):** o Carlos disse que "tem **muita
+  coisa** que ele precisa no editor" e quer ir **um passo de cada vez**. O fluxo que ele
+  gosta: **conversar → Prévia A → ele aprova ("vai") → aplica no `editor.html` → testa no
+  navegador → publica**. Ideias já conversadas nesta leva (o **brilho/bokeh já SAIU** e está
+  no ar):
+  - **Copiar / colar / duplicar elementos** entre slides (pegar um elemento de um slide,
+    levar pra outro e ajustar). Isso **evoluiu** pra ideia de **"botões de adicionar
+    elemento"** — o **✨ Adicionar brilho** é o **PRIMEIRO** dessa família.
+  - **Mais tipos de elemento** além do brilho (mesmo esquema: um botão adiciona → painel
+    ajusta cor/tamanho/etc.). O Carlos vai dizendo **quais**, um de cada vez.
+- 📁 **Prévias desta leva** (local-only, em `previas/`, **fora do Git**): `previa-botoes.html`
+  (reorganização + Salvar como) e `previa-brilho.html` (Adicionar brilho) — só referência.
+- 🧪 **Como testar o editor no navegador** (sem depender do Carlos clicar): há memória
+  auto (`testar-editor-no-navegador`) com a receita — dirige o Chrome real com o
+  **playwright-core** do projeto contra o servidor em `http://localhost:4599/editor.html`
+  (esperar o `#__ya_style` aparecer antes de interagir). **Ligue o servidor** com
+  `node server.mjs` (ou o `.bat`) — nesta sessão ele estava **desligado** ao encerrar.
+- Evoluções antigas possíveis, **só se o usuário pedir**:
+  - **Arrastar as bordas da caixa de texto com o mouse** (alças, igual Photoshop).
+  - **Janela de recorte de foto completa** (quadro 4:5 travado e arrastável).
 - **Regras de sempre:** conversar antes; aprovação explícita antes de criar/editar;
-  traduzir todo termo técnico (ele **não programa**); testar no navegador antes de
-  dizer que funciona; no fim do chat, atualizar este arquivo.
+  traduzir todo termo técnico (ele **não programa**); **uma pergunta/etapa de cada vez**,
+  respostas curtas; testar no navegador antes de dizer que funciona; no fim do chat,
+  atualizar este arquivo.
