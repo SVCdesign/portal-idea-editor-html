@@ -1,8 +1,8 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** duas frentes hoje — (1) 🗂️ **nova
-organização `Subsistemas/`** e (2) 🧩 **começou o PAINEL DE CAMADAS no `editor.html`** (passo 1 de
-3, no ar e testado).
+**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** três frentes hoje — (1) 🗂️ **nova
+organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (passo 1 de 3) e (3) 🪟
+**painéis que RECOLHEM** (resolvem o aperto da coluna direita) — tudo no ar e testado.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
 fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + ferramentas). Nasceu
@@ -17,6 +17,14 @@ ar e testado)** — a **lista** das camadas do slide (Foto, Escurecimento, Brilh
 com **clicar pra selecionar**, inclusive as escondidas atrás; **⬜ passo 2** — 🔒 **travar (cadeado)
 + arrastar** qualquer elemento sem pegar o vizinho; **⬜ passo 3** — 👁 **olho** (mostrar/esconder).
 Prévia local (fora do Git): `previas/previa-camadas.html`.
+
+**(3) Painéis que RECOLHEM (✅ FEITO e testado):** o Carlos mostrou (prints do editor + do Photoshop)
+que a **coluna da direita** estava **sufocada** — tanta coisa empilhada que o **código sumia** (virava
+uma tirinha de 1 linha). Solução aprovada por **Prévia A**: a direita virou **3 seções que recolhem** —
+**Camadas · Ajustes · Código** — cada uma com título clicável (setinha ▾). Fecha o que não usa → o
+**código estica** (testado: de ~22px pra ~298px). O editor **lembra** o que ficou fechado
+(`localStorage`). Ordem combinada com o Carlos: **arrumar o espaço primeiro** (isto), *depois* voltar
+pro painel de camadas (passo 2 e 3). Prévia local: `previas/previa-paineis.html`.
 
 ⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho: Slide-mestre"** (detalhado logo abaixo)
 **ATUALIZA uma regra antiga** (a IA **PODE** editar/replicar as peças **quando o Carlos pedir**) e

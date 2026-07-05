@@ -60,7 +60,7 @@
     margin:0;padding:8px 12px;border-bottom:1px solid var(--line)
   }
   #preview{flex:1;border:0;width:100%;background:#fff}
-  .right .body{flex:1;display:flex;flex-direction:column;min-height:0;padding:12px;gap:10px}
+  .right .body{flex:1;display:flex;flex-direction:column;min-height:0;padding:0;gap:0}
   #crumb{color:var(--accent);font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:18px;word-break:break-all}
   #code{
     flex:1;width:100%;resize:none;background:#0b0e12;color:#d6dee7;border:1px solid var(--line);
@@ -155,11 +155,20 @@
   .ov-row span{display:flex;justify-content:space-between}
   .ov-row b{color:var(--accent);font-variant-numeric:tabular-nums}
   .ov-row input[type=range]{width:100%;accent-color:var(--accent);margin:0}
-  /* Painel de CAMADAS (lista dos elementos do slide à vista) */
-  .layers{margin:0 0 10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#12161c}
-  .layers .ly-head{padding:8px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
-    font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
-  .ly-list{max-height:196px;overflow-y:auto}
+  /* Painéis que RECOLHEM (seções da direita: Camadas · Ajustes · Código) */
+  .sec{display:flex;flex-direction:column;min-height:0;border-bottom:1px solid var(--line)}
+  .sec-head{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;
+    background:#12161c;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);font-weight:600}
+  .sec-head:hover{background:#161b22}
+  .sec-head .arw{color:var(--accent);font-size:10px;width:10px;transition:transform .15s}
+  .sec-head .cnt{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+  .sec.collapsed .sec-head .arw{transform:rotate(-90deg)}
+  .sec-body{padding:10px 12px;display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+  .sec.collapsed .sec-body{display:none}
+  .sec.codigo{flex:1;min-height:0}
+  .sec.codigo .sec-body{flex:1;overflow:hidden;padding-bottom:12px}
+  /* Painel de CAMADAS (lista dentro da seção Camadas) */
+  .ly-list{max-height:196px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
   .ly-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid #1f262e;cursor:pointer}
   .ly-row:last-child{border-bottom:none}
   .ly-row:hover{background:rgba(255,255,255,.05)}
@@ -192,9 +201,15 @@
     </section>
 
     <section class="pane right">
-      <h2>Código do elemento clicado</h2>
+      <h2>Painéis · clique nos títulos ▾ pra recolher</h2>
       <div class="body">
-        <div id="layers" class="layers" hidden></div>
+        <div class="sec" id="sec-camadas" hidden>
+          <div class="sec-head" data-sec="camadas"><span class="arw">▾</span> Camadas <span class="cnt" id="ly-count"></span></div>
+          <div class="sec-body"><div id="layers"></div></div>
+        </div>
+        <div class="sec" id="sec-ajustes">
+          <div class="sec-head" data-sec="ajustes"><span class="arw">▾</span> Ajustes do elemento</div>
+          <div class="sec-body">
         <div id="crumb"></div>
         <div id="capa-atalhos" style="display:none"></div>
         <div id="nav" style="display:none"></div>
@@ -300,6 +315,11 @@
             <label class="ov-row"><span>Suavidade (borrado) <b id="bk-v-blur">40px</b></span><input type="range" id="bk-s-blur" min="0" max="120" value="40"></label>
           </div>
         </div>
+          </div>
+        </div>
+        <div class="sec codigo" id="sec-codigo">
+          <div class="sec-head" data-sec="codigo"><span class="arw">▾</span> Código do elemento</div>
+          <div class="sec-body">
         <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
         <div class="row">
           <button id="apply" class="primary">✓ Aplicar mudança</button>
@@ -307,6 +327,8 @@
           <button id="paste">📋 Colar HTML</button>
           <button id="sample">▶️ Exemplo</button>
           <span class="hint">a prévia atualiza ao vivo · o CSS nunca é reprocessado</span>
+        </div>
+          </div>
         </div>
       </div>
     </section>
@@ -759,15 +781,15 @@ function slideForLayers(){
 }
 function renderLayers(){
   if(!layersEl) return;
+  const secCamadas = document.getElementById('sec-camadas');
+  const cnt = document.getElementById('ly-count');
   const doc = iframe.contentDocument;
   const slide = doc ? slideForLayers() : null;
   const items = slide ? collectLayers(slide).reverse() : [];   // frente da arte no TOPO da lista
-  if(!items.length){ layersEl.hidden = true; layersEl.innerHTML = ''; return; }
-  layersEl.hidden = false;
+  if(!items.length){ if(secCamadas) secCamadas.hidden = true; layersEl.innerHTML = ''; return; }
+  if(secCamadas) secCamadas.hidden = false;
+  if(cnt) cnt.textContent = '· ' + items.length + (items.length > 1 ? ' camadas' : ' camada');
   layersEl.innerHTML = '';
-  const head = document.createElement('div');
-  head.className = 'ly-head'; head.textContent = 'Camadas deste slide';
-  layersEl.appendChild(head);
   const list = document.createElement('div'); list.className = 'ly-list';
   items.forEach(({ el, info }) => {
     const row = document.createElement('div');
@@ -780,6 +802,27 @@ function renderLayers(){
   });
   layersEl.appendChild(list);
 }
+
+// ---- Painéis que RECOLHEM: recolher/expandir cada seção da direita ---------
+// Clicar no título recolhe/expande; o estado fica salvo no navegador (lembra
+// entre sessões, pra não reabrir tudo sozinho toda vez).
+const SEC_KEY = 'ya_sec_collapsed';
+function loadSecState(){ try{ return JSON.parse(localStorage.getItem(SEC_KEY) || '{}'); }catch(e){ return {}; } }
+function saveSecState(st){ try{ localStorage.setItem(SEC_KEY, JSON.stringify(st)); }catch(e){} }
+function applySecState(){
+  const st = loadSecState();
+  document.querySelectorAll('.sec-head[data-sec]').forEach(head => {
+    const sec = head.closest('.sec'); if(sec) sec.classList.toggle('collapsed', !!st[head.dataset.sec]);
+  });
+}
+document.querySelectorAll('.sec-head[data-sec]').forEach(head => {
+  head.addEventListener('click', () => {
+    const sec = head.closest('.sec'); if(!sec) return;
+    sec.classList.toggle('collapsed');
+    const st = loadSecState(); st[head.dataset.sec] = sec.classList.contains('collapsed'); saveSecState(st);
+  });
+});
+applySecState();
 
 function setPreviewCursor(c){
   const body = iframe.contentDocument && iframe.contentDocument.body;
