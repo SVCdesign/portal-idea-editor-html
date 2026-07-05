@@ -1,14 +1,16 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 (2ª sessão do dia) · **Motivo:** 📦 **ENTREGA pra outra IA (troca de
-PC).** Nesta sessão **NÃO mexemos no código do `editor.html`.** O que aconteceu: o Carlos criou e
-testou comigo um **NOVO FLUXO DE TRABALHO** — o **"Fluxo de trabalho: Slide-mestre"** (ele acerta
-UM slide de um HTML e a IA **replica o mesmo padrão** nos outros slides do mesmo tipo). **Testado
-num caso real e APROVADO pelo Carlos.** ⚠️ **ATENÇÃO, PRÓXIMA IA:** esse fluxo **ATUALIZA uma
-regra antiga** deste mundo (a que dizia "a IA não edita as peças") — leia a seção **"Fluxo de
-trabalho: Slide-mestre"** logo abaixo ANTES de tudo, senão você vai se confundir. O trabalho
-anterior no editor (Desfazer, Remover, Salvar como, ✨ Adicionar brilho) **continua no ar, testado
-e no GitHub** — histórico completo mais pra baixo. Próxima IA num PC novo: leia este arquivo +
+**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** 🗂️ **NOVA ORGANIZAÇÃO: a pasta
+`Subsistemas/`.** Nesta sessão **NÃO mexemos no código do `editor.html`.** O Carlos decidiu
+organizar o mundo por **"subsistemas"**: cada fluxo/ferramenta grande ganha uma **pasta-casa
+própria** (a receita + exemplos + ferramentas), sem misturar com o resto. Nasceu a pasta
+**`Subsistemas/`** e, dentro dela, a 1ª casa — **`Fluxo do Subsistema Slide Mestre/`** — com o
+manual completo do fluxo (`LEIA-PRIMEIRO.md`). Padrão dos próximos: **`Fluxo do Subsistema [nome]`**
+(o próximo cogitado é o de **SVG**). ⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho:
+Slide-mestre"** (detalhado logo abaixo) **ATUALIZA uma regra antiga** deste mundo (a que dizia "a
+IA não edita as peças") e agora tem **casa própria** em `Subsistemas/`. O trabalho anterior no
+editor (Desfazer, Remover, Salvar como, ✨ Adicionar brilho) **continua no ar, testado e no
+GitHub** — histórico completo mais pra baixo. Próxima IA num PC novo: leia este arquivo +
 `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
@@ -24,6 +26,10 @@ e no GitHub** — histórico completo mais pra baixo. Próxima IA num PC novo: l
 >   viajam pelo Drive, **não** pelo Git.
 
 ## 🧩 Fluxo de trabalho: Slide-mestre (NOVO — 2026-07-05) — LEIA PRIMEIRO
+> 🏠 **AGORA TEM CASA PRÓPRIA (2026-07-05):** este fluxo ganhou uma pasta dedicada com o manual
+> completo — `Subsistemas/Fluxo do Subsistema Slide Mestre/LEIA-PRIMEIRO.md`. O resumo abaixo
+> continua valendo; o manual detalhado (e o que crescer: exemplos, ferramentas) mora lá.
+
 **O que é:** um jeito combinado de trabalhar quando o Carlos tem um HTML com **vários slides
 iguais** (um carrossel, ex.: 9 slides) e quer que um ajuste feito em UM slide **se repita nos
 outros do mesmo tipo** — sem ele ajustar um por um na mão. Ele acerta **um slide** (o "mestre") e

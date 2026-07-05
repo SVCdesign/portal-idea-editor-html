@@ -60,6 +60,10 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
 - `editor.html` — o **Editor HTML** (o editor em si). Abrir/fechar pelos atalhos
   `Abrir-Editor-HTML.bat` / `Desligar-Editor-HTML.bat`.
 - `memoria/` — a semente do mundo (briefing + pesquisa). Fica no Git, é leve.
+- `Subsistemas/` — casas completas de cada fluxo/ferramenta do editor (a receita +
+  exemplos + ferramentas, cada um na sua pasta). Padrão do nome:
+  `Fluxo do Subsistema [nome]`. 1ª casa: **Slide Mestre** — ver
+  `Subsistemas/Fluxo do Subsistema Slide Mestre/LEIA-PRIMEIRO.md`.
 - `STATUS-AGORA.md` — retrato vivo de onde paramos.
 - Conversa com o mundo central: pasta neutra `D:\PORTAL IDEA\conversa-entre-mundos\`
   (local-only, fora do Git). O usuário é a ponte.
