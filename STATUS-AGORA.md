@@ -1,8 +1,9 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-02 · **Motivo:** 📦 **ENTREGA pra outra IA (troca de PC).** Tudo
-commitado e empurrado — **este PC = remoto**, **sem frente de código em aberto nem bug
-conhecido**. Próxima IA: leia este arquivo + `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+**Atualizado:** 2026-07-05 · **Motivo:** ✅ **Desfazer (Ctrl+Z) + Remover elemento** no
+editor — implementado, **testado no navegador de verdade** e empurrado pro GitHub.
+**Sem frente de código em aberto nem bug conhecido.** Próxima IA: leia este arquivo +
+`CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
 > - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
@@ -16,7 +17,20 @@ conhecido**. Próxima IA: leia este arquivo + `CLAUDE.md` + `memoria/LEIA-PRIMEI
 > - **Google Drive VERDE** antes de mexer: os assets pesados das peças (imagens/fontes)
 >   viajam pelo Drive, **não** pelo Git.
 
-**O que saiu nesta sessão (tudo testado e no GitHub):** **🎚️ Escurecer / Clarear a foto
+**O que saiu nesta sessão (tudo testado e no GitHub):** **↩ Desfazer (estilo Photoshop)
++ 🗑 Remover elemento** no editor. Agora dá pra **apagar qualquer elemento** da peça
+(um ícone SVG, um bloco, um texto): clica nele na prévia → botão **"🗑 Remover"** (ou
+tecla **Delete**) e ele some. E um **Desfazer de verdade**: **Ctrl+Z** (ou botão **"↩
+Desfazer"** no topo) volta as **últimas 30 edições**, uma a uma — remoção, mover, zoom,
+texto, escurecer/clarear, tudo. Por baixo: um histórico que guarda **"retratos" limpos**
+do documento (sem os marcadores internos, **mantendo as imagens** da prévia); ao desfazer,
+recoloca o retrato **sem recarregar a prévia** (os cliques continuam ligados) e **preserva
+a rolagem**. Cada gesto vira **1 passo** (um arrasto inteiro, uma digitação inteira = um
+Desfazer só). **Testado no Chrome de verdade** (playwright, 22 verificações + 5 de imagem):
+remover pelo botão e pelo Delete, desfazer pelo Ctrl+Z e pelo botão, **3 remoções seguidas
+desfeitas uma a uma** (o "estilo Photoshop"), desfazer edição de texto, **cliques ainda
+funcionam depois do Desfazer**, e **as imagens voltam a renderizar** após o undo — **zero
+erro de JavaScript**. Empurrado pro GitHub. — Antes: **🎚️ Escurecer / Clarear a foto
 (overlay)** no editor. Ao selecionar a "película" (`.overlay`) por cima da imagem da
 capa, aparece um painel: **Cor** (Preto/Branco + presets **oficiais da marca** — Roxo
 `#3E3B75`, Lilás `#6B66CC`, Ciano `#8BE6F5` — + **seletor livre**) e barras **Escurecer

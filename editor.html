@@ -46,6 +46,10 @@
   }
   button:hover,label.btn:hover{border-color:var(--accent)}
   button.primary{background:var(--accent);color:#04201f;border-color:var(--accent);font-weight:600}
+  button.danger{border-color:#e5484d;color:#ff8a8d}
+  button.danger:hover{background:#e5484d;color:#fff;border-color:#e5484d}
+  button:disabled{opacity:.45;cursor:default}
+  button:disabled:hover{border-color:#36404c}
   input[type=file]{display:none}
   main{flex:1; display:flex; min-height:0}
   .pane{display:flex;flex-direction:column;min-width:0}
@@ -160,6 +164,7 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
     <button id="sample">▶️ Exemplo</button>
     <button id="paste">📋 Colar HTML</button>
+    <button id="undo" title="Desfazer a última mudança (Ctrl+Z)" disabled>↩ Desfazer</button>
     <button id="save" class="primary">💾 Salvar</button>
     <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
   </header>
@@ -257,6 +262,7 @@
         <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
         <div class="row">
           <button id="apply" class="primary">✓ Aplicar mudança</button>
+          <button id="remove" class="danger" title="Remover o elemento selecionado (tecla Delete)" disabled>🗑 Remover</button>
           <button id="full">Ver código todo</button>
           <span class="hint">a prévia atualiza ao vivo · o CSS nunca é reprocessado</span>
         </div>
@@ -297,10 +303,22 @@ let lastBaseName = null;         // nome-base do HTML aberto (para nomear o salv
 let originalRefByBlob = new Map();// imagem da prévia -> caminho real (para salvar)
 let assetFileByRef = new Map();   // caminho real -> arquivo ORIGINAL (imagem/fonte) p/ o Gerar PNG em alta
 
+// ---- Desfazer (histórico estilo Photoshop) ----------------------------
+// Guarda "retratos" limpos do documento — as últimas MAX_HISTORY edições.
+// Ctrl+Z / botão "↩ Desfazer" voltam ao retrato anterior. O retrato é SEMPRE
+// limpo (sem nossos marcadores internos) e mantém as imagens blob: da prévia,
+// pra prévia continuar mostrando as fotos ao desfazer.
+const MAX_HISTORY = 30;
+let history = [];          // pilha de retratos (innerHTML do <html>) — estados anteriores
+let dragBefore = null;     // retrato de antes de arrastar (commit só se algo mudou)
+let textBefore = null;     // retrato de antes de digitar num texto (commit só se mudou)
+let ovBefore = null;       // retrato de antes de mexer no escurecer/clarear (slider)
+
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
 function loadHtml(html){
   showingFull = false;
   editingEl = null;              // a prévia antiga sai; nada mais em edição
+  resetHistory();                // documento novo: história do Desfazer começa do zero
   iframe.onload = wirePreview;   // quando a prévia terminar de carregar, ligamos os cliques
   iframe.srcdoc = html;
 }
@@ -328,6 +346,7 @@ function wirePreview(){
       return;                             // clicou fora do selecionado: deixa selecionar outro
     }
     dragging = true; dragMoved = false; accum = 0;
+    dragBefore = snapshotHtml();          // retrato de antes do arrasto (commit só se mover)
     lastX = ev.clientX; lastY = ev.clientY;
     if(doc.body) doc.body.style.cursor = (dragKind === 'img') ? 'grabbing' : 'move';
     ev.preventDefault();   // impede o "fantasma" de arrastar imagem / seleção de texto
@@ -345,7 +364,11 @@ function wirePreview(){
     if(!dragging) return;
     dragging = false; dragKind = null;
     if(doc.body) doc.body.style.cursor = (selected && selected.tagName === 'IMG') ? 'grab' : (selected ? 'move' : '');
-    if(dragMoved){ suppressClick = true; ev.preventDefault(); ev.stopPropagation(); }
+    if(dragMoved){
+      suppressClick = true; ev.preventDefault(); ev.stopPropagation();
+      if(dragBefore != null){ const now = snapshotHtml(); if(now !== dragBefore) pushHistory(dragBefore); }
+    }
+    dragBefore = null;
   }, true);
 
   // CLIQUE = selecionar (mas ignora o clique que apenas terminou um arrasto)
@@ -379,15 +402,10 @@ function wirePreview(){
   }, true);
 
   // realce visual: seleção (linha cheia) e edição de texto (linha tracejada)
-  const hover = doc.createElement('style');
-  hover.id = '__ya_style';
-  const cSel  = getComputedStyle(document.documentElement).getPropertyValue('--sel').trim();
-  const cEdit = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
-  hover.textContent = '*{outline-offset:-1px}'
-    + ' .__ya_sel{outline:2px solid ' + cSel + ' !important}'
-    + ' .__ya_editing{outline:2px dashed ' + cEdit + ' !important; cursor:text !important;'
-    + ' caret-color:' + cEdit + ' !important}';   // cursor visível mesmo em texto com gradiente (que é transparente)
-  doc.head && doc.head.appendChild(hover);
+  injectHighlightStyle(doc);
+
+  // teclas globais dentro da prévia (Ctrl+Z = desfazer · Delete = remover)
+  doc.addEventListener('keydown', handleGlobalKeys, true);
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
 }
@@ -434,6 +452,7 @@ function selectElement(el){
   renderCapaAtalhos(el);                 // atalhos da capa: imagem / escurecer-clarear
   refreshCodeBox();                      // mostra o código (de uma cópia limpa)
   showToolsFor(el);                      // foto -> ajustar foto; resto -> mover/zoom comum
+  updateRemoveBtn();                     // habilita o botão "🗑 Remover"
 }
 
 // mostra o código do elemento selecionado, sempre de uma CÓPIA limpa
@@ -445,6 +464,125 @@ function refreshCodeBox(){
   clone.removeAttribute('contenteditable');      // no código
   if(clone.getAttribute('class') === '') clone.removeAttribute('class');
   codeEl.value = clone.outerHTML;
+}
+
+// ---- DESFAZER + REMOVER -----------------------------------------------
+// tira nossos marcadores de um clone e devolve o innerHTML do <html> (head+body).
+// Mantém as imagens blob: (pra prévia continuar mostrando) — é o "retrato" do undo.
+function snapshotHtml(){
+  const doc = iframe.contentDocument;
+  if(!doc || !doc.documentElement) return '';
+  const root = doc.documentElement.cloneNode(true);
+  root.querySelectorAll('.__ya_sel, .__ya_editing').forEach(el => {
+    el.classList.remove('__ya_sel'); el.classList.remove('__ya_editing');
+    if(el.getAttribute('class') === '') el.removeAttribute('class');
+  });
+  root.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+  const inj = root.querySelector('#__ya_style'); if(inj) inj.remove();
+  return root.innerHTML;
+}
+
+// (re)injeta o CSS de realce (seleção/edição) dentro da prévia
+function injectHighlightStyle(doc){
+  if(!doc || !doc.head || doc.getElementById('__ya_style')) return;
+  const hover = doc.createElement('style');
+  hover.id = '__ya_style';
+  const cSel  = getComputedStyle(document.documentElement).getPropertyValue('--sel').trim();
+  const cEdit = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim();
+  hover.textContent = '*{outline-offset:-1px}'
+    + ' .__ya_sel{outline:2px solid ' + cSel + ' !important}'
+    + ' .__ya_editing{outline:2px dashed ' + cEdit + ' !important; cursor:text !important;'
+    + ' caret-color:' + cEdit + ' !important}';   // cursor visível mesmo em texto com gradiente (transparente)
+  doc.head.appendChild(hover);
+}
+
+// empurra um retrato na pilha (ignora se for igual ao topo; corta no limite de 30)
+function pushHistory(snap){
+  if(snap == null) return;
+  if(history.length && history[history.length - 1] === snap) return;   // nada mudou: não duplica
+  history.push(snap);
+  if(history.length > MAX_HISTORY) history.shift();   // passou de 30: joga fora o mais antigo
+  updateUndoBtn();
+}
+// atalho: guarda o estado ATUAL, antes de uma mudança
+function recordBefore(){ pushHistory(snapshotHtml()); }
+
+function updateUndoBtn(){
+  const b = document.getElementById('undo');
+  if(b) b.disabled = history.length === 0;
+}
+function updateRemoveBtn(){
+  const b = document.getElementById('remove');
+  if(b) b.disabled = !selected || showingFull;
+}
+
+// zera o histórico (ao abrir um HTML novo — documento novo, história nova)
+function resetHistory(){ history = []; dragBefore = textBefore = ovBefore = null; updateUndoBtn(); }
+
+// DESFAZER: volta ao último retrato guardado (recoloca o head+body sem recarregar
+// a prévia, então os cliques continuam ligados). Perde a seleção de propósito.
+function undo(){
+  if(!history.length) return;
+  const doc = iframe.contentDocument;
+  if(!doc) return;
+  if(editingEl){ try{ stopTextEdit(); }catch(e){} }   // encerra edição de texto, se houver
+  const snap = history.pop();
+  const win = iframe.contentWindow;
+  const sx = win ? win.scrollX : 0, sy = win ? win.scrollY : 0;   // preserva a rolagem
+  doc.documentElement.innerHTML = snap;   // recoloca o retrato (troca head+body)
+  injectHighlightStyle(doc);              // devolve o CSS de realce
+  selected = null; editingEl = null; showingFull = false;
+  hideAllTools(); hideGuides();
+  navEl.innerHTML = ''; navEl.style.display = 'none';
+  document.getElementById('capa-atalhos').style.display = 'none';
+  codeEl.value = '';
+  crumbEl.textContent = '↩ desfeito' + (history.length ? '' : ' — (nada mais para desfazer)');
+  renderSlideBar();
+  if(win) win.scrollTo(sx, sy);
+  updateUndoBtn(); updateRemoveBtn();
+}
+
+// REMOVER: apaga o elemento selecionado (o Desfazer traz de volta)
+function removeSelected(){
+  if(showingFull){ alert('Você está vendo o código todo. Clique num elemento na prévia para selecioná-lo primeiro.'); return; }
+  if(!selected){ alert('Clique num elemento na prévia para selecioná-lo primeiro.'); return; }
+  const el = selected;
+  const doc = iframe.contentDocument;
+  if(!doc || el === doc.body || el === doc.documentElement || el.tagName === 'BODY' || el.tagName === 'HTML'){
+    alert('Esse é a base da página inteira — não dá pra remover.');
+    return;
+  }
+  recordBefore();          // retrato pro Desfazer ANTES de apagar
+  if(editingEl === el){ try{ stopTextEdit(); }catch(e){} }
+  clearSel(el);
+  el.remove();
+  selected = null; showingFull = false;
+  hideAllTools(); hideGuides();
+  navEl.innerHTML = ''; navEl.style.display = 'none';
+  document.getElementById('capa-atalhos').style.display = 'none';
+  codeEl.value = '';
+  crumbEl.textContent = '🗑 removido — aperte Ctrl+Z (ou "↩ Desfazer") para trazer de volta';
+  renderSlideBar();
+  updateRemoveBtn();
+}
+
+// teclas globais: Ctrl+Z (desfazer) e Delete (remover). Ligadas na moldura E
+// dentro da prévia (o foco pode estar num lugar ou no outro).
+function handleGlobalKeys(ev){
+  const pngModal = document.getElementById('pngModal');
+  if(pngModal && pngModal.style.display !== 'none') return;   // janela de PNG aberta: não interfere
+  const k = ev.key || '';
+  const inCode = (document.activeElement === codeEl);
+  if((ev.ctrlKey || ev.metaKey) && k.toLowerCase() === 'z' && !ev.shiftKey){
+    if(inCode || editingEl) return;    // deixa o desfazer NATIVO do campo de código / do texto
+    ev.preventDefault();
+    undo();
+    return;
+  }
+  if(k === 'Delete'){
+    if(inCode || editingEl) return;    // digitando: Delete apaga caractere, não o elemento
+    if(selected){ ev.preventDefault(); removeSelected(); }
+  }
 }
 
 // rótulo curto de um elemento, tipo  h1.hero-title.grad-title
@@ -666,6 +804,7 @@ function dragMoveTo(rawTx, rawTy){
 
 toolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
+  recordBefore();
   const STEP = 6;
   switch(b.dataset.act){
     case 'up':    nudge(0, -STEP); break;
@@ -774,6 +913,7 @@ function resetPhoto(){
 
 photoToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
+  if(b.dataset.pact !== 'overlay') recordBefore();   // "overlay" só troca a seleção, não muda nada
   const STEP = 4;
   switch(b.dataset.pact){
     case 'up':    panPhoto(0, -STEP); break;
@@ -857,6 +997,7 @@ function startTextEdit(el, x, y){
   if(!el || !isTextEl(el)) return;
   if(selected !== el) selectElement(el);   // garante seleção + ferramentas certas
   stopTextEdit();                          // fecha uma edição anterior, se houver
+  textBefore = snapshotHtml();             // retrato de antes de digitar (commit só se mudar)
   editingEl = el;
   el.setAttribute('contenteditable', 'true');    // normal (permite <br> no Shift+Enter)
   el.classList.add('__ya_editing');
@@ -885,10 +1026,17 @@ function stopTextEdit(){
   while(el.lastChild && el.lastChild.nodeName === 'BR'){ el.removeChild(el.lastChild); }
   setPreviewCursor('');
   if(selected === el) refreshCodeBox();     // o código passa a mostrar o texto novo
+  // commit do Desfazer: se o texto mudou desde que começou a editar, guarda o "antes"
+  if(textBefore != null){
+    const now = snapshotHtml();
+    if(now !== textBefore) pushHistory(textBefore);
+    textBefore = null;
+  }
 }
 
 textToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
+  if(b.dataset.tact !== 'edit') recordBefore();   // "edit" cuida do próprio Desfazer (ao terminar de digitar)
   const STEP = 6;
   switch(b.dataset.tact){
     case 'edit':    startTextEdit(selected); break;
@@ -912,10 +1060,12 @@ document.getElementById('apply').addEventListener('click', function(){
   if(showingFull){ alert('Você está vendo o código todo. Clique num elemento na prévia para editar só ele.'); return; }
   if(!selected){ alert('Clique num elemento na prévia primeiro.'); return; }
   try{
+    recordBefore();                     // retrato pro Desfazer antes de aplicar
     clearSel(selected);
     selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
     selected = null;
     hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
+    updateRemoveBtn();
     renderSlideBar();   // mantém a barra de slides em dia se algo mudou
     crumbEl.textContent = '✓ aplicado — clique de novo num elemento para continuar';
   }catch(err){
@@ -934,7 +1084,13 @@ document.getElementById('full').addEventListener('click', function(){
   // remove os marcadores internos antes de mostrar
   doc.querySelectorAll('.__ya_sel').forEach(clearSel);
   codeEl.value = '<!doctype html>\n' + doc.documentElement.outerHTML;
+  updateRemoveBtn();
 });
+
+// ---- botões de Desfazer / Remover + teclas globais (Ctrl+Z · Delete) ----
+document.getElementById('undo').addEventListener('click', undo);
+document.getElementById('remove').addEventListener('click', removeSelected);
+document.addEventListener('keydown', handleGlobalKeys);
 
 // ---- botões de carregar ----
 document.getElementById('file').addEventListener('change', function(e){
@@ -1409,15 +1565,35 @@ loadHtml(SAMPLE);
     labels();
   };
 
+  // Desfazer p/ os controles deslizantes: guarda o "antes" ao começar a arrastar
+  // (pointerdown/keydown) e confirma ao soltar (change), se algo mudou.
+  function ovGrab(){ if(typeof snapshotHtml === 'function' && ovBefore == null) ovBefore = snapshotHtml(); }
+  function ovCommit(){
+    if(ovBefore == null) return;
+    const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null;
+    if(now !== null && now !== ovBefore && typeof pushHistory === 'function') pushHistory(ovBefore);
+    ovBefore = null;
+  }
   ['geral','topo','meio','baixo'].forEach(k => {
-    const r = el('ov-s-' + k); if(r) r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
+    const r = el('ov-s-' + k);
+    if(r){
+      r.addEventListener('pointerdown', ovGrab);
+      r.addEventListener('keydown', ovGrab);
+      r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
+      r.addEventListener('change', ovCommit);
+    }
   });
-  document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }));
+  document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { if(typeof recordBefore === 'function') recordBefore(); st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }));
   const pick = el('ov-picker');
-  if(pick) pick.addEventListener('input', (e) => { const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
+  if(pick){
+    pick.addEventListener('pointerdown', ovGrab);
+    pick.addEventListener('input', (e) => { const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
+    pick.addEventListener('change', ovCommit);
+  }
   const reset = el('ov-reset');
   if(reset) reset.addEventListener('click', () => {
     const ov = overlayEl(); if(!ov) return;
+    if(typeof recordBefore === 'function') recordBefore();
     ov.style.removeProperty('background');
     if(ov.getAttribute('style') === '') ov.removeAttribute('style');
     if(typeof refreshCodeBox === 'function') refreshCodeBox();
