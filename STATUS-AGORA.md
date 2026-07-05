@@ -1,12 +1,15 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 · **Motivo:** 📦 **ENTREGA pra outra IA (troca de chat).** Nesta
-sessão saíram (implementados, **testados no navegador de verdade** e no GitHub): **Desfazer/
-Ctrl+Z (30 passos), Remover elemento, Salvar como (lembra a última pasta), reorganização dos
-botões e ✨ Adicionar brilho (bokeh) com painel de ajuste**. **Este PC = remoto, sem frente de
-código em aberto nem bug conhecido.** 🧠 Brainstorm exaustivo do editor **em andamento** (ver
-"Próximo passo" no fim). Próxima IA: leia este arquivo + `CLAUDE.md` +
-`memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+**Atualizado:** 2026-07-05 (2ª sessão do dia) · **Motivo:** 📦 **ENTREGA pra outra IA (troca de
+PC).** Nesta sessão **NÃO mexemos no código do `editor.html`.** O que aconteceu: o Carlos criou e
+testou comigo um **NOVO FLUXO DE TRABALHO** — o **"Fluxo de trabalho: Slide-mestre"** (ele acerta
+UM slide de um HTML e a IA **replica o mesmo padrão** nos outros slides do mesmo tipo). **Testado
+num caso real e APROVADO pelo Carlos.** ⚠️ **ATENÇÃO, PRÓXIMA IA:** esse fluxo **ATUALIZA uma
+regra antiga** deste mundo (a que dizia "a IA não edita as peças") — leia a seção **"Fluxo de
+trabalho: Slide-mestre"** logo abaixo ANTES de tudo, senão você vai se confundir. O trabalho
+anterior no editor (Desfazer, Remover, Salvar como, ✨ Adicionar brilho) **continua no ar, testado
+e no GitHub** — histórico completo mais pra baixo. Próxima IA num PC novo: leia este arquivo +
+`CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
 > - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
@@ -20,7 +23,47 @@ código em aberto nem bug conhecido.** 🧠 Brainstorm exaustivo do editor **em 
 > - **Google Drive VERDE** antes de mexer: os assets pesados das peças (imagens/fontes)
 >   viajam pelo Drive, **não** pelo Git.
 
-**O que saiu nesta sessão (tudo testado e no GitHub):** **✨ Adicionar brilho (bokeh) + painel
+## 🧩 Fluxo de trabalho: Slide-mestre (NOVO — 2026-07-05) — LEIA PRIMEIRO
+**O que é:** um jeito combinado de trabalhar quando o Carlos tem um HTML com **vários slides
+iguais** (um carrossel, ex.: 9 slides) e quer que um ajuste feito em UM slide **se repita nos
+outros do mesmo tipo** — sem ele ajustar um por um na mão. Ele acerta **um slide** (o "mestre") e
+a **IA replica** o padrão pro resto. **Nome oficial (batizado pelo Carlos): "Fluxo de trabalho:
+Slide-mestre".**
+
+**⚠️ MUDANÇA DE REGRA (Carlos confirmou em 2026-07-05):** antes, este mundo dizia *"a IA só
+constrói o editor; NÃO edita as peças do Carlos nem gera cópias editadas"* (acordo antigo com o
+`html-studio`). **Isso mudou.** Agora **a IA PODE editar/replicar as peças do Carlos, QUANDO ELE
+PEDIR** — o Slide-mestre é justamente isso. A regra antiga fica **superada** por esta (a menção
+antiga na seção "Esclarecimento de papéis", mais abaixo, já está marcada como atualizada).
+
+**Como o Slide-mestre funciona (passo a passo — siga sempre):**
+1. O Carlos diz qual **arquivo** e qual **slide** ele mexeu (ex.: *"mexi no slide 2, replica"*).
+2. A IA **descobre sozinha** o que mudou — compara o slide editado com os outros do mesmo tipo e
+   acha a(s) diferença(s) (posição/`transform`, ícone, cor, tamanho, etc.).
+3. Antes de aplicar, a IA **mostra em português comum o que detectou** e **confirma o escopo**
+   (quais slides recebem). Slides de **tipo diferente** (ex.: capa e fechamento) normalmente
+   ficam **de fora** — confirmar com o Carlos.
+4. A IA **aplica só nos slides do mesmo molde**.
+5. A IA **salva numa CÓPIA nova** (ex.: `final-editado-2.html`) pra **não perder o original** —
+   a não ser que o Carlos peça pra salvar por cima.
+6. A IA **confere pela estrutura** (ex.: contar quantas vezes o ajuste aparece) que replicou na
+   medida certa — nem a mais, nem a menos.
+
+**Caso real já feito (o teste que validou o fluxo):** arquivo `D:\TEMPORARIA\HTML TESTE\
+final-editado.html` (9 slides, "7 palavras que o inglês não traduz"). O Carlos editou o **slide
+2** (subiu o bloco de texto 48px + desceu/encolheu a marca-d'água do fundo pra ~63%). A IA
+detectou os 2 ajustes e replicou nos **slides 3 a 8** (os slides de "palavra"), **poupando** o
+slide 1 (capa com foto) e o 9 (fechamento). Resultado salvo em `final-editado-2.html`. Conferido:
+7 ocorrências de cada ajuste (o slide 2 original + os 6 replicados). **Aprovado pelo Carlos.**
+> Obs.: a pasta `D:\TEMPORARIA\` é **local deste PC** — os arquivos de teste **não viajam** pro
+> PC novo, e tudo bem (eram só pra validar o fluxo). O que importa é o **passo a passo** acima.
+> Obs.2: eu (IA) também salvei esse fluxo numa **memória automática** (`fluxo-slide-mestre`), mas
+> essa memória fica numa pasta **local do PC** (`.claude\...`) que **NÃO viaja pelo Git** — por
+> isso o registro que vale pro PC novo é ESTE aqui, no `STATUS-AGORA.md`.
+
+---
+
+**O que saiu na sessão ANTERIOR do editor (tudo testado e no GitHub):** **✨ Adicionar brilho (bokeh) + painel
 de ajuste.** Botão **"✨ Adicionar brilho"** no topo insere uma bolinha de luz (bokeh)
 **"completa em si mesma"** (estilos inline — funciona em qualquer slide) no slide à vista, já
 selecionada; dá pra pôr **quantas quiser**. Ao selecionar um brilho, aparece um painel com
@@ -113,11 +156,16 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   (turnos 01–07 + `RESUMO.md`). No boot, conferir essa pasta.
 - **Contrato técnico FECHADO:** aspas curvas do texto visível intactas no salvar;
   a foto segue o padrão do studio (ver bullet "Ajustar FOTO" acima).
-- ⚠️ **ESCLARECIMENTO DE PAPÉIS (o Carlos alinhou com o studio):** quem **edita
+- ⚠️ **ESCLARECIMENTO DE PAPÉIS (o Carlos alinhou com o studio) — ATUALIZADO em
+  2026-07-05, VER RESSALVA NO FIM:** quem **edita
   as peças é o CARLOS, à mão, no gosto dele**. A IA deste mundo **só constrói e
   evolui o editor** — dá dica só se ele pedir; **não edita as peças por ele nem
   gera cópias editadas**. O studio tinha se confundido (achou que a IA editava);
   já foi corrigido. É o propósito original: liberdade de edição pro Carlos.
+  > 🔄 **RESSALVA (2026-07-05):** esta regra foi **atualizada pelo Carlos**. Agora a
+  > IA **PODE editar/replicar as peças, QUANDO ELE PEDIR** — é o **"Fluxo de trabalho:
+  > Slide-mestre"** (ver a seção no topo deste arquivo). O padrão segue sendo o Carlos
+  > editar à mão; mas, quando ele pedir pra replicar/repetir um padrão, a IA faz.
 
 ## Como ABRIR e FECHAR o editor (IMPORTANTE — mudou)
 - **Abrir:** dois cliques em `Abrir-Editor-HTML.bat`. Ele liga o **motorzinho Node**
