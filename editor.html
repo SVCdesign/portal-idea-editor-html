@@ -145,6 +145,8 @@
   .ov-cores{flex-wrap:wrap}
   .ov-lab{font-size:12px;color:var(--muted);align-self:center}
   .ov-cor{min-width:auto;padding:5px 10px;font-size:12px}
+  .bk-cores{flex-wrap:wrap}
+  .bk-cor{min-width:auto;padding:5px 10px;font-size:12px}
   .ov-pick{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);
     border:1px solid #36404c;border-radius:8px;padding:2px 8px;cursor:pointer}
   .ov-pick input[type=color]{width:22px;height:22px;border:none;background:none;padding:0;cursor:pointer}
@@ -166,6 +168,7 @@
     <button id="saveAs" title="Escolher onde salvar — abre a janela 'salvar aonde' (pasta + nome)">💾 Salvar como…</button>
     <button id="undo" title="Desfazer a última mudança (Ctrl+Z)" disabled>↩ Desfazer</button>
     <button id="remove" class="danger" title="Remover o elemento selecionado (tecla Delete)" disabled>🗑 Remover</button>
+    <button id="addBokeh" title="Adicionar um brilho (bokeh) no slide que está à vista">✨ Adicionar brilho</button>
     <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
   </header>
 
@@ -259,6 +262,31 @@
             <button id="ov-reset">↺ Voltar ao original</button>
           </div>
         </div>
+        <div id="bokehtools" class="tools" hidden>
+          <div class="tlabel">✨ Brilho (bokeh) — ajuste <b>tamanho</b>, <b>cor</b>, <b>intensidade</b> e <b>suavidade</b>; <b>arraste com o mouse</b> pra posicionar (ou use as setas):</div>
+          <div class="tgrid">
+            <button data-bk="left"  title="mover para a esquerda">←</button>
+            <button data-bk="up"    title="mover para cima">↑</button>
+            <button data-bk="down"  title="mover para baixo">↓</button>
+            <button data-bk="right" title="mover para a direita">→</button>
+            <span class="sep"></span>
+            <button data-bk="cx" title="centralizar no meio do slide (esquerda↔direita)">↔ centro</button>
+            <button data-bk="cy" title="centralizar no meio do slide (cima↕baixo)">↕ centro</button>
+          </div>
+          <div class="tgrid bk-cores" style="margin-top:8px">
+            <span class="ov-lab">Cor:</span>
+            <button class="bk-cor" data-cor="139,230,245" title="ciano da marca (#8BE6F5)">Ciano</button>
+            <button class="bk-cor" data-cor="107,102,204" title="lilás da marca (#6B66CC)">Lilás</button>
+            <button class="bk-cor" data-cor="62,59,117" title="roxo da marca (#3E3B75)">Roxo</button>
+            <button class="bk-cor" data-cor="255,255,255" title="branco (#FFFFFF)">Branco</button>
+            <label class="ov-pick" title="escolher uma cor livre"><input type="color" id="bk-picker" value="#8be6f5"> outra</label>
+          </div>
+          <div class="ov-sliders">
+            <label class="ov-row"><span>Tamanho <b id="bk-v-size">240px</b></span><input type="range" id="bk-s-size" min="40" max="600" value="240"></label>
+            <label class="ov-row"><span>Intensidade (brilho) <b id="bk-v-int">40%</b></span><input type="range" id="bk-s-int" min="0" max="100" value="40"></label>
+            <label class="ov-row"><span>Suavidade (borrado) <b id="bk-v-blur">40px</b></span><input type="range" id="bk-s-blur" min="0" max="120" value="40"></label>
+          </div>
+        </div>
         <textarea id="code" spellcheck="false" placeholder="Clique num elemento na prévia para ver e editar o código dele aqui."></textarea>
         <div class="row">
           <button id="apply" class="primary">✓ Aplicar mudança</button>
@@ -295,6 +323,7 @@ const toolsEl = document.getElementById('tools');
 const photoToolsEl = document.getElementById('phototools');
 const textToolsEl = document.getElementById('texttools');
 const overlayToolsEl = document.getElementById('overlaytools');
+const bokehToolsEl = document.getElementById('bokehtools');
 const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
 let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
@@ -659,7 +688,7 @@ function setPreviewCursor(c){
   const body = iframe.contentDocument && iframe.contentDocument.body;
   if(body) body.style.cursor = c;
 }
-function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; setPreviewCursor(''); }
+function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; setPreviewCursor(''); }
 
 // é um elemento de texto? (tag de texto comum, ou tem texto escrito direto nele)
 const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
@@ -671,14 +700,50 @@ function isTextEl(el){
 }
 function showToolsFor(el){
   const img = (el && el.tagName === 'IMG');
-  const ovl = !!(el && el.classList && [...el.classList].some(c => /overlay|scrim/i.test(c)));
-  const txt = !img && !ovl && isTextEl(el);
-  toolsEl.hidden = img || txt || ovl;   // comum (mover/zoom) só para o resto
+  const bok = !img && !!(el && el.classList && el.classList.contains('bokeh'));   // brilho (bokeh)
+  const ovl = !img && !bok && !!(el && el.classList && [...el.classList].some(c => /overlay|scrim/i.test(c)));
+  const txt = !img && !ovl && !bok && isTextEl(el);
+  toolsEl.hidden = img || txt || ovl || bok;   // comum (mover/zoom) só para o resto
   photoToolsEl.hidden = !img;    // imagens: ajustar a foto
   textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
   overlayToolsEl.hidden = !ovl;  // overlay: escurecer/clarear/cor
+  bokehToolsEl.hidden = !bok;    // brilho: tamanho/cor/intensidade/suavidade
   if(ovl && window.__ovSync) window.__ovSync();
+  if(bok && window.__bkSync) window.__bkSync();
   setPreviewCursor(img ? 'grab' : (el ? 'move' : ''));   // texto/elemento: dá pra arrastar
+}
+
+// ---- ✨ Adicionar brilho (bokeh) --------------------------------------
+// Cria uma bolinha de luz "completa em si mesma" (tudo inline) no slide alvo,
+// já selecionada pra ajustar. Funciona em qualquer slide e entra no Desfazer.
+const BOKEH_BASE = 'position:absolute; border-radius:50%; pointer-events:auto;'
+  + ' background:radial-gradient(circle, rgba(139,230,245,0.40) 0%, transparent 70%); filter:blur(40px);';
+// slide alvo: o do elemento selecionado; senão, o slide mais no centro da tela
+function targetSlideForInsert(){
+  const doc = iframe.contentDocument; if(!doc) return null;
+  if(selected && selected.closest){ const s = selected.closest('.slide'); if(s) return s; }
+  const slides = Array.from(doc.querySelectorAll('.slide'));
+  if(!slides.length) return null;
+  const win = iframe.contentWindow; const mid = ((win && win.innerHeight) || 525) / 2;
+  let best = slides[0], bestD = Infinity;
+  slides.forEach(s => { const r = s.getBoundingClientRect(); const d = Math.abs((r.top + r.height / 2) - mid); if(d < bestD){ bestD = d; best = s; } });
+  return best;
+}
+function addBokeh(){
+  const doc = iframe.contentDocument; if(!doc) return;
+  const slide = targetSlideForInsert();
+  if(!slide){ alert('Clique num slide (ou role até ele) pra eu saber onde colocar o brilho.'); return; }
+  recordBefore();                       // retrato pro Desfazer antes de adicionar
+  const size = 240;
+  const sw = slide.clientWidth || 420, sh = slide.clientHeight || 525;
+  const b = doc.createElement('div');
+  b.className = 'bokeh';
+  b.setAttribute('style', BOKEH_BASE
+    + ' width:' + size + 'px; height:' + size + 'px;'
+    + ' left:' + Math.round((sw - size) / 2) + 'px; top:' + Math.round((sh - size) / 2) + 'px;');
+  slide.insertBefore(b, slide.firstChild);   // atrás do conteúdo, como os bokehs originais
+  selectElement(b);                          // já seleciona pra ajustar/arrastar na hora
+  crumbEl.textContent = '✨ brilho adicionado — ajuste ao lado (ou arraste pra posicionar) · Ctrl+Z desfaz';
 }
 
 // ---- ajustes visuais: o Editor HTML escreve o transform por você ------
@@ -1091,6 +1156,7 @@ document.getElementById('full').addEventListener('click', function(){
 // ---- botões de Desfazer / Remover + teclas globais (Ctrl+Z · Delete) ----
 document.getElementById('undo').addEventListener('click', undo);
 document.getElementById('remove').addEventListener('click', removeSelected);
+document.getElementById('addBokeh').addEventListener('click', addBokeh);
 document.addEventListener('keydown', handleGlobalKeys);
 
 // ---- botões de carregar ----
@@ -1631,6 +1697,94 @@ loadHtml(SAMPLE);
     if(ov.getAttribute('style') === '') ov.removeAttribute('style');
     if(typeof refreshCodeBox === 'function') refreshCodeBox();
     window.__ovSync();
+  });
+})();
+</script>
+<script>
+/* ---- ✨ Brilho (bokeh): painel de ajuste — tamanho / cor / intensidade / suavidade + mover.
+   Aparece ao selecionar um elemento com class "bokeh". Lê os valores atuais (inline OU do
+   CSS) pra iniciar sem "pulo"; ao mexer, escreve TUDO inline (o CSS nunca é reprocessado). */
+(function(){
+  const el = (id) => document.getElementById(id);
+  const st = { cor: '139,230,245', int: 40, size: 240, blur: 40 };
+  const bokehEl = () => (selected && selected.classList && selected.classList.contains('bokeh')) ? selected : null;
+
+  // lê o brilho atual (inline; se não tiver, herda do CSS) pra iniciar os controles
+  function ler(b){
+    let w = (b.style && b.style.width) || getComputedStyle(b).width;
+    st.size = Math.max(10, Math.round(parseFloat(w) || 240));
+    let bg = (b.style && b.style.background) || '';
+    if(!/gradient/i.test(bg)) bg = getComputedStyle(b).backgroundImage || '';
+    const m = bg.match(/rgba?\(([^)]+)\)/i);
+    if(m){ const p = m[1].split(',').map(x => parseFloat(x)); st.cor = (p[0]||0) + ',' + (p[1]||0) + ',' + (p[2]||0); st.int = Math.round((p.length > 3 ? p[3] : 1) * 100); }
+    let f = (b.style && b.style.filter) || getComputedStyle(b).filter || '';
+    const mb = f.match(/blur\(([\d.]+)px\)/i);
+    st.blur = mb ? Math.round(+mb[1]) : 0;
+  }
+  function labels(){
+    const a = el('bk-v-size'); if(a) a.textContent = st.size + 'px';
+    const b = el('bk-v-int');  if(b) b.textContent = st.int + '%';
+    const c = el('bk-v-blur'); if(c) c.textContent = st.blur + 'px';
+  }
+  function sliders(){
+    const a = el('bk-s-size'); if(a) a.value = st.size;
+    const b = el('bk-s-int');  if(b) b.value = st.int;
+    const c = el('bk-s-blur'); if(c) c.value = st.blur;
+  }
+  function marcarCor(btn){ document.querySelectorAll('.bk-cor').forEach(b => b.classList.remove('primary')); if(btn) btn.classList.add('primary'); }
+  function aplicar(){
+    const b = bokehEl(); if(!b) return;
+    b.style.position = 'absolute';
+    b.style.borderRadius = '50%';
+    b.style.width = st.size + 'px';
+    b.style.height = st.size + 'px';
+    b.style.background = 'radial-gradient(circle, rgba(' + st.cor + ',' + (st.int / 100).toFixed(2) + ') 0%, transparent 70%)';
+    b.style.filter = 'blur(' + st.blur + 'px)';
+    labels();
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  }
+  // chamado pelo showToolsFor quando um brilho é selecionado
+  window.__bkSync = function(){
+    const b = bokehEl(); if(!b) return;
+    ler(b); sliders(); labels();
+    marcarCor([...document.querySelectorAll('.bk-cor')].find(x => x.dataset.cor === st.cor) || null);
+  };
+
+  // Desfazer p/ os sliders: guarda o "antes" ao começar a arrastar; confirma ao soltar
+  let antes = null;
+  function grab(){ if(antes == null && typeof snapshotHtml === 'function') antes = snapshotHtml(); }
+  function commit(){ if(antes == null) return; const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null; if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes); antes = null; }
+
+  ['size','int','blur'].forEach(k => {
+    const r = el('bk-s-' + k);
+    if(r){
+      r.addEventListener('pointerdown', grab);
+      r.addEventListener('keydown', grab);
+      r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
+      r.addEventListener('change', commit);
+    }
+  });
+  document.querySelectorAll('.bk-cor').forEach(btn => btn.addEventListener('click', () => { if(typeof recordBefore === 'function') recordBefore(); st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }));
+  const pick = el('bk-picker');
+  if(pick){
+    pick.addEventListener('pointerdown', grab);
+    pick.addEventListener('input', (e) => { const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
+    pick.addEventListener('change', commit);
+  }
+  // mover / centralizar o brilho (usa as funções que já existem no editor)
+  const bt = el('bokehtools');
+  if(bt) bt.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button'); if(!b || !b.dataset.bk || !selected) return;
+    if(typeof recordBefore === 'function') recordBefore();
+    const S = 6;
+    switch(b.dataset.bk){
+      case 'left':  if(typeof nudge === 'function') nudge(-S, 0); break;
+      case 'right': if(typeof nudge === 'function') nudge(S, 0); break;
+      case 'up':    if(typeof nudge === 'function') nudge(0, -S); break;
+      case 'down':  if(typeof nudge === 'function') nudge(0, S); break;
+      case 'cx':    if(typeof centerOnSlide === 'function') centerOnSlide('h'); break;
+      case 'cy':    if(typeof centerOnSlide === 'function') centerOnSlide('v'); break;
+    }
   });
 })();
 </script>

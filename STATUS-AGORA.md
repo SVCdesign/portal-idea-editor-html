@@ -1,10 +1,10 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 · **Motivo:** ✅ **"Salvar como" + reorganização dos botões**
-(e, antes nesta sessão, **Desfazer/Ctrl+Z + Remover elemento**) — tudo implementado,
-**testado no navegador de verdade** e empurrado pro GitHub. **Sem frente de código em
-aberto nem bug conhecido.** Próxima IA: leia este arquivo + `CLAUDE.md` +
-`memoria/LEIA-PRIMEIRO-BRIEFING.md`.
+**Atualizado:** 2026-07-05 · **Motivo:** ✅ **"✨ Adicionar brilho (bokeh)" com painel de
+ajuste** (e, antes nesta sessão: Salvar como, reorganização dos botões, Desfazer/Ctrl+Z,
+Remover elemento) — tudo implementado, **testado no navegador de verdade** e empurrado pro
+GitHub. **Sem frente de código em aberto nem bug conhecido.** Próxima IA: leia este arquivo
++ `CLAUDE.md` + `memoria/LEIA-PRIMEIRO-BRIEFING.md`.
 
 > ⚠️ **O QUE A PRÓXIMA IA PRECISA SABER NUM PC NOVO:**
 > - O editor agora roda em **Node** (`server.mjs`), **não mais em Python**. O PC novo
@@ -18,7 +18,16 @@ aberto nem bug conhecido.** Próxima IA: leia este arquivo + `CLAUDE.md` +
 > - **Google Drive VERDE** antes de mexer: os assets pesados das peças (imagens/fontes)
 >   viajam pelo Drive, **não** pelo Git.
 
-**O que saiu nesta sessão (tudo testado e no GitHub):** **💾 "Salvar como…" + reorganização
+**O que saiu nesta sessão (tudo testado e no GitHub):** **✨ Adicionar brilho (bokeh) + painel
+de ajuste.** Botão **"✨ Adicionar brilho"** no topo insere uma bolinha de luz (bokeh)
+**"completa em si mesma"** (estilos inline — funciona em qualquer slide) no slide à vista, já
+selecionada; dá pra pôr **quantas quiser**. Ao selecionar um brilho, aparece um painel com
+**Tamanho, Cor** (Ciano/Lilás/Roxo/Branco + cor livre)**, Intensidade e Suavidade** (borrado),
++ **mover/centralizar** (e arrastar). Tudo escrito **inline** (o CSS nunca é reprocessado),
+integrado ao **Desfazer** (Ctrl+Z) e ao **Remover**; também ajusta os bokehs que **já existem**
+na peça (lê do CSS). Testado no Chrome real (14 checagens da função + regressão Desfazer/Remover
++ layout/Salvar como). **Prévia A aprovada** pelo Carlos (em `previas/previa-brilho.html`,
+local-only). Empurrado pro GitHub. — Antes: **💾 "Salvar como…" + reorganização
 da barra de botões.** Novo botão **Salvar como…** (ao lado do Salvar) abre a **janela nativa
 "salvar aonde"** (`showSaveFilePicker`) pra escolher **pasta + nome** (o **Salvar** continua
 salvando a cópia sozinho, como antes). **Lembra a última pasta** usada (opção `id` — vale
