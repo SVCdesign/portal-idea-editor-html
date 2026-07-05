@@ -21,7 +21,9 @@ aberto nem bug conhecido.** Próxima IA: leia este arquivo + `CLAUDE.md` +
 **O que saiu nesta sessão (tudo testado e no GitHub):** **💾 "Salvar como…" + reorganização
 da barra de botões.** Novo botão **Salvar como…** (ao lado do Salvar) abre a **janela nativa
 "salvar aonde"** (`showSaveFilePicker`) pra escolher **pasta + nome** (o **Salvar** continua
-salvando a cópia sozinho, como antes). Botões reorganizados a pedido do Carlos —
+salvando a cópia sozinho, como antes). **Lembra a última pasta** usada (opção `id` — vale
+até depois de fechar/abrir o editor; na 1ª vez começa na pasta da peça, se houver uma
+aberta). Botões reorganizados a pedido do Carlos —
 **Cabeçalho:** Abrir HTML · Abrir pasta · Salvar · Salvar como · Desfazer · Remover · Gerar
 PNG; **Rodapé:** Aplicar mudança · Ver código todo · Colar HTML · Exemplo (o **Remover**
 subiu pro topo; **Colar HTML** e **Exemplo** desceram pro rodapé). **Testado no Chrome real:**

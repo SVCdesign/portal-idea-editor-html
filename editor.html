@@ -1339,12 +1339,18 @@ document.getElementById('saveAs').addEventListener('click', async function(){
   const html = buildFinalHtml();
   const sugestao = (lastBaseName || 'pagina') + '-editado.html';
   if(window.showSaveFilePicker){
+    // "id" faz o navegador LEMBRAR a última pasta usada aqui (vale até em outra sessão,
+    // depois de fechar/abrir o editor). Na 1ª vez, se você abriu uma pasta com imagens,
+    // a janela já começa nela; depois começa sempre na última pasta onde você salvou.
+    const opts = {
+      id: 'salvarComoEditorHtml',
+      suggestedName: sugestao,
+      types: [{ description: 'Página HTML', accept: { 'text/html': ['.html', '.htm'] } }]
+    };
+    if(dirHandle) opts.startIn = dirHandle;   // 1ª vez: começa na pasta da peça (se houver)
     let handle;
     try{
-      handle = await window.showSaveFilePicker({
-        suggestedName: sugestao,
-        types: [{ description: 'Página HTML', accept: { 'text/html': ['.html', '.htm'] } }]
-      });
+      handle = await window.showSaveFilePicker(opts);
     }catch(e){ if(e && e.name === 'AbortError') return; alert('Não consegui abrir a janela de salvar: ' + e.message); return; }
     try{
       const w = await handle.createWritable();
