@@ -1,8 +1,8 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-06 · **Motivo:** quatro frentes — (1) 🗂️ **nova
+**Atualizado:** 2026-07-06 · **Motivo:** cinco frentes — (1) 🗂️ **nova
 organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (✅ completo, 3 passos) e (3) 🪟
-**painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria profunda + 7 bugs corrigidos** — tudo no ar e testado.
+**painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
 fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + ferramentas). Nasceu
@@ -42,6 +42,17 @@ Foto/Escurecimento duplicados, não só Brilho/Ícone; (g) abrir HTML avulso / c
 de uma pasta fazia o Salvar gravar na **pasta antiga** e o PNG usar imagens erradas — agora "esquece"
 a pasta (`forgetFolderAssets`). **7 bugs, 0 em aberto.** Verificado no navegador (3 lotes de teste +
 regressão, 0 erros de JS).
+
+**(5) Arrastar-e-soltar a pasta (✅ FEITO, 2026-07-06):** o Carlos pediu pra **arrastar a pasta**
+(peça + imagens) do explorador **direto pro editor**, em vez de clicar "Abrir pasta" e caçar no HD.
+Feito: ao arrastar, a tela acende um **"📁 Solte a pasta aqui"**; ao soltar, abre igual ao "Abrir
+pasta" (religando as imagens) — e, no Chrome, pega o **handle da pasta** (`getAsFileSystemHandle`),
+então dá pra **salvar de volta** nela também. O botão "Abrir pasta" continua como alternativa. Reusa
+`loadFolder`/`collectFromHandle`. **2 bugs pegos pelo olho do Carlos e corrigidos:** o overlay
+aparecia sozinho ao abrir (o `display:flex` vencia o atributo `hidden` → resolvido com
+`.dropzone[hidden]{display:none}`); e o overlay **piscava** ao arrastar (troquei o contador
+dragenter/dragleave por **dragover + timer**, jeito robusto). Testado no navegador + confirmado pelo
+Carlos arrastando de verdade.
 
 ⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho: Slide-mestre"** (detalhado logo abaixo)
 **ATUALIZA uma regra antiga** (a IA **PODE** editar/replicar as peças **quando o Carlos pedir**) e

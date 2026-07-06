@@ -186,6 +186,15 @@
   .ly-eye svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .ly-row.hidden .ly-nm{opacity:.4;text-decoration:line-through}
   .ly-row.hidden .ly-ic{opacity:.4}
+  /* ARRASTAR E SOLTAR a pasta */
+  .dropzone{position:fixed;inset:0;z-index:100;background:rgba(15,18,22,.9);
+    display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .dropzone[hidden]{display:none}   /* faz o "escondido" valer (senão o display:flex acima vence) */
+  .dz-inner{border:3px dashed var(--accent);border-radius:20px;padding:44px 60px;text-align:center;
+    background:rgba(43,196,196,.07)}
+  .dz-ico{font-size:60px;line-height:1}
+  .dz-txt{font-size:22px;font-weight:600;color:var(--ink);margin-top:12px}
+  .dz-sub{font-size:13px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
@@ -355,6 +364,15 @@
         <button class="btn png-cancel">Fechar</button>
       </div>
       <div id="pngGrid" class="png-grid"></div>
+    </div>
+  </div>
+
+  <!-- ARRASTAR E SOLTAR: solte uma pasta em qualquer lugar do editor pra abrir na hora -->
+  <div id="dropzone" class="dropzone" hidden>
+    <div class="dz-inner">
+      <div class="dz-ico">📁</div>
+      <div class="dz-txt">Solte a pasta aqui</div>
+      <div class="dz-sub">a peça abre na hora, com as imagens — igual ao "Abrir pasta"</div>
     </div>
   </div>
 
@@ -1551,6 +1569,69 @@ document.getElementById('folderInput').addEventListener('change', function(e){
   const keyOf = f => { const p=(f.webkitRelativePath||f.name).replace(/\\/g,'/'); const i=p.indexOf('/'); return i===-1?p:p.slice(i+1); };
   loadFolder(files.map(f => ({ file: f, key: keyOf(f) })));
 });
+
+// ---- ARRASTAR E SOLTAR a pasta direto no editor (abre igual ao "Abrir pasta") ----
+// Chrome moderno: pega o HANDLE da pasta (getAsFileSystemHandle) -> dá pra SALVAR de
+// volta nela, igual ao "Abrir pasta". Fallback: lê os arquivos (salvar via Salvar como).
+(function(){
+  const dz = document.getElementById('dropzone');
+  let hideTimer = null;
+  const isFiles = dt => !!(dt && dt.types && Array.prototype.indexOf.call(dt.types, 'Files') !== -1);
+  function esconderDrop(){ if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; } if(dz) dz.hidden = true; }
+  // o 'dragover' dispara SEM PARAR enquanto a pasta paira sobre a janela: usamos ele pra MANTER o
+  // overlay aberto e reagendar o fechamento. Quando o dragover para (saiu da janela ou soltou), o
+  // timer fecha. Assim o overlay NÃO fica PISCANDO ao passar sobre os elementos da tela (o jeito de
+  // contar dragenter/dragleave, que eu usava antes, piscava sobre cada botão/texto).
+  window.addEventListener('dragover', e => {
+    if(!isFiles(e.dataTransfer)) return;
+    e.preventDefault(); try{ e.dataTransfer.dropEffect = 'copy'; }catch(_){}
+    if(dz) dz.hidden = false;
+    if(hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(esconderDrop, 220);
+  });
+  window.addEventListener('dragenter', e => { if(isFiles(e.dataTransfer)){ e.preventDefault(); if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; } if(dz) dz.hidden = false; } });
+  window.addEventListener('drop', async e => {
+    if(!isFiles(e.dataTransfer)) return;
+    e.preventDefault(); esconderDrop();
+    const items = e.dataTransfer.items ? Array.prototype.slice.call(e.dataTransfer.items) : [];
+    // 1) rota moderna: HANDLE da pasta -> permite salvar de volta nela
+    for(const it of items){
+      if(it.kind === 'file' && it.getAsFileSystemHandle){
+        try{
+          const h = await it.getAsFileSystemHandle();
+          if(h && h.kind === 'directory'){ dirHandle = h; await loadFolder(await collectFromHandle(h, '')); return; }
+        }catch(err){}
+      }
+    }
+    // 2) fallback: lê os arquivos da pasta via entries (salvar cai em "Salvar como"/download)
+    const entries = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+    if(entries.length){
+      dirHandle = null;
+      const files = [];
+      for(const en of entries){ if(en.isDirectory){ await walkDir(en, '', files); } else { await walkFile(en, '', files); } }
+      if(files.length){ loadFolder(files); return; }
+    }
+    // 3) último caso: arquivos soltos, sem estrutura de pasta
+    const plain = Array.prototype.slice.call(e.dataTransfer.files || []);
+    if(plain.length){ dirHandle = null; loadFolder(plain.map(f => ({ file: f, key: f.name }))); }
+  });
+  function walkFile(entry, prefix, out){
+    return new Promise(res => entry.file(f => { out.push({ file: f, key: prefix + entry.name }); res(); }, () => res()));
+  }
+  function walkDir(dirEntry, prefix, out){   // percorre o CONTEÚDO da pasta (sem o nome dela no caminho)
+    return new Promise(res => {
+      const rd = dirEntry.createReader(), all = [];
+      (function more(){
+        rd.readEntries(async batch => {
+          if(!batch.length){
+            for(const en of all){ if(en.isDirectory){ await walkDir(en, prefix + en.name + '/', out); } else { await walkFile(en, prefix, out); } }
+            res();
+          }else{ all.push.apply(all, batch); more(); }
+        }, () => res());
+      })();
+    });
+  }
+})();
 
 // ---- SALVAR -----------------------------------------------------------
 // monta o HTML final: tira nossos marcadores internos e devolve o caminho REAL
