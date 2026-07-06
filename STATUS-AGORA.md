@@ -1,8 +1,8 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
-**Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** três frentes hoje — (1) 🗂️ **nova
+**Atualizado:** 2026-07-06 · **Motivo:** quatro frentes — (1) 🗂️ **nova
 organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (✅ completo, 3 passos) e (3) 🪟
-**painéis que RECOLHEM** (resolvem o aperto da coluna direita) — tudo no ar e testado.
+**painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria profunda + 7 bugs corrigidos** — tudo no ar e testado.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
 fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + ferramentas). Nasceu
@@ -28,6 +28,20 @@ uma tirinha de 1 linha). Solução aprovada por **Prévia A**: a direita virou *
 **código estica** (testado: de ~22px pra ~298px). O editor **lembra** o que ficou fechado
 (`localStorage`). Ordem combinada com o Carlos: **arrumar o espaço primeiro** (isto), *depois* voltar
 pro painel de camadas (passo 2 e 3). Prévia local: `previas/previa-paineis.html`.
+
+**(4) Auditoria profunda + correções (✅ FEITO, 2026-07-06):** o Carlos pediu uma varredura do
+`editor.html`. Fiz minha análise + **2 revisores independentes** (subagentes). Achados e **corrigidos
+(todos testados no Chrome)** — 7 bugs: (a) **família do cadeado** — `layerLock` ficava preso num
+elemento que sumia ao desfazer / trocar peça / remover / aplicar mudança → a prévia "congelava"
+(zerado nos 4 pontos); (b) `suppressClick` pendente engolia o 1º clique depois de um arraste abortado;
+(c) **cursor do editor vazava** no salvo/PNG (`cursor:move` no `<body>` — agora limpo no Salvar e no
+snapshot do Desfazer); (d) **painel de camadas / Adicionar brilho** falhavam em peças `.slide-wrapper`
+(seletor de slide unificado num só lugar: `slideList`/`centralSlide`); (e) as camadas agora **seguem o
+slide à vista** ao rolar (antes ficavam no slide do elemento selecionado); (f) **numeração** cobre
+Foto/Escurecimento duplicados, não só Brilho/Ícone; (g) abrir HTML avulso / colar / exemplo **depois**
+de uma pasta fazia o Salvar gravar na **pasta antiga** e o PNG usar imagens erradas — agora "esquece"
+a pasta (`forgetFolderAssets`). **7 bugs, 0 em aberto.** Verificado no navegador (3 lotes de teste +
+regressão, 0 erros de JS).
 
 ⚠️ **ATENÇÃO, PRÓXIMA IA:** o **"Fluxo de trabalho: Slide-mestre"** (detalhado logo abaixo)
 **ATUALIZA uma regra antiga** (a IA **PODE** editar/replicar as peças **quando o Carlos pedir**) e
