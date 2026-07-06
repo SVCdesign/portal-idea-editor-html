@@ -181,6 +181,11 @@
   .ly-lock.on{opacity:1}
   .ly-row.locked{background:rgba(43,196,196,.10)}
   .ly-row.locked.sel{background:rgba(43,196,196,.2)}
+  .ly-eye{flex:0 0 auto;width:22px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.55;color:var(--muted)}
+  .ly-eye:hover{opacity:1;color:var(--ink)}
+  .ly-eye svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .ly-row.hidden .ly-nm{opacity:.4;text-decoration:line-through}
+  .ly-row.hidden .ly-ic{opacity:.4}
 </style>
 </head>
 <body>
@@ -811,15 +816,20 @@ function renderLayers(){
   layersEl.innerHTML = '';
   const list = document.createElement('div'); list.className = 'ly-list';
   items.forEach(({ el, info }) => {
+    const escondido = (el.style.visibility === 'hidden');
     const row = document.createElement('div');
-    row.className = 'ly-row' + (el === selected ? ' sel' : '') + (el === layerLock ? ' locked' : '');
+    row.className = 'ly-row' + (el === selected ? ' sel' : '') + (el === layerLock ? ' locked' : '') + (escondido ? ' hidden' : '');
+    const eye = document.createElement('span'); eye.className = 'ly-eye';
+    eye.innerHTML = escondido ? EYE_OFF : EYE_ON;
+    eye.title = escondido ? 'mostrar esta camada' : 'esconder esta camada';
+    eye.onclick = (ev) => { ev.stopPropagation(); toggleLayerEye(el); };
     const ic = document.createElement('span'); ic.className = 'ly-ic'; ic.textContent = info.icon;
     const nm = document.createElement('span'); nm.className = 'ly-nm'; nm.textContent = info.name; nm.title = labelFor(el);
     const lk = document.createElement('span'); lk.className = 'ly-lock' + (el === layerLock ? ' on' : '');
     lk.textContent = (el === layerLock) ? '🔒' : '🔓';
     lk.title = (el === layerLock) ? 'destravar' : 'travar pra arrastar sem pegar o vizinho';
     lk.onclick = (ev) => { ev.stopPropagation(); toggleLayerLock(el); };
-    row.append(ic, nm, lk);
+    row.append(eye, ic, nm, lk);
     row.onclick = () => selectElement(el);
     list.appendChild(row);
   });
@@ -832,6 +842,20 @@ function toggleLayerLock(el){
   layerLock = (layerLock === el) ? null : el;
   if(layerLock){ selectElement(layerLock); setPreviewCursor('move'); }
   else renderLayers();
+}
+
+// mostra/esconde uma camada (olho estilo Photoshop). Escreve visibility:hidden INLINE,
+// então o "escondido" PERSISTE no salvar e no PNG (o CSS nunca é reprocessado). Pra
+// voltar, é só abrir o olho de novo (não apaga, diferente do Remover). Entra no Desfazer.
+const EYE_ON  = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+const EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.3 3.8M6.2 6.7A16 16 0 0 0 2 12s3.5 6.5 10 6.5c1.2 0 2.3-.2 3.3-.5"/></svg>';
+function toggleLayerEye(el){
+  const escondido = (el.style.visibility === 'hidden');
+  recordBefore();                         // retrato pro Desfazer (Ctrl+Z traz de volta)
+  if(escondido){ el.style.removeProperty('visibility'); cleanStyle(el); }
+  else { el.style.visibility = 'hidden'; }
+  refreshCodeBox();                       // o código à direita acompanha o inline
+  renderLayers();
 }
 
 // ---- Painéis que RECOLHEM: recolher/expandir cada seção da direita ---------

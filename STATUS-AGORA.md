@@ -1,7 +1,7 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
 **Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** três frentes hoje — (1) 🗂️ **nova
-organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (passos 1 e 2 de 3) e (3) 🪟
+organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (✅ completo, 3 passos) e (3) 🪟
 **painéis que RECOLHEM** (resolvem o aperto da coluna direita) — tudo no ar e testado.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
@@ -9,14 +9,14 @@ fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + 
 **`Subsistemas/`** e a 1ª casa: **`Fluxo do Subsistema Slide Mestre/`** (`LEIA-PRIMEIRO.md`). Padrão
 dos próximos: **`Fluxo do Subsistema [nome]`** (o próximo cogitado: **SVG**).
 
-**(2) Painel de Camadas (⚠️ NOVA FRENTE DE CÓDIGO — EM ANDAMENTO):** o Carlos pediu pra **arrastar
+**(2) Painel de Camadas (✅ COMPLETO — 3 passos, tudo testado):** o Carlos pediu pra **arrastar
 qualquer elemento** com o mouse (hoje só o **texto** arrasta; **SVG e brilho não**) e pra resolver o
 "como clicar no que está **atrás**". Solução aprovada por ele via **Prévia A**: um **painel de
 camadas estilo Photoshop** na direita do editor. Está sendo feito em **3 passos**: **✅ passo 1 (no
 ar e testado)** — a **lista** das camadas do slide (Foto, Escurecimento, Brilho 1/2, Ícone, Texto)
 com **clicar pra selecionar**, inclusive as escondidas atrás; **✅ passo 2 (no ar e testado)** — 🔒
 **travar (cadeado) + arrastar** qualquer elemento (o SVG inteiro, o brilho) sem pegar o vizinho — tem
-um cadeado em cada camada; **⬜ passo 3 (falta)** — 👁 **olho** (mostrar/esconder). *(No passo 2
+um cadeado em cada camada; **✅ passo 3** — 👁 **olho** (mostrar/esconder; o escondido PERSISTE no salvo e no PNG — estilo Photoshop, escolha do Carlos). *(No passo 2
 apareceu e foi corrigido um bug: abrir uma 2ª peça SEM recarregar o editor deixava o painel usando a
 peça antiga — resolvido zerando a seleção ao ligar cada prévia nova.)* Prévia local (fora do Git):
 `previas/previa-camadas.html`.
