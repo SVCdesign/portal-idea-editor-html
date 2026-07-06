@@ -176,6 +176,11 @@
   .ly-ic{width:18px;text-align:center;flex:0 0 auto;font-size:13px}
   .ly-nm{flex:1;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ly-row.sel .ly-nm{color:var(--accent);font-weight:600}
+  .ly-lock{flex:0 0 auto;width:24px;text-align:center;cursor:pointer;opacity:.4;font-size:12px;border-radius:5px}
+  .ly-lock:hover{opacity:1;background:rgba(255,255,255,.1)}
+  .ly-lock.on{opacity:1}
+  .ly-row.locked{background:rgba(43,196,196,.10)}
+  .ly-row.locked.sel{background:rgba(43,196,196,.2)}
 </style>
 </head>
 <body>
@@ -392,6 +397,7 @@ function loadHtml(html){
 function wirePreview(){
   const doc = iframe.contentDocument;
   if(!doc) return;
+  selected = null; editingEl = null;   // prévia nova: nada selecionado ainda (senão o painel de camadas / o arraste usariam a peça antiga)
 
   let dragging = false, dragMoved = false, accum = 0, lastX = 0, lastY = 0, suppressClick = false;
   let dragKind = null, rawTx = 0, rawTy = 0;   // 'img' = reenquadrar foto; 'move' = mover texto/elemento
@@ -401,6 +407,17 @@ function wirePreview(){
   //  • texto/elemento   -> MOVE o elemento (transform), com a linha-guia ao vivo
   doc.addEventListener('mousedown', function(ev){
     if(editingEl) return;                 // digitando: deixa o navegador posicionar o cursor
+    if(layerLock){                        // camada TRAVADA: arrasta ela de QUALQUER lugar (sem pegar o vizinho)
+      if(selected !== layerLock) selectElement(layerLock);
+      dragKind = (layerLock.tagName === 'IMG') ? 'img' : 'move';
+      if(dragKind === 'move'){ const v = getTf(layerLock); rawTx = v.tx; rawTy = v.ty; }
+      dragging = true; dragMoved = false; accum = 0;
+      dragBefore = snapshotHtml();
+      lastX = ev.clientX; lastY = ev.clientY;
+      if(doc.body) doc.body.style.cursor = (dragKind === 'img') ? 'grabbing' : 'move';
+      ev.preventDefault();
+      return;
+    }
     if(!selected) return;
     if(selected.tagName === 'IMG'){
       dragKind = 'img';
@@ -447,6 +464,7 @@ function wirePreview(){
     ev.preventDefault();
     ev.stopPropagation();
     if(suppressClick){ suppressClick = false; return; }
+    if(layerLock) return;   // travado: clicar na prévia não muda a seleção (use a lista, ou o cadeado pra destravar)
     selectElement(ev.target);
   }, true);
 
@@ -509,6 +527,7 @@ function clearSel(el){
 
 function selectElement(el){
   if(!el || el.nodeType !== 1) return;
+  if(layerLock && el !== layerLock) layerLock = null;   // selecionar outra coisa destrava o cadeado
   hideGuides();
   clearSel(selected);
   selected = el;
@@ -796,11 +815,23 @@ function renderLayers(){
     row.className = 'ly-row' + (el === selected ? ' sel' : '') + (el === layerLock ? ' locked' : '');
     const ic = document.createElement('span'); ic.className = 'ly-ic'; ic.textContent = info.icon;
     const nm = document.createElement('span'); nm.className = 'ly-nm'; nm.textContent = info.name; nm.title = labelFor(el);
-    row.append(ic, nm);
+    const lk = document.createElement('span'); lk.className = 'ly-lock' + (el === layerLock ? ' on' : '');
+    lk.textContent = (el === layerLock) ? '🔒' : '🔓';
+    lk.title = (el === layerLock) ? 'destravar' : 'travar pra arrastar sem pegar o vizinho';
+    lk.onclick = (ev) => { ev.stopPropagation(); toggleLayerLock(el); };
+    row.append(ic, nm, lk);
     row.onclick = () => selectElement(el);
     list.appendChild(row);
   });
   layersEl.appendChild(list);
+}
+
+// trava/destrava uma camada. Travada: dá pra arrastar clicando em QUALQUER lugar do
+// slide, sem risco de pegar o vizinho. Só uma trava por vez; selecionar outra destrava.
+function toggleLayerLock(el){
+  layerLock = (layerLock === el) ? null : el;
+  if(layerLock){ selectElement(layerLock); setPreviewCursor('move'); }
+  else renderLayers();
 }
 
 // ---- Painéis que RECOLHEM: recolher/expandir cada seção da direita ---------

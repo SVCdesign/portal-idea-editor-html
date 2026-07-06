@@ -1,7 +1,7 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
 **Atualizado:** 2026-07-05 (3ª sessão do dia) · **Motivo:** três frentes hoje — (1) 🗂️ **nova
-organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (passo 1 de 3) e (3) 🪟
+organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (passos 1 e 2 de 3) e (3) 🪟
 **painéis que RECOLHEM** (resolvem o aperto da coluna direita) — tudo no ar e testado.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
@@ -14,9 +14,12 @@ qualquer elemento** com o mouse (hoje só o **texto** arrasta; **SVG e brilho n�
 "como clicar no que está **atrás**". Solução aprovada por ele via **Prévia A**: um **painel de
 camadas estilo Photoshop** na direita do editor. Está sendo feito em **3 passos**: **✅ passo 1 (no
 ar e testado)** — a **lista** das camadas do slide (Foto, Escurecimento, Brilho 1/2, Ícone, Texto)
-com **clicar pra selecionar**, inclusive as escondidas atrás; **⬜ passo 2** — 🔒 **travar (cadeado)
-+ arrastar** qualquer elemento sem pegar o vizinho; **⬜ passo 3** — 👁 **olho** (mostrar/esconder).
-Prévia local (fora do Git): `previas/previa-camadas.html`.
+com **clicar pra selecionar**, inclusive as escondidas atrás; **✅ passo 2 (no ar e testado)** — 🔒
+**travar (cadeado) + arrastar** qualquer elemento (o SVG inteiro, o brilho) sem pegar o vizinho — tem
+um cadeado em cada camada; **⬜ passo 3 (falta)** — 👁 **olho** (mostrar/esconder). *(No passo 2
+apareceu e foi corrigido um bug: abrir uma 2ª peça SEM recarregar o editor deixava o painel usando a
+peça antiga — resolvido zerando a seleção ao ligar cada prévia nova.)* Prévia local (fora do Git):
+`previas/previa-camadas.html`.
 
 **(3) Painéis que RECOLHEM (✅ FEITO e testado):** o Carlos mostrou (prints do editor + do Photoshop)
 que a **coluna da direita** estava **sufocada** — tanta coisa empilhada que o **código sumia** (virava
