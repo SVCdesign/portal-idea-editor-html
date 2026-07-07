@@ -1,5 +1,11 @@
 # STATUS-AGORA — `portal-idea-editor-html`
 
+> 🚚 **TROCANDO DE PC / IA NOVA? LEIA PRIMEIRO O HANDOFF DETALHADO** →
+> [`logs/handoff/HANDOFF-2026-07-06-troca-de-PC.md`](logs/handoff/HANDOFF-2026-07-06-troca-de-PC.md)
+> — mapa completo: regras do Carlos, arquitetura do `editor.html` (funções/variáveis), **armadilhas
+> conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
+> o handoff é o **manual**.
+
 **Atualizado:** 2026-07-06 · **Motivo:** cinco frentes — (1) 🗂️ **nova
 organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (✅ completo, 3 passos) e (3) 🪟
 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
