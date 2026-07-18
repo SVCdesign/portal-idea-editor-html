@@ -390,6 +390,8 @@ const bokehToolsEl = document.getElementById('bokehtools');
 const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
 let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
+let svgEditingEl = null; // texto de DESENHO (SVG <text>/<tspan>) em edição pela caixinha flutuante
+let svgEditBox = null;   // a caixinha de digitar do SVG (vive na janela do editor — NUNCA entra no arquivo salvo)
 let showingFull = false; // se a caixa está mostrando o documento inteiro
 let dirHandle = null;            // pasta com permissão de escrita (modo poderoso)
 let lastBaseName = null;         // nome-base do HTML aberto (para nomear o salvar)
@@ -414,6 +416,7 @@ function forgetFolderAssets(){ dirHandle = null; originalRefByBlob = new Map(); 
 
 function loadHtml(html){
   showingFull = false;
+  if(svgEditingEl){ try{ closeSvgTextEdit(false); }catch(e){} }   // fecha a caixinha de texto-desenho, se aberta
   editingEl = null;              // a prévia antiga sai; nada mais em edição
   resetHistory();                // documento novo: história do Desfazer começa do zero
   iframe.onload = wirePreview;   // quando a prévia terminar de carregar, ligamos os cliques
@@ -424,7 +427,7 @@ function loadHtml(html){
 function wirePreview(){
   const doc = iframe.contentDocument;
   if(!doc) return;
-  selected = null; editingEl = null; layerLock = null;   // prévia nova: nada selecionado/travado (senão o painel de camadas / o arraste usariam a peça antiga)
+  selected = null; editingEl = null; svgEditingEl = null; layerLock = null;   // prévia nova: nada selecionado/travado (senão o painel de camadas / o arraste usariam a peça antiga)
 
   let dragging = false, dragMoved = false, accum = 0, lastX = 0, lastY = 0, suppressClick = false;
   let dragKind = null, rawTx = 0, rawTy = 0;   // 'img' = reenquadrar foto; 'move' = mover texto/elemento
@@ -520,7 +523,7 @@ function wirePreview(){
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
   renderLayers();     // monta o painel de camadas do slide à vista
-  doc.addEventListener('scroll', () => { clearTimeout(layerScrollT); layerScrollT = setTimeout(renderLayers, 120); }, true);
+  doc.addEventListener('scroll', () => { if(svgEditingEl) closeSvgTextEdit(true); clearTimeout(layerScrollT); layerScrollT = setTimeout(renderLayers, 120); }, true);
 }
 
 // barra de navegação: um botão por slide; clicar pula a prévia até ele
@@ -641,13 +644,14 @@ function undo(){
   if(!history.length) return;
   const doc = iframe.contentDocument;
   if(!doc) return;
+  if(svgEditingEl){ try{ closeSvgTextEdit(false); }catch(e){} }   // descarta a caixinha de texto-desenho em curso
   if(editingEl){ try{ stopTextEdit(); }catch(e){} }   // encerra edição de texto, se houver
   const snap = history.pop();
   const win = iframe.contentWindow;
   const sx = win ? win.scrollX : 0, sy = win ? win.scrollY : 0;   // preserva a rolagem
   doc.documentElement.innerHTML = snap;   // recoloca o retrato (troca head+body)
   injectHighlightStyle(doc);              // devolve o CSS de realce
-  selected = null; editingEl = null; layerLock = null; showingFull = false;
+  selected = null; editingEl = null; svgEditingEl = null; layerLock = null; showingFull = false;
   hideAllTools(); hideGuides();
   navEl.innerHTML = ''; navEl.style.display = 'none';
   document.getElementById('capa-atalhos').style.display = 'none';
@@ -670,10 +674,11 @@ function removeSelected(){
     return;
   }
   recordBefore();          // retrato pro Desfazer ANTES de apagar
+  if(svgEditingEl === el){ try{ closeSvgTextEdit(false); }catch(e){} }
   if(editingEl === el){ try{ stopTextEdit(); }catch(e){} }
   clearSel(el);
   el.remove();
-  selected = null; layerLock = null; showingFull = false;
+  selected = null; svgEditingEl = null; layerLock = null; showingFull = false;
   hideAllTools(); hideGuides();
   navEl.innerHTML = ''; navEl.style.display = 'none';
   document.getElementById('capa-atalhos').style.display = 'none';
@@ -1300,6 +1305,9 @@ function startTextEdit(el, x, y){
   if(!el || !isTextEl(el)) return;
   if(selected !== el) selectElement(el);   // garante seleção + ferramentas certas
   stopTextEdit();                          // fecha uma edição anterior, se houver
+  // TEXTO DE DESENHO (SVG): o navegador não deixa digitar DENTRO de um <text> de SVG
+  // (contenteditable "abre mas trava"). Usamos uma caixinha flutuante por cima.
+  if(isSvgText(el)){ startSvgTextEdit(el); return; }
   textBefore = snapshotHtml();             // retrato de antes de digitar (commit só se mudar)
   editingEl = el;
   el.setAttribute('contenteditable', 'true');    // normal (permite <br> no Shift+Enter)
@@ -1317,6 +1325,7 @@ function startTextEdit(el, x, y){
   setPreviewCursor('text');
 }
 function stopTextEdit(){
+  if(svgEditingEl){ closeSvgTextEdit(true); return; }   // caixinha SVG: faz o próprio commit
   if(!editingEl) return;
   const el = editingEl; editingEl = null;
   el.removeEventListener('blur', onEditBlur);
@@ -1331,6 +1340,92 @@ function stopTextEdit(){
   if(selected === el) refreshCodeBox();     // o código passa a mostrar o texto novo
   // commit do Desfazer: se o texto mudou desde que começou a editar, guarda o "antes"
   if(textBefore != null){
+    const now = snapshotHtml();
+    if(now !== textBefore) pushHistory(textBefore);
+    textBefore = null;
+  }
+}
+
+// ---- ✏️ Editar TEXTO DE DESENHO (SVG <text>/<tspan>) -------------------
+// O navegador NÃO deixa digitar dentro de um texto de SVG (o contenteditable
+// "abre mas trava"). Solução: uma caixinha de digitar comum, posicionada bem
+// por cima do texto. Ela vive na JANELA DO EDITOR (não dentro da peça), então
+// nunca entra no arquivo salvo — ao confirmar, só trocamos o texto do elemento.
+function isSvgText(el){
+  return !!el && el.namespaceURI === 'http://www.w3.org/2000/svg'
+    && (el.tagName === 'text' || el.tagName === 'tspan');
+}
+// quanto o desenho (SVG) está encolhido na tela: largura mostrada ÷ largura do viewBox
+function svgScale(el){
+  const svg = el.ownerSVGElement || (el.closest && el.closest('svg'));
+  if(!svg) return 1;
+  try{
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    const r = svg.getBoundingClientRect();
+    if(vb && vb.width && r.width) return r.width / vb.width;
+  }catch(e){}
+  return 1;
+}
+// cria a caixinha UMA vez (reusada em toda edição); Enter confirma, Esc cancela, sair confirma
+function ensureSvgEditBox(){
+  if(svgEditBox) return;
+  const b = document.createElement('input');
+  b.type = 'text'; b.id = '__ya_svgedit'; b.autocomplete = 'off'; b.spellcheck = false;
+  const cEdit = getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim() || '#ff7a1a';
+  b.style.cssText = 'position:fixed; z-index:99999; display:none; box-sizing:border-box;'
+    + ' margin:0; padding:0 3px; border:2px solid ' + cEdit + '; border-radius:5px;'
+    + ' background:#fffdf5; color:#111; box-shadow:0 8px 22px rgba(0,0,0,.28);'
+    + ' outline:none; line-height:1; white-space:nowrap;';
+  b.addEventListener('keydown', function(ev){
+    ev.stopPropagation();   // enquanto digita, não deixa atalhos do editor (Ctrl+Z/Delete) pegarem
+    if(ev.key === 'Enter'){ ev.preventDefault(); closeSvgTextEdit(true); }
+    else if(ev.key === 'Escape'){ ev.preventDefault(); closeSvgTextEdit(false); }
+  });
+  b.addEventListener('blur', function(){ if(svgEditingEl) closeSvgTextEdit(true); });   // clicar fora confirma
+  document.body.appendChild(b);
+  svgEditBox = b;
+}
+// posiciona/estiliza a caixinha por cima do texto (soma a posição do iframe com a do texto)
+function positionSvgEditBox(el){
+  const ir = iframe.getBoundingClientRect();
+  const r  = el.getBoundingClientRect();
+  const k  = svgScale(el);
+  const cs = getComputedStyle(el);
+  const anchor = (cs.textAnchor || 'start');
+  const align = anchor === 'middle' ? 'center' : (anchor === 'end' ? 'right' : 'left');
+  const b = svgEditBox;
+  b.style.left     = (ir.left + r.left - 3) + 'px';
+  b.style.top      = (ir.top  + r.top  - 3) + 'px';
+  b.style.height   = (r.height + 6) + 'px';
+  b.style.minWidth = (r.width + 12) + 'px';
+  b.style.width    = (r.width + 44) + 'px';
+  b.style.fontSize = (parseFloat(cs.fontSize) * k) + 'px';
+  b.style.fontFamily = cs.fontFamily;
+  b.style.fontWeight = cs.fontWeight;
+  b.style.textAlign  = align;
+  const ls = cs.letterSpacing;
+  b.style.letterSpacing = (ls && ls !== 'normal') ? (parseFloat(ls) * k) + 'px' : '';
+}
+function startSvgTextEdit(el){
+  ensureSvgEditBox();
+  svgEditingEl = el;
+  textBefore = snapshotHtml();      // retrato de antes (commit no Desfazer só se mudar)
+  positionSvgEditBox(el);
+  svgEditBox.value = el.textContent;
+  svgEditBox.style.display = 'block';
+  svgEditBox.focus();
+  svgEditBox.select();
+}
+function closeSvgTextEdit(save){
+  if(!svgEditingEl) return;
+  const el = svgEditingEl; svgEditingEl = null;   // zera JÁ (evita reentrada pelo blur ao esconder)
+  if(save && svgEditBox && svgEditBox.value !== el.textContent){
+    el.textContent = svgEditBox.value;    // troca SÓ o texto — nada mais toca a peça
+  }
+  if(svgEditBox) svgEditBox.style.display = 'none';
+  if(selected === el) refreshCodeBox();   // o código à direita mostra o texto novo
+  renderLayers();                          // o nome da camada acompanha o texto novo
+  if(textBefore != null){                  // commit do Desfazer, se mudou
     const now = snapshotHtml();
     if(now !== textBefore) pushHistory(textBefore);
     textBefore = null;

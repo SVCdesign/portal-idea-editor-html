@@ -6,9 +6,24 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-06 · **Motivo:** cinco frentes — (1) 🗂️ **nova
-organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`** (✅ completo, 3 passos) e (3) 🪟
-**painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+**Atualizado:** 2026-07-18 · **Motivo:** ✏️ **NOVO — Editar TEXTO de DESENHO (SVG) no `editor.html`**
+(a "caixinha de digitar" por cima do texto; ver bloco logo abaixo). · Antes, em **2026-07-06**, saíram
+cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
+(✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
+profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-18) ✏️ EDITAR TEXTO DE DESENHO / SVG (✅ FEITO e testado):** o Carlos tentou editar os textos
+de um **card em SVG** (um "desenho" feito por código — os cards do *Fluxo Gerador de Cards Visuais* da
+Pedra Mística) e **não conseguia trocar as palavras**: ao dar dois cliques, o modo de edição **abria mas
+travava** (o navegador NÃO deixa digitar dentro de um `<text>` de SVG via `contenteditable`). Solução
+(aprovada por **Prévia A**): quando o texto é de SVG, o editor abre uma **caixinha de digitar comum por
+cima do texto** (posicionada e com a fonte escalada pra casar); **Enter** confirma, **Esc** cancela,
+clicar fora confirma. A caixinha **vive na janela do editor, NÃO dentro da peça** — então **nunca vaza
+pro arquivo salvo** (só troca o texto do elemento). Integrada ao **Desfazer** (Ctrl+Z) e limpa nos 4
+pontos de troca de DOM (armadilha #1 do handoff). **Testado no navegador** (Playwright): 2 cliques abrem
+a caixinha, a troca funciona, o **salvo sai limpo** com o texto novo, o **Desfazer** volta, a prévia
+**não congela**, textos **centralizados/à direita** acompanham, **Esc** cancela, e o **texto HTML comum
+segue no caminho antigo** (regressão OK) — **0 erro de JS**. Prévia local: `previas/previa-editar-texto-svg.html`.
 
 **(1) Pasta `Subsistemas/`:** o Carlos organizou o mundo por **"subsistemas"** — cada
 fluxo/ferramenta grande ganha uma **pasta-casa própria** (receita + exemplos + ferramentas). Nasceu
@@ -275,6 +290,12 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   ficam bloqueados. O código à direita acompanha **ao vivo** e sempre **limpo**; ao
   terminar, tira `<br>` "fantasma" do fim; o arquivo salvo sai **sem marca de
   edição** (buildFinalHtml tira `contenteditable`). Validado no navegador.
+- **✏️ Editar TEXTO de DESENHO (SVG `<text>`) — NOVO (2026-07-18):** em **cards feitos em SVG** (desenho
+  por código), o texto não é texto de site comum — o navegador **não deixa digitar dentro dele** (o modo
+  antigo "abria mas travava"). Agora, ao dar **dois cliques** num texto de SVG, abre uma **caixinha por
+  cima** pra digitar (**Enter** confirma · **Esc** cancela · clicar fora confirma). A caixinha vive **fora
+  da peça** (na janela do editor), então **não vaza pro salvo** — só troca a palavra. Entra no **Desfazer**.
+  O texto de site comum continua editando **no lugar** (contenteditable), como antes.
 - **↔↕ Botões "centralizar" + 🖐️ arrastar com o mouse — NOVO:** ao clicar num
   texto/elemento aparecem os botões **↔ centro** (esquerda↔direita) e **↕ centro**
   (cima↕baixo) — levam ao meio do slide de uma vez e acendem a guia. E agora dá pra
