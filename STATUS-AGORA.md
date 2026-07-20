@@ -6,11 +6,28 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-18 · **Motivo:** ✏️ **NOVO — Editar TEXTO de DESENHO (SVG) no `editor.html`**
-(a "caixinha de digitar" por cima do texto; ver bloco logo abaixo). · Antes, em **2026-07-06**, saíram
-cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
+**Atualizado:** 2026-07-20 · **Motivo:** 🖼️ **NOVO — Botão "Adicionar imagem" (foto de FUNDO) no `editor.html`**
+(força uma foto pra dentro de um slide feito SEM foto; ver bloco logo abaixo). · Antes, em **2026-07-18**,
+saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" por cima). · Antes, em **2026-07-06**,
+saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-20) 🖼️ ADICIONAR IMAGEM — foto de FUNDO forçada (✅ FEITO e testado):** o Carlos tinha uma peça
+(uma capa) **feita SEM foto** — fundo em degradê + "cartãozinho" desenhado por código — e queria **forçar uma
+imagem de fundo** só pra ver como ficaria e poder ajustar (ele até pôs a foto numa pasta `assets`, mas o "Abrir
+pasta" **ignora** imagem que o código não menciona — de propósito, pra não pesar). Solução (aprovada por **Prévia
+A**): botão **🖼️ Adicionar imagem** no topo (irmão do ✨ Adicionar brilho) → escolhe um PNG/JPG do PC → a foto
+entra como **FUNDO do slide à vista** (`<img class="hero-photo">`, atrás do texto), **embutida no próprio arquivo**
+(base64 — arquivo único, não depende da pasta). Junto entra uma **película de escurecimento** suave (classe
+`overlay`) pro texto branco continuar legível. Como a foto vira `<img>` e a película é `overlay`, os **"Atalhos da
+capa"** (🖼️ Editar imagem / 🎚️ Escurecer-Clarear), o **Ajustar foto** e o **Painel de Camadas** já a reconhecem
+**sozinhos** (reúso total). Entra no **Desfazer** (Ctrl+Z). **Testado no navegador** (Playwright, no `editor.html`
+oficial): botão abre o seletor, foto entra de fundo atrás do texto, o **Salvar** sai com a foto embutida e
+**limpo**, os Atalhos da Capa + Escurecer/Clarear funcionam, o **Desfazer** remove foto+película com o texto
+intacto — **0 erro de JS**. Detalhe técnico (armadilha evitada): `targetSlideForInsert()` devolve o
+`.slide-wrapper`, mas a foto é inserida no `.slide` **interno** (o retângulo com `overflow:hidden`) pra ficar
+recortada e atrás do `.pad`. Prévia local: `previas/previa-adicionar-imagem.html`.
 
 **(2026-07-18) ✏️ EDITAR TEXTO DE DESENHO / SVG (✅ FEITO e testado):** o Carlos tentou editar os textos
 de um **card em SVG** (um "desenho" feito por código — os cards do *Fluxo Gerador de Cards Visuais* da
@@ -296,6 +313,14 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
   cima** pra digitar (**Enter** confirma · **Esc** cancela · clicar fora confirma). A caixinha vive **fora
   da peça** (na janela do editor), então **não vaza pro salvo** — só troca a palavra. Entra no **Desfazer**.
   O texto de site comum continua editando **no lugar** (contenteditable), como antes.
+- **🖼️ Adicionar imagem (foto de FUNDO) — NOVO (2026-07-20):** botão **🖼️ Adicionar imagem** no topo (família
+  do ✨ Adicionar brilho). Escolhe um PNG/JPG do PC e **força a foto como FUNDO** do slide à vista — **mesmo que
+  a peça tenha sido feita SEM foto**. A foto entra **embutida no arquivo** (base64; arquivo único, sem depender de
+  pasta), **atrás do texto**, já com uma **película de escurecimento** (pro texto branco continuar legível). A
+  foto vira `<img class="hero-photo">` e a película é `overlay` → os **Atalhos da capa** (Editar imagem /
+  Escurecer-Clarear), o **Ajustar foto** (zoom/enquadrar) e o **Painel de Camadas** já pegam nela; entra no
+  **Desfazer**. Por baixo: `addImageBackground()` insere no `.slide` interno, logo antes do `.pad`. Testado no
+  Chrome real (Playwright).
 - **↔↕ Botões "centralizar" + 🖐️ arrastar com o mouse — NOVO:** ao clicar num
   texto/elemento aparecem os botões **↔ centro** (esquerda↔direita) e **↕ centro**
   (cima↕baixo) — levam ao meio do slide de uma vez e acendem a guia. E agora dá pra

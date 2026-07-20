@@ -209,6 +209,8 @@
     <button id="undo" title="Desfazer a última mudança (Ctrl+Z)" disabled>↩ Desfazer</button>
     <button id="remove" class="danger" title="Remover o elemento selecionado (tecla Delete)" disabled>🗑 Remover</button>
     <button id="addBokeh" title="Adicionar um brilho (bokeh) no slide que está à vista">✨ Adicionar brilho</button>
+    <button id="addImage" title="Adicionar uma imagem (PNG/JPG) de fundo no slide à vista — mesmo que a peça tenha sido feita sem foto">🖼️ Adicionar imagem</button>
+    <input type="file" id="addImageInput" accept="image/png,image/jpeg,image/webp" hidden>
     <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
   </header>
 
@@ -988,6 +990,48 @@ function addBokeh(){
   crumbEl.textContent = '✨ brilho adicionado — ajuste ao lado (ou arraste pra posicionar) · Ctrl+Z desfaz';
 }
 
+// ---- 🖼️ Adicionar imagem (foto de FUNDO) ------------------------------
+// Força uma foto PRA DENTRO do slide à vista, mesmo que a peça tenha sido
+// feita SEM imagem. A foto entra como FUNDO (atrás do texto), EMBUTIDA no
+// próprio arquivo (base64) — vira um arquivo único, sem depender da pasta.
+// Junto, entra uma "película" escura suave (classe overlay) pro texto branco
+// continuar legível — isso REUSA o "Escurecer/Clarear" que já existe. Tudo
+// entra no Desfazer (Ctrl+Z). Como a foto vira <img>, os "Atalhos da capa"
+// (🖼️ Editar imagem) e o painel de Camadas já a reconhecem sozinhos.
+function addImageBackground(dataURL){
+  const doc = iframe.contentDocument; if(!doc) return;
+  let slide = targetSlideForInsert();
+  if(!slide){ alert('Clique num slide (ou role até ele) pra eu saber onde colocar a imagem.'); return; }
+  // targetSlideForInsert pode devolver o .slide-wrapper (a moldura externa); eu quero o
+  // .slide interno (o retângulo com overflow:hidden), pra a foto ficar recortada e atrás do texto.
+  if(!slide.classList.contains('slide')){ const inner = slide.querySelector('.slide'); if(inner) slide = inner; }
+  recordBefore();   // retrato pro Desfazer ANTES de adicionar
+
+  const content = slide.querySelector('.pad');   // o "miolo" com o texto (padrão das peças)
+  const back = !content;                          // sem .pad: usa camada negativa (à prova de peças diferentes)
+  const zImg = back ? -2 : 0, zScrim = back ? -1 : 1;
+
+  // a foto: preenche o slide e é recortada (object-fit:cover) — igual capa com foto de verdade
+  const img = doc.createElement('img');
+  img.className = 'hero-photo';   // nome que os "Atalhos da capa" já procuram
+  img.src = dataURL;
+  img.setAttribute('style', 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover;'
+    + ' object-position:center; z-index:' + zImg + '; pointer-events:auto;');
+
+  // a película: escurecimento suave (mais forte embaixo). Classe "overlay" liga o Escurecer/Clarear.
+  const scrim = doc.createElement('div');
+  scrim.className = 'overlay';
+  scrim.setAttribute('style', 'position:absolute; inset:0; pointer-events:none; z-index:' + zScrim + ';'
+    + ' background:linear-gradient(180deg, rgba(10,6,18,0.15) 0%, rgba(10,6,18,0.55) 100%);');
+
+  // insere logo ANTES do conteúdo (.pad): fica atrás do texto e na frente do fundo/bokeh
+  if(content){ slide.insertBefore(img, content); slide.insertBefore(scrim, content); }
+  else{ slide.insertBefore(scrim, slide.firstChild); slide.insertBefore(img, slide.firstChild); }
+
+  selectElement(img);   // já seleciona a foto pra ajustar (zoom / enquadrar) na hora
+  crumbEl.textContent = '🖼️ imagem de fundo adicionada — enquadre ao lado; use "🎚️ Escurecer/Clarear" pra regular a película · Ctrl+Z desfaz';
+}
+
 // ---- ajustes visuais: o Editor HTML escreve o transform por você ------
 // lê os ajustes já aplicados (mover/zoom) que estão no style do elemento
 function getTf(el){
@@ -1489,6 +1533,21 @@ document.getElementById('full').addEventListener('click', function(){
 document.getElementById('undo').addEventListener('click', undo);
 document.getElementById('remove').addEventListener('click', removeSelected);
 document.getElementById('addBokeh').addEventListener('click', addBokeh);
+// 🖼️ Adicionar imagem: o botão abre o seletor de arquivo; ao escolher, lê como
+// data URL (base64) e insere a foto de fundo no slide à vista.
+document.getElementById('addImage').addEventListener('click', function(){
+  document.getElementById('addImageInput').click();
+});
+document.getElementById('addImageInput').addEventListener('change', function(e){
+  const f = e.target.files[0];
+  e.target.value = '';   // zera pra permitir reescolher a MESMA imagem depois
+  if(!f) return;
+  if(!/^image\//.test(f.type)){ alert('Escolha uma imagem (PNG, JPG ou WebP).'); return; }
+  const r = new FileReader();
+  r.onload = () => addImageBackground(r.result);   // r.result = data URL (base64) embutível
+  r.onerror = () => alert('Não consegui ler a imagem. Tente outra.');
+  r.readAsDataURL(f);
+});
 document.addEventListener('keydown', handleGlobalKeys);
 
 // ---- botões de carregar ----
