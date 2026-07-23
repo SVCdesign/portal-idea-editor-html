@@ -28,6 +28,15 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   explícito dele. Descreva → espere o sim → só então execute. Silêncio não é sim.
   (Única exceção: **publicar no GitHub logo após uma implementação bem-sucedida e
   testada** é pré-autorizado — ver "Convenção de publicação".)
+- **Auditoria pré-implementação — PERGUNTE SEMPRE.** Depois do "vai" e **antes da
+  primeira linha de código**, pergunte: *"quer uma auditoria antes?"*. Auditoria =
+  uma **vistoria do pedaço do editor que vai ser mexido**, caçando **problema que
+  já existe ali**: bug escondido, código repetido, armadilha conhecida (ver
+  `STATUS-AGORA.md`) e o que vai **brigar** com a novidade. Serve pra não construir
+  em cima de chão rachado. Se ele disser **sim** → audite, **mostre o achado em
+  português comum** e espere ele decidir o que corrigir antes de seguir. Se disser
+  **não** → vá direto pra implementação. **Nunca pule a pergunta**, nem em mudança
+  pequena.
 - **Conversa antes de código.** "Vamos conversar" / "modo conversa" / qualquer
   pedido de trocar ideia = **discutir, não implementar**. E, nesse modo, siga o
   **jeito de conversar do Carlos** (importante — ele NÃO programa):
