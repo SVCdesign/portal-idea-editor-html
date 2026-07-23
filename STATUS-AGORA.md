@@ -6,13 +6,37 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-22 · **Motivo:** 🐛 **CORRIGIDO — o ✨ "Adicionar brilho" nascia ATRÁS do slide**
-(o brilho sumia; ver bloco logo abaixo). · Antes, em **2026-07-20**, saiu o 🖼️ **botão "Adicionar imagem"
+**Atualizado:** 2026-07-22 · **Motivo:** ⇄ **NOVO — botão "Espelhar" (virar a foto na horizontal)** + 🐛
+**dois bugs corrigidos** (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento) — ver os
+blocos logo abaixo. · Antes, em **2026-07-20**, saiu o 🖼️ **botão "Adicionar imagem"
 (foto de FUNDO)** (força uma foto pra dentro de um slide feito SEM foto). · Antes, em **2026-07-18**,
 saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" por cima). · Antes, em **2026-07-06**,
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-22) ⇄ ESPELHAR A FOTO + 🐛 o zoom apagava o enquadramento (✅ FEITO e testado):** o Carlos viu o
+botão "virar na horizontal" do app Fotos do Windows e pediu o mesmo no editor. **Antes de implementar rodou a
+1ª auditoria pré-implementação** (regra nova, ver `CLAUDE.md`) — e ela pagou: achou **um bug que já existia**
+e **uma armadilha** que teria virado "bug misterioso". Saíram as duas coisas juntas:
+**(a) ⇄ Espelhar** — botão novo no painel **✂️ Ajustar foto**. O espelho é `transform: scaleX(-1)` no `<img>`:
+**não toca no arquivo da foto**, não recorta, não recomprime — e vai junto no **Salvar** e no **Gerar PNG**.
+⚠️ **Armadilha (a que a auditoria pegou):** os dois mecanismos de enquadramento **reescrevem ou apagam o
+`transform`** em 4 pontos (arrastar com/sem zoom, dar zoom, voltar pro 1×) — se cada um escrevesse direto, o
+espelho **sumiria sozinho**. Por isso TODA escrita passa por `setPhotoTf()`, que recoloca o espelho. Outra:
+**sem zoom** o enquadramento é `object-position`, e o espelho é aplicado **depois** — o lado inverte na tela,
+então o X é invertido de propósito pra a foto continuar **seguindo o mouse** (medido no navegador: nos dois
+modos a foto anda **51px pra direita** quando se arrasta pra direita).
+**(b) 🐛 Zoom jogava fora o enquadramento** — enquadrar a foto, dar zoom + e voltar pro 1× **apagava o ajuste**
+e a foto pulava pro original. `zoomPhoto()` limpava `transform` + `object-position` + `object-fit` de uma vez.
+Agora volta **só o zoom**; o enquadramento e o espelho ficam (e o `object-fit` só sai se não sobrou nada).
+📌 **Nota pro mundo central (html-studio):** a regra antiga era "**nunca os dois mecanismos ativos**"
+(`object-position` **ou** `transform`). Pra consertar o bug (b), agora eles **coexistem** enquanto há zoom —
+o `object-position` é o enquadramento de base e o `transform` é só o zoom/pan. **Vale conferir com o
+html-studio** se ele lê os dois. **Testado no navegador** (Playwright): espelho liga/desliga, sobrevive a
+zoom/arraste nos dois modos, o **↺ desfazer** limpa tudo, o **Ctrl+Z** volta passo a passo, o **salvo sai
+limpo com o espelho**, o botão só aparece pra foto, e o enquadramento **sobrevive ao vai-e-volta do zoom**
+(38% antes → 38% depois) — **0 erro de JS**.
 
 **(2026-07-22) 🐛 BRILHO NASCIA ATRÁS DO SLIDE (✅ CORRIGIDO e testado):** o Carlos gravou a tela mostrando
 que, ao clicar em **✨ Adicionar brilho**, a bolinha de luz **sumia** — só aparecia o pedaço que "escapava"

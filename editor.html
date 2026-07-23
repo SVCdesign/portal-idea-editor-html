@@ -262,6 +262,8 @@
             <button data-pact="zin"   title="aproximar a foto (zoom +)">🔍 +</button>
             <button data-pact="zout"  title="afastar a foto (zoom −)">🔍 −</button>
             <span class="sep"></span>
+            <button data-pact="flipx" title="espelhar a foto na horizontal (vira da esquerda pra direita) — não mexe no arquivo da foto">⇄ Espelhar</button>
+            <span class="sep"></span>
             <button data-pact="reset" title="voltar a foto ao enquadramento original">↺ desfazer</button>
             <span class="sep"></span>
             <button data-pact="overlay" title="escurecer / clarear a foto (a película por cima)">🎚️ Escurecer/Clarear</button>
@@ -1199,27 +1201,53 @@ function getObjPos(el){
   return m ? { x: +m[1], y: +m[2] } : { x: 50, y: 50 };
 }
 function cleanStyle(el){ if(!el.getAttribute('style')) el.removeAttribute('style'); }
+// ---- ⇄ ESPELHAR (horizontal) ------------------------------------------
+// O espelho mora no FIM do transform, como `scaleX(-1)`. Detalhe que já mordeu:
+// os dois mecanismos de enquadramento REESCREVEM ou APAGAM o transform em 4
+// pontos (arrastar com/sem zoom, dar zoom, voltar pro 1×) — se cada um escrever
+// direto, o espelho some sozinho. Por isso TODA escrita passa por setPhotoTf(),
+// que recoloca o espelho. (`scale\(` não casa com `scaleX(` — getZoom segue OK.)
+function getFlipX(el){ return /scaleX\(-1\)/.test((el.style && el.style.transform) || ''); }
+function setPhotoTf(el, base, flip){
+  const t = (base || '') + (flip ? ((base ? ' ' : '') + 'scaleX(-1)') : '');
+  if(t) el.style.transform = t; else el.style.removeProperty('transform');
+}
+// monta o pedaço de zoom/pan do transform (vazio quando não há zoom)
+function zoomTf(tx, ty, s){
+  return 'translate(' + (+tx.toFixed(2)) + '%, ' + (+ty.toFixed(2)) + '%) scale(' + (+s.toFixed(3)) + ')';
+}
+function flipPhotoX(){
+  const el = selected; if(!el || el.tagName !== 'IMG') return;
+  const s = getZoom(el);
+  const t = getTranslate(el);
+  setPhotoTf(el, s > 1 ? zoomTf(t.tx, t.ty, s) : '', !getFlipX(el));   // liga/desliga
+  cleanStyle(el);
+  refreshCodeBox();
+}
 // move o enquadramento em % do quadro, no mecanismo certo conforme o zoom
 function applyPanPhoto(ddx, ddy){
   const el = selected; if(!el || el.tagName !== 'IMG') return;
   const s = getZoom(el);
+  const flip = getFlipX(el);
   if(s > 1){
-    // COM zoom: pan via transform, limitado pela "folga" do zoom (sem buraco)
+    // COM zoom: pan via transform, limitado pela "folga" do zoom (sem buraco).
+    // O translate é aplicado DEPOIS do espelho, então o lado NÃO inverte aqui.
     const room = (s - 1) * 50;
     let { tx, ty } = getTranslate(el);
     tx = Math.max(-room, Math.min(room, tx + ddx));
     ty = Math.max(-room, Math.min(room, ty + ddy));
-    el.style.removeProperty('object-position');
     el.style.objectFit = 'cover';
-    el.style.transform = 'translate(' + (+tx.toFixed(2)) + '%, ' + (+ty.toFixed(2)) + '%) scale(' + (+s.toFixed(3)) + ')';
+    setPhotoTf(el, zoomTf(tx, ty, s), flip);
   }else{
     // SEM zoom: pan via object-position (0–100%, 50% = centro). Sinal negativo
-    // pra a foto "seguir o cursor" (arrastar p/ direita revela o lado esquerdo)
+    // pra a foto "seguir o cursor" (arrastar p/ direita revela o lado esquerdo).
+    // ESPELHADA: aqui o espelho é aplicado DEPOIS do recorte, então o lado
+    // inverte na tela — inverto o X pra a foto continuar seguindo o mouse.
     let { x, y } = getObjPos(el);
-    x = Math.max(0, Math.min(100, x - ddx));
+    x = Math.max(0, Math.min(100, x - (flip ? -ddx : ddx)));
     y = Math.max(0, Math.min(100, y - ddy));
-    el.style.removeProperty('transform');
     el.style.objectFit = 'cover';
+    setPhotoTf(el, '', flip);   // sem zoom: sobra só o espelho (ou nada)
     el.style.objectPosition = (+x.toFixed(2)) + '% ' + (+y.toFixed(2)) + '%';
   }
   cleanStyle(el);
@@ -1238,21 +1266,23 @@ function zoomPhoto(f){
   let s = getZoom(el);
   const wasZoom = s > 1;
   s = Math.max(1, Math.min(5, s * f));
+  const flip = getFlipX(el);
   if(s > 1){
-    // entrar/ajustar zoom: vai pro transform e neutraliza o object-position.
-    // ao ENTRAR no zoom, recentra o pan (regra do studio: nunca os dois ativos)
+    // entrar/ajustar zoom: o pan do zoom vai pro transform. O enquadramento de
+    // base (object-position) FICA — antes ele era apagado aqui, e quem tinha
+    // enquadrado a foto antes de dar zoom perdia o ajuste sem aviso.
     let { tx, ty } = wasZoom ? getTranslate(el) : { tx: 0, ty: 0 };
     const room = (s - 1) * 50;
     tx = Math.max(-room, Math.min(room, tx));
     ty = Math.max(-room, Math.min(room, ty));
-    el.style.removeProperty('object-position');
     el.style.objectFit = 'cover';
-    el.style.transform = 'translate(' + (+tx.toFixed(2)) + '%, ' + (+ty.toFixed(2)) + '%) scale(' + (+s.toFixed(3)) + ')';
+    setPhotoTf(el, zoomTf(tx, ty, s), flip);
   }else{
-    // voltou pro 1×: tira o zoom e volta ao enquadramento de origem do design
-    el.style.removeProperty('transform');
-    el.style.removeProperty('object-position');
-    el.style.removeProperty('object-fit');
+    // voltou pro 1×: tira SÓ o zoom. O enquadramento e o espelho continuam —
+    // se não sobrou enquadramento nenhum, tira também o object-fit que injetei
+    // (aí a foto volta limpa ao original do design).
+    setPhotoTf(el, '', flip);
+    if(!el.style.objectPosition) el.style.removeProperty('object-fit');
   }
   cleanStyle(el);
   refreshCodeBox();
@@ -1278,6 +1308,7 @@ photoToolsEl.addEventListener('click', function(ev){
     case 'right': panPhoto( STEP, 0); break;
     case 'zin':   zoomPhoto(1.08); break;
     case 'zout':  zoomPhoto(1/1.08); break;
+    case 'flipx': flipPhotoX(); break;
     case 'reset': resetPhoto(); break;
     case 'overlay': {
       const slide = selected.closest('.slide-wrapper, .slide, .hero') || selected.parentNode;
