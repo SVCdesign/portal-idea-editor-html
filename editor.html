@@ -975,8 +975,12 @@ function targetSlideForInsert(){
 }
 function addBokeh(){
   const doc = iframe.contentDocument; if(!doc) return;
-  const slide = targetSlideForInsert();
+  let slide = targetSlideForInsert();
   if(!slide){ alert('Clique num slide (ou role até ele) pra eu saber onde colocar o brilho.'); return; }
+  // targetSlideForInsert pode devolver o .slide-wrapper (a moldura externa); eu quero o
+  // .slide interno (o retângulo com overflow:hidden). Se eu inserir na moldura, o brilho
+  // fica ATRÁS do slide — e o fundo opaco do slide o esconde inteiro (bug do "brilho sumido").
+  if(!slide.classList.contains('slide')){ const inner = slide.querySelector('.slide'); if(inner) slide = inner; }
   recordBefore();                       // retrato pro Desfazer antes de adicionar
   const size = 240;
   const sw = slide.clientWidth || 420, sh = slide.clientHeight || 525;

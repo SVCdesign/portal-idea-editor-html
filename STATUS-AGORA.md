@@ -6,12 +6,26 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-20 · **Motivo:** 🖼️ **NOVO — Botão "Adicionar imagem" (foto de FUNDO) no `editor.html`**
-(força uma foto pra dentro de um slide feito SEM foto; ver bloco logo abaixo). · Antes, em **2026-07-18**,
+**Atualizado:** 2026-07-22 · **Motivo:** 🐛 **CORRIGIDO — o ✨ "Adicionar brilho" nascia ATRÁS do slide**
+(o brilho sumia; ver bloco logo abaixo). · Antes, em **2026-07-20**, saiu o 🖼️ **botão "Adicionar imagem"
+(foto de FUNDO)** (força uma foto pra dentro de um slide feito SEM foto). · Antes, em **2026-07-18**,
 saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" por cima). · Antes, em **2026-07-06**,
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-22) 🐛 BRILHO NASCIA ATRÁS DO SLIDE (✅ CORRIGIDO e testado):** o Carlos gravou a tela mostrando
+que, ao clicar em **✨ Adicionar brilho**, a bolinha de luz **sumia** — só aparecia o pedaço que "escapava"
+pra **fora** da borda do slide. **Causa:** `addBokeh()` inseria o brilho no `.slide-wrapper` (a **moldura de
+fora**, a que segura a legenda "SLIDE 3") e **antes** do `.slide`. Como o `.slide` tem **fundo opaco**, ele
+funcionava como uma cortina fechada por cima: o brilho estava lá, mas **atrás**. De quebra, a centralização
+inicial media a **moldura** em vez do slide, então já nascia deslocado. **Correção:** a mesma descida que o
+"Adicionar imagem" já fazia — se o alvo não for `.slide`, entra no `.slide` interno antes de inserir
+(`editor.html`, `addBokeh()`). **Testado no navegador** (Playwright, no `editor.html` oficial): o brilho
+nasce **dentro** do slide, **centro exato batendo com o centro do slide**, como 1º filho (atrás do texto,
+na frente do fundo — igual aos bokehs originais), **recortado** na borda; 2º brilho idem; **Desfazer**
+(Ctrl+Z) volta certo. ⚠️ **Armadilha pra não repetir:** `targetSlideForInsert()` devolve o
+**`.slide-wrapper`**, NÃO o `.slide` — quem for inserir qualquer coisa dentro do slide tem que descer.
 
 **(2026-07-20) 🖼️ ADICIONAR IMAGEM — foto de FUNDO forçada (✅ FEITO e testado):** o Carlos tinha uma peça
 (uma capa) **feita SEM foto** — fundo em degradê + "cartãozinho" desenhado por código — e queria **forçar uma
