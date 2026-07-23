@@ -6,14 +6,53 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-22 · **Motivo:** ⇄ **NOVO — botão "Espelhar" (virar a foto na horizontal)** + 🐛
-**dois bugs corrigidos** (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento) — ver os
-blocos logo abaixo. · Antes, em **2026-07-20**, saiu o 🖼️ **botão "Adicionar imagem"
+**Atualizado:** 2026-07-23 · **Motivo:** ⚠️ **NOVO — o editor AVISA quando uma foto da peça não apareceu**
+(o antifalha que impede o erro dos 6,9 MB) + 📁 **as duas portas de abrir viraram UMA** — ver o bloco logo
+abaixo. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
+(o brilho nascia atrás do slide; o zoom jogava fora o enquadramento). · Antes, em **2026-07-20**,
+saiu o 🖼️ **botão "Adicionar imagem"
 (foto de FUNDO)** (força uma foto pra dentro de um slide feito SEM foto). · Antes, em **2026-07-18**,
 saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" por cima). · Antes, em **2026-07-06**,
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-23) ⚠️ AVISO DE FOTO QUE NÃO APARECEU + 📁 UMA porta só de abrir (✅ FEITO e testado):**
+**O caso que gerou isto (vale ler — explica tudo):** o Carlos abriu a peça "Beleza do zero" pela pasta
+`D:\TEMPORARIA\Nova pasta (2)`. O HTML pedia `./assets/01-hero.jpg` e `./assets/06-pratica.jpg`, mas a pasta
+`assets/` só tinha arquivos com nome do Gemini (`Gemini_Generated_Image_….jpg`). O editor procurou pelo nome,
+não achou, e **abriu os slides sem foto — calado**. O Carlos achou que a peça era assim e usou o
+**🖼️ Adicionar imagem** (que embute em base64, de propósito) pra pôr as fotos: **17 KB → 6,9 MB**. O mundo
+editorial (`sistema-de-ideas-html-sv`) veio perguntar se o **Salvar** estava convertendo foto referenciada
+em base64 — **não estava**: provado em teste (salvo com 449 caracteres, `src="./assets/01-hero.jpg"` de volta,
+zero base64, com espelho/zoom/enquadramento junto). A causa era o silêncio do editor.
+**O que entrou:**
+**(a) ⚠️ Aviso de foto faltando** — faixa laranja no alto da prévia listando o **nome exato** que falta, a
+**descrição** da foto (o `alt` da peça) e **em que slide** ela entra, com botão 📋 **Copiar os nomes** e um
+alerta explícito pra **NÃO** usar o "Adicionar imagem" pra resolver. ⚠️ **Decisão de projeto:** o aviso mora
+na **PRÉVIA, não no botão de abrir** — quem responde é o próprio navegador ("esta `<img>` desenhou?"), então
+vale pra **toda** porta (pasta, arrastar, colar, exemplo) e pega também nome trocado, caminho errado e arquivo
+corrompido. Se tivesse sido preso ao "Abrir pasta", não cobriria justamente a porta que o Carlos temia errar.
+**(b) 📁 UMA porta só** — o "📂 Abrir HTML" saiu; ficou só **"📁 Abrir peça"** (pede a PASTA). Motivo: com dois
+botões o Carlos podia, na pressa, abrir pela porta errada e cair no MESMO estrago. Nada se perdeu: **arrastar
+e soltar continua aceitando pasta OU arquivo solto** (e o aviso detecta os dois casos, com conselho diferente
+pra cada um).
+**(c) 🐛 Nome agora casa ignorando MAIÚSCULA/minúscula** (achado pela auditoria — era o mais grave): pro Windows
+`01-Hero.JPG` e `01-hero.jpg` são o MESMO arquivo; pro editor eram diferentes. Sem isso o aviso viraria
+armadilha — o Carlos renomearia certo e o editor insistiria que faltava. Junto: `?versao=2` no fim, `%20` de
+espaço, `\` do Windows e `./` da frente agora também são tolerados (`normRef()`).
+**(d) 🐛 Vazamento de memória** — as fotos da peça anterior nunca eram liberadas; abrir várias peças seguidas
+ia entupindo o navegador. Agora são liberadas (com 3s de atraso, pra prévia velha não piscar).
+🔧 **Como funciona por dentro:** a busca **inverteu de sentido** — antes era "para cada ARQUIVO da pasta, o
+HTML cita ele?"; agora é "para cada endereço que o HTML CITA, existe arquivo?". É esse sentido que revela o
+que **falta** (o que alimenta o aviso), e de quebra passou a entender `url(…)` do CSS sem aspas.
+⚠️ **Limite declarado:** o aviso enxerga `<img>`. Foto posta como **fundo por CSS** não é detectada.
+⚠️ **Ficou de fora (decisão do Carlos):** freio de pasta gigante. Como o botão de pasta virou a única porta,
+apontar uma pasta enorme (tipo Downloads) faz o editor ler tudo sem limite e pode travar.
+**Testado no navegador** (Playwright, no `editor.html` oficial): pasta com nome MAIÚSCULO casa; nome com
+espaço e com `?v=2` casam; foto ausente vira aviso com nome+descrição+slide certos; pasta completa fica
+**quieta**; peça **sem foto nenhuma** fica quieta; arquivo solto recebe o conselho **diferente** ("abra pela
+pasta"); e o **Salvar** continua devolvendo `./assets/…` sem base64 — **0 erro de JS**.
 
 **(2026-07-22) ⇄ ESPELHAR A FOTO + 🐛 o zoom apagava o enquadramento (✅ FEITO e testado):** o Carlos viu o
 botão "virar na horizontal" do app Fotos do Windows e pediu o mesmo no editor. **Antes de implementar rodou a

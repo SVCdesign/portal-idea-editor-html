@@ -102,6 +102,22 @@
           min-width:30px;height:28px;border-radius:6px;cursor:pointer;font-size:13px;padding:0 8px}
   .sb-btn:hover{border-color:var(--accent)}
 
+  /* ⚠️ aviso de FOTO QUE NÃO APARECEU — a faixa que evita o erro do base64.
+     Fica no alto da prévia, impossível de não ver, e diz o NOME EXATO que falta. */
+  #avisoFotos{padding:10px 12px;border-bottom:1px solid #6b4a12;
+              background:#2a1f0c;color:#ffd9a3;font-size:13px;line-height:1.5}
+  #avisoFotos .af-tit{font-weight:700;color:#ffb454;margin-bottom:6px}
+  #avisoFotos ul{margin:6px 0 0;padding-left:18px}
+  #avisoFotos li{margin-bottom:4px}
+  #avisoFotos code{background:#3d2d10;border:1px solid #6b4a12;border-radius:4px;
+                   padding:1px 6px;color:#ffe6bf;font-size:12px;user-select:all}
+  #avisoFotos .af-onde{color:#c9a670}
+  #avisoFotos .af-como{margin-top:8px;color:#e8c790}
+  #avisoFotos .af-acoes{margin-top:9px;display:flex;gap:8px;flex-wrap:wrap}
+  #avisoFotos button{background:#3d2d10;color:#ffd9a3;border:1px solid #6b4a12;
+                     border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px}
+  #avisoFotos button:hover{border-color:#ffb454}
+
   /* janelinha pra escolher qual HTML abrir (quando a pasta tem vários) */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;
                  display:flex;align-items:center;justify-content:center;padding:20px}
@@ -201,8 +217,7 @@
   <header>
     <h1>🖥️ Editor HTML <small>· edição de alta fidelidade</small></h1>
     <div class="spacer"></div>
-    <label class="btn">📂 Abrir HTML<input type="file" id="file" accept=".html,.htm,text/html"></label>
-    <button id="folder">📁 Abrir pasta (com imagens)</button>
+    <button id="folder" title="Escolha a PASTA da peça — o HTML e as imagens vêm juntos. Também dá pra arrastar a pasta (ou um HTML solto) aqui pra dentro.">📁 Abrir peça</button>
     <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
     <button id="save" class="primary">💾 Salvar</button>
     <button id="saveAs" title="Escolher onde salvar — abre a janela 'salvar aonde' (pasta + nome)">💾 Salvar como…</button>
@@ -218,6 +233,7 @@
     <section class="pane left">
       <h2>Prévia (o navegador desenha de verdade — clique num elemento)</h2>
       <div id="slidebar" style="display:none"></div>
+      <div id="avisoFotos" hidden></div>
       <iframe id="preview" title="prévia"></iframe>
     </section>
 
@@ -416,7 +432,18 @@ let ovBefore = null;       // retrato de antes de mexer no escurecer/clarear (sl
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
 // esquece os assets/pasta da peça anterior — usado ao abrir um HTML avulso / colar /
 // exemplo (senão o Salvar gravaria na PASTA ANTIGA e o Gerar PNG usaria as imagens erradas).
-function forgetFolderAssets(){ dirHandle = null; originalRefByBlob = new Map(); assetFileByRef = new Map(); }
+let blobsVivos = [];   // endereços internos criados pra prévia ATUAL (pra liberar depois)
+// libera os endereços internos da peça ANTERIOR. Com atraso de propósito: a prévia velha
+// ainda pode estar na tela por um instante, e liberar na hora faria as fotos piscarem.
+// (Sem isso, abrir várias peças seguidas ia entupindo a memória do navegador.)
+function soltarBlobs(lista){
+  if(!lista || !lista.length) return;
+  setTimeout(() => { for(const u of lista){ try{ URL.revokeObjectURL(u); }catch(e){} } }, 3000);
+}
+function forgetFolderAssets(){
+  soltarBlobs(blobsVivos); blobsVivos = [];
+  dirHandle = null; originalRefByBlob = new Map(); assetFileByRef = new Map(); veioDePasta = false;
+}
 
 function loadHtml(html){
   showingFull = false;
@@ -425,6 +452,148 @@ function loadHtml(html){
   resetHistory();                // documento novo: história do Desfazer começa do zero
   iframe.onload = wirePreview;   // quando a prévia terminar de carregar, ligamos os cliques
   iframe.srcdoc = html;
+}
+
+// ---- ⚠️ AVISO: foto que a peça PEDE e que NÃO apareceu ----------------
+// POR QUE EXISTE (2026-07-23): o Carlos abriu uma peça cujas fotos estavam na pasta
+// com OUTRO nome (o HTML pedia `01-hero.jpg`, a pasta tinha `Gemini_Generated_…jpg`).
+// Os slides abriram SEM foto, ele achou que a peça era assim e usou o "🖼️ Adicionar
+// imagem" — que EMBUTE a foto em base64, de propósito. A peça foi de 17 KB pra 6,9 MB.
+// O editor SABIA que faltava foto e ficou calado. Agora ele fala.
+//
+// ONDE MORA: na PRÉVIA, não no botão de abrir. Assim vale pra QUALQUER porta (abrir a
+// pasta, arrastar, colar, exemplo). E quem responde é o próprio navegador — "esta <img>
+// desenhou ou não?" — então pega também nome trocado, arquivo corrompido e caminho errado.
+let veioDePasta = false;   // a peça atual foi aberta pela pasta? (muda o conselho do aviso)
+let avisoToken = 0;        // se outra peça entrar no meio, o aviso antigo desiste
+
+// endereço que aponta pra um arquivo LOCAL (não é internet, nem embutido, nem interno)
+function refLocal(src){ return !!src && !/^(https?:|data:|blob:|about:|#)/i.test(src); }
+
+// normaliza um endereço pra COMPARAR (nunca pra gravar): tira espaço em volta, troca
+// a barra invertida do Windows, corta `?versao=2` e `#pedaco`, desfaz o %20 dos espaços,
+// tira o `./` da frente e IGNORA maiúscula/minúscula.
+// Por que ignorar maiúscula: pro Windows `01-Hero.JPG` e `01-hero.jpg` são o MESMO
+// arquivo. Se o editor diferenciasse, ele acusaria falta de uma foto que está ali —
+// e o aviso novo viraria uma armadilha (o usuário renomeia certo e nada acontece).
+function normRef(p){
+  let s = String(p == null ? '' : p).trim().replace(/\\/g, '/');
+  s = s.split('#')[0].split('?')[0];
+  try{ s = decodeURIComponent(s); }catch(e){}
+  return s.replace(/^\.?\//, '').toLowerCase();
+}
+
+// lista TODO endereço que a peça CITA: src="…", href="…" e url(…) do CSS.
+// Guarda o texto CRU (exatamente como está escrito) pra troca ser casada e não
+// pegar por engano um pedaço de outro caminho parecido.
+function listarRefs(html){
+  const out = [];
+  let m;
+  const reAttr = /(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  while((m = reAttr.exec(html)) !== null){
+    const asp = (m[1] != null) ? '"' : "'";
+    const v = (m[1] != null) ? m[1] : m[2];
+    if(v) out.push({ caminho: v, de: asp + v + asp, para: u => asp + u + asp });
+  }
+  const reUrl = /url\(([^)]*)\)/gi;
+  while((m = reUrl.exec(html)) !== null){
+    const dentro = m[1];
+    const v = dentro.trim().replace(/^["']|["']$/g, '');
+    if(v) out.push({ caminho: v, de: 'url(' + dentro + ')', para: u => 'url(' + u + ')' });
+  }
+  return out;
+}
+
+// em que slide (1, 2, 3…) o elemento está — usa a MESMA lista da barrinha de slides
+function slideNumDe(el){
+  const i = slideList().indexOf(slideOf(el));
+  return i >= 0 ? i + 1 : 0;
+}
+
+// espera cada imagem TENTAR carregar (deu certo OU deu erro) e devolve as que falharam
+async function fotosQueFaltaram(doc){
+  const imgs = Array.from(doc.images || []);
+  await Promise.all(imgs.map(im => im.complete ? null : new Promise(res => {
+    im.addEventListener('load', res, { once: true });
+    im.addEventListener('error', res, { once: true });
+    setTimeout(res, 4000);   // trava de segurança: nunca deixa o aviso preso esperando
+  })));
+  // naturalWidth 0 = o navegador não conseguiu desenhar. getAttribute pega o endereço
+  // CRU escrito na peça (o `.src` viraria um endereço interno do iframe e atrapalharia).
+  return imgs.filter(im => im.naturalWidth === 0 && refLocal(im.getAttribute('src')));
+}
+
+async function checarFotosFaltando(){
+  const box = document.getElementById('avisoFotos');
+  if(!box) return;
+  const meu = ++avisoToken;
+  box.hidden = true; box.innerHTML = '';
+  const doc = iframe.contentDocument; if(!doc) return;
+
+  const faltando = await fotosQueFaltaram(doc);
+  if(meu !== avisoToken) return;          // outra peça entrou no meio: este aviso é velho
+  if(!faltando.length) return;            // tudo apareceu: nem mostra a faixa
+
+  const n = faltando.length;
+  const tit = document.createElement('div');
+  tit.className = 'af-tit';
+  tit.textContent = (n === 1) ? '⚠️ Uma foto desta peça não apareceu'
+                              : '⚠️ ' + n + ' fotos desta peça não apareceram';
+  box.appendChild(tit);
+
+  const nomes = [];
+  const ul = document.createElement('ul');
+  faltando.forEach(im => {
+    const caminho = im.getAttribute('src').replace(/^\.\//, '');
+    nomes.push(caminho);
+    const li = document.createElement('li');
+    const cod = document.createElement('code'); cod.textContent = caminho;
+    li.appendChild(cod);
+    const alt = (im.getAttribute('alt') || '').trim();
+    if(alt) li.appendChild(document.createTextNode(' — "' + alt + '"'));
+    const sn = slideNumDe(im);
+    if(sn){
+      const on = document.createElement('span');
+      on.className = 'af-onde'; on.textContent = ' (slide ' + sn + ')';
+      li.appendChild(on);
+    }
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+
+  // o conselho muda conforme a porta de entrada
+  const como = document.createElement('div');
+  como.className = 'af-como';
+  como.textContent = veioDePasta
+    ? 'A pasta que você abriu não tem esses arquivos — ou eles estão aí com OUTRO nome. '
+      + 'Renomeie suas fotos exatamente assim (a acentuação e os hífens contam) e ponha no lugar indicado. '
+      + 'Maiúscula/minúscula tanto faz.'
+    : 'Esta peça usa fotos que ficam na pasta dela. Abra pelo botão "📁 Abrir peça" e escolha a PASTA '
+      + '(não o arquivo solto) — aí as fotos carregam sozinhas.';
+  box.appendChild(como);
+
+  const aviso2 = document.createElement('div');
+  aviso2.className = 'af-como';
+  aviso2.innerHTML = '<b>Não use o "🖼️ Adicionar imagem" pra resolver isto:</b> ele embute a foto '
+    + 'dentro do arquivo e a peça fica dezenas de vezes mais pesada.';
+  box.appendChild(aviso2);
+
+  const acoes = document.createElement('div');
+  acoes.className = 'af-acoes';
+  const bCopy = document.createElement('button');
+  bCopy.textContent = '📋 Copiar os nomes';
+  bCopy.addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(nomes.join('\n')); bCopy.textContent = '✓ copiado'; }
+    catch(e){ bCopy.textContent = nomes.join('  ·  '); }
+    setTimeout(() => { bCopy.textContent = '📋 Copiar os nomes'; }, 2000);
+  });
+  const bFechar = document.createElement('button');
+  bFechar.textContent = 'Fechar o aviso';
+  bFechar.addEventListener('click', () => { box.hidden = true; });
+  acoes.append(bCopy, bFechar);
+  box.appendChild(acoes);
+
+  box.hidden = false;
 }
 
 // ---- 2) Liga a "ponte clicar -> código" dentro da prévia ----
@@ -527,6 +696,7 @@ function wirePreview(){
 
   renderSlideBar();   // monta a barrinha [1] [2] … se houver vários slides
   renderLayers();     // monta o painel de camadas do slide à vista
+  checarFotosFaltando();   // ⚠️ alguma foto da peça não apareceu? avisa NA HORA
   doc.addEventListener('scroll', () => { if(svgEditingEl) closeSvgTextEdit(true); clearTimeout(layerScrollT); layerScrollT = setTimeout(renderLayers, 120); }, true);
 }
 
@@ -1586,13 +1756,9 @@ document.getElementById('addImageInput').addEventListener('change', function(e){
 document.addEventListener('keydown', handleGlobalKeys);
 
 // ---- botões de carregar ----
-document.getElementById('file').addEventListener('change', function(e){
-  const f = e.target.files[0]; if(!f) return;
-  forgetFolderAssets(); lastBaseName = f.name.replace(/\.[^.]+$/, '');   // arquivo avulso: esquece a pasta anterior; nomeia pelo arquivo aberto
-  const r = new FileReader();
-  r.onload = () => loadHtml(r.result);
-  r.readAsText(f);
-});
+// (o antigo "📂 Abrir HTML" saiu: virou UMA porta só — o "📁 Abrir peça", que pede a
+//  PASTA. Toda peça mora numa pasta, e assim as imagens vêm juntas. Pra abrir um HTML
+//  solto, é só ARRASTAR ele pra cima do editor — isso continua funcionando.)
 document.getElementById('paste').addEventListener('click', async function(){
   forgetFolderAssets();   // colado: não tem pasta de origem
   try{ const t = await navigator.clipboard.readText(); if(t) loadHtml(t); }
@@ -1690,7 +1856,9 @@ function chooseHtml(htmls){
 }
 
 // o miolo: recebe [{file, key}] e monta a prévia religando só as imagens usadas
-async function loadFolder(entries){
+// dePasta = veio de uma PASTA de verdade (botão/arrastar a pasta) ou é um arquivo
+// solto largado no editor. Só muda o CONSELHO que o aviso de foto faltando dá.
+async function loadFolder(entries, dePasta){
   const htmls = entries.filter(en => /\.html?$/i.test(en.file.name));
   if(!htmls.length){ alert('Não achei nenhum arquivo .html dentro dessa pasta.'); return; }
   // ordena: o mais "raso" (menos barras no caminho) primeiro, depois por nome
@@ -1709,28 +1877,50 @@ async function loadFolder(entries){
 
   let html = await main.file.text();
   crumbEl.textContent = 'preparando as imagens…';
+  soltarBlobs(blobsVivos); blobsVivos = [];   // libera as fotos da peça anterior
   originalRefByBlob = new Map();
   assetFileByRef = new Map();
+  veioDePasta = !!dePasta;
 
-  // descobre só os arquivos que o HTML realmente referencia (o resto é ignorado)
-  const used = [];
+  // ÍNDICE da pasta com o nome NORMALIZADO (ver normRef). A busca vai no sentido
+  // "o que a peça PEDE -> tem na pasta?" (antes era o contrário), porque é esse
+  // sentido que também revela o que FALTA — e é o que alimenta o aviso.
+  const porCaminho = new Map(), porNome = new Map();
   for(const en of entries){
     if(en === main) continue;
-    const rel = en.key.startsWith(baseDir) ? en.key.slice(baseDir.length) : en.key; // relativo ao html
-    const searches = ['"./'+rel+'"', "'./"+rel+"'", '"/'+en.key+'"', "'/"+en.key+"'", '"'+rel+'"', "'"+rel+"'"];
-    if(searches.some(s => html.includes(s))) used.push({ en, rel, searches });
+    const rel = en.key.startsWith(baseDir) ? en.key.slice(baseDir.length) : en.key;  // relativo ao html
+    const alvo = { en, rel };
+    if(!porCaminho.has(normRef(rel)))    porCaminho.set(normRef(rel), alvo);
+    if(!porCaminho.has(normRef(en.key))) porCaminho.set(normRef(en.key), alvo);
+    const soNome = normRef(rel.split('/').pop());
+    if(!porNome.has(soNome)) porNome.set(soNome, alvo);   // 2ª chance: só pelo nome do arquivo
   }
 
-  // gera a URL interna (imagens ENCOLHIDAS; o resto direto) e guarda o caminho
-  // real de cada uma, pra devolver na hora de salvar
-  const resolved = await Promise.all(used.map(async u => {
-    const url = isImageFile(u.en.file) ? await shrinkToUrl(u.en.file) : URL.createObjectURL(u.en.file);
-    originalRefByBlob.set(url, './' + u.rel);
-    assetFileByRef.set(u.rel, u.en.file);   // guarda o arquivo ORIGINAL (alta) p/ o Gerar PNG
-    return { searches: u.searches, url };
-  }));
-  for(const { searches, url } of resolved){
-    for(const s of searches){ const q = s[0]; html = html.split(s).join(q + url + q); }
+  // casa cada endereço citado com um arquivo da pasta (o que não casar fica de fora
+  // e a foto não vai aparecer — o aviso da prévia conta isso pro usuário)
+  const achados = [];
+  for(const ref of listarRefs(html)){
+    if(!refLocal(ref.caminho)) continue;
+    const k = normRef(ref.caminho);
+    const alvo = porCaminho.get(k) || porNome.get(k.split('/').pop());
+    if(alvo) achados.push({ ref, alvo });
+  }
+
+  // uma URL interna por ARQUIVO (imagens encolhidas; o resto direto) e o caminho
+  // real guardado, pra devolver na hora de salvar
+  const urlPorRel = new Map();
+  for(const { alvo } of achados){
+    if(urlPorRel.has(alvo.rel)) continue;
+    const url = isImageFile(alvo.en.file) ? await shrinkToUrl(alvo.en.file) : URL.createObjectURL(alvo.en.file);
+    urlPorRel.set(alvo.rel, url);
+    blobsVivos.push(url);
+    originalRefByBlob.set(url, './' + alvo.rel);
+    assetFileByRef.set(alvo.rel, alvo.en.file);   // arquivo ORIGINAL (alta) p/ o Gerar PNG
+  }
+  // troca do mais LONGO pro mais curto, pra um caminho curto nunca comer um longo
+  achados.sort((a, b) => b.ref.de.length - a.ref.de.length);
+  for(const { ref, alvo } of achados){
+    html = html.split(ref.de).join(ref.para(urlPorRel.get(alvo.rel)));
   }
 
   crumbEl.textContent = '';
@@ -1745,7 +1935,7 @@ document.getElementById('folder').addEventListener('click', async function(){
     try{ handle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
     catch(e){ return; }  // usuário cancelou a janela
     dirHandle = handle;
-    await loadFolder(await collectFromHandle(handle, ''));
+    await loadFolder(await collectFromHandle(handle, ''), true);
   }else{
     dirHandle = null;
     document.getElementById('folderInput').click();
@@ -1756,7 +1946,7 @@ document.getElementById('folderInput').addEventListener('change', function(e){
   const files = Array.from(e.target.files || []);
   // caminho SEM o nome da pasta-raiz (ex.: "01/assets/x.jpg" -> "assets/x.jpg")
   const keyOf = f => { const p=(f.webkitRelativePath||f.name).replace(/\\/g,'/'); const i=p.indexOf('/'); return i===-1?p:p.slice(i+1); };
-  loadFolder(files.map(f => ({ file: f, key: keyOf(f) })));
+  loadFolder(files.map(f => ({ file: f, key: keyOf(f) })), true);
 });
 
 // ---- ARRASTAR E SOLTAR a pasta direto no editor (abre igual ao "Abrir pasta") ----
@@ -1788,7 +1978,7 @@ document.getElementById('folderInput').addEventListener('change', function(e){
       if(it.kind === 'file' && it.getAsFileSystemHandle){
         try{
           const h = await it.getAsFileSystemHandle();
-          if(h && h.kind === 'directory'){ dirHandle = h; await loadFolder(await collectFromHandle(h, '')); return; }
+          if(h && h.kind === 'directory'){ dirHandle = h; await loadFolder(await collectFromHandle(h, ''), true); return; }
         }catch(err){}
       }
     }
@@ -1798,11 +1988,11 @@ document.getElementById('folderInput').addEventListener('change', function(e){
       dirHandle = null;
       const files = [];
       for(const en of entries){ if(en.isDirectory){ await walkDir(en, '', files); } else { await walkFile(en, '', files); } }
-      if(files.length){ loadFolder(files); return; }
+      if(files.length){ loadFolder(files, true); return; }
     }
     // 3) último caso: arquivos soltos, sem estrutura de pasta
     const plain = Array.prototype.slice.call(e.dataTransfer.files || []);
-    if(plain.length){ dirHandle = null; loadFolder(plain.map(f => ({ file: f, key: f.name }))); }
+    if(plain.length){ dirHandle = null; loadFolder(plain.map(f => ({ file: f, key: f.name })), false); }
   });
   function walkFile(entry, prefix, out){
     return new Promise(res => entry.file(f => { out.push({ file: f, key: prefix + entry.name }); res(); }, () => res()));
