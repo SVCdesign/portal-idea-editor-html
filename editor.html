@@ -706,8 +706,7 @@ function renderSlideBar(){
   const doc = iframe.contentDocument;
   slideBar.innerHTML = '';
   if(!doc){ slideBar.style.display = 'none'; return; }
-  let slides = Array.from(doc.querySelectorAll('.slide-wrapper'));
-  if(!slides.length) slides = Array.from(doc.querySelectorAll('.slide'));
+  const slides = slideList();   // MESMA lista de tudo (ignora wrappers aninhados) — não diverge do PNG
   if(slides.length < 2){ slideBar.style.display = 'none'; return; }  // só aparece com 2+ slides
   slideBar.style.display = '';
   const lab = document.createElement('span'); lab.className = 'sb-label'; lab.textContent = 'Ir para o slide:';
@@ -1151,7 +1150,10 @@ function slideList(){
   const doc = iframe.contentDocument; if(!doc) return [];
   let s = Array.from(doc.querySelectorAll('.slide-wrapper'));
   if(!s.length) s = Array.from(doc.querySelectorAll('.slide'));
-  return s;
+  // ignora os ANINHADOS (um slide dentro de outro do mesmo tipo): conta igual ao robô
+  // do Gerar PNG, pra a barra de slides / camadas não divergirem do PNG.
+  const sel = s.length && s[0].classList.contains('slide-wrapper') ? '.slide-wrapper' : '.slide';
+  return s.filter(el => !(el.parentElement && el.parentElement.closest(sel)));
 }
 // o slide mais no centro da tela (o "à vista")
 function centralSlide(){
@@ -1404,7 +1406,20 @@ function getObjPos(el){
   let v = el.style.objectPosition;
   if(!v){ v = getComputedStyle(el).objectPosition; }
   const m = (v || '').match(/(-?[\d.]+)%\s+(-?[\d.]+)%/);
-  return m ? { x: +m[1], y: +m[2] } : { x: 50, y: 50 };
+  if(m) return { x: +m[1], y: +m[2] };
+  // enquadramento definido em PX (não %): converte pro espaço do "cover", pra a foto
+  // não dar um pulinho no 1º arraste. Se não der pra medir, cai no centro (como antes).
+  const mpx = (v || '').match(/(-?[\d.]+)px\s+(-?[\d.]+)px/);
+  if(mpx){
+    const iw = el.naturalWidth || 0, ih = el.naturalHeight || 0, bw = el.clientWidth || 0, bh = el.clientHeight || 0;
+    if(iw && ih && bw && bh){
+      const scale = Math.max(bw / iw, bh / ih);          // fator do object-fit:cover
+      const dw = iw * scale, dh = ih * scale;            // tamanho da foto já "cover"
+      const px2pct = (L, box, draw) => (box - draw) ? Math.max(0, Math.min(100, L / (box - draw) * 100)) : 50;
+      return { x: px2pct(+mpx[1], bw, dw), y: px2pct(+mpx[2], bh, dh) };
+    }
+  }
+  return { x: 50, y: 50 };
 }
 function cleanStyle(el){ if(!el.getAttribute('style')) el.removeAttribute('style'); }
 // ---- ⇄ ESPELHAR (horizontal) ------------------------------------------
@@ -1682,7 +1697,14 @@ function positionSvgEditBox(el){
   const anchor = (cs.textAnchor || 'start');
   const align = anchor === 'middle' ? 'center' : (anchor === 'end' ? 'right' : 'left');
   const b = svgEditBox;
-  b.style.left     = (ir.left + r.left - 3) + 'px';
+  // a caixa é mais LARGA que o texto (folga pra digitar). Com texto centralizado/à
+  // direita, o texto digitado desliza dentro dessa folga e some do lugar do texto real.
+  // Compenso movendo a caixa pra ESQUERDA: metade da folga no centro, a folga toda à direita.
+  const folga = 44 - 6;   // largura extra além do texto+padding (width = r.width+44, padding 6)
+  let left = ir.left + r.left - 3;
+  if(align === 'center') left -= folga / 2;
+  else if(align === 'right') left -= folga;
+  b.style.left     = left + 'px';
   b.style.top      = (ir.top  + r.top  - 3) + 'px';
   b.style.height   = (r.height + 6) + 'px';
   b.style.minWidth = (r.width + 12) + 'px';
@@ -1945,7 +1967,7 @@ async function loadFolder(entries, dePasta, candidateHandle){
   // ÍNDICE da pasta com o nome NORMALIZADO (ver normRef). A busca vai no sentido
   // "o que a peça PEDE -> tem na pasta?" (antes era o contrário), porque é esse
   // sentido que também revela o que FALTA — e é o que alimenta o aviso.
-  const porCaminho = new Map(), porNome = new Map();
+  const porCaminho = new Map(), porNome = new Map(), nomeAmbiguo = new Set();
   for(const en of entries){
     if(en === main) continue;
     const rel = en.key.startsWith(baseDir) ? en.key.slice(baseDir.length) : en.key;  // relativo ao html
@@ -1953,7 +1975,10 @@ async function loadFolder(entries, dePasta, candidateHandle){
     if(!porCaminho.has(normRef(rel)))    porCaminho.set(normRef(rel), alvo);
     if(!porCaminho.has(normRef(en.key))) porCaminho.set(normRef(en.key), alvo);
     const soNome = normRef(rel.split('/').pop());
-    if(!porNome.has(soNome)) porNome.set(soNome, alvo);   // 2ª chance: só pelo nome do arquivo
+    // se o MESMO nome de arquivo existe em PASTAS diferentes, marca como ambíguo: aí
+    // NÃO uso a "2ª chance" por nome (senão duas fotos diferentes casariam na mesma).
+    if(porNome.has(soNome) && porNome.get(soNome).rel !== rel) nomeAmbiguo.add(soNome);
+    if(!porNome.has(soNome)) porNome.set(soNome, alvo);   // 2ª chance: só pelo nome do arquivo (quando único)
   }
 
   // casa cada endereço citado com um arquivo da pasta (o que não casar fica de fora
@@ -1962,25 +1987,28 @@ async function loadFolder(entries, dePasta, candidateHandle){
   for(const ref of listarRefs(html)){
     if(!refLocal(ref.caminho)) continue;
     const k = normRef(ref.caminho);
-    const alvo = porCaminho.get(k) || porNome.get(k.split('/').pop());
+    const soNome = k.split('/').pop();
+    const alvo = porCaminho.get(k) || (nomeAmbiguo.has(soNome) ? null : porNome.get(soNome));
     if(alvo) achados.push({ ref, alvo });
   }
 
-  // uma URL interna por ARQUIVO (imagens encolhidas; o resto direto) e o caminho
-  // real guardado, pra devolver na hora de salvar
+  // uma URL interna por ARQUIVO (imagens encolhidas; o resto direto)
   const urlPorRel = new Map();
   for(const { alvo } of achados){
     if(urlPorRel.has(alvo.rel)) continue;
     const url = isImageFile(alvo.en.file) ? await shrinkToUrl(alvo.en.file) : URL.createObjectURL(alvo.en.file);
     urlPorRel.set(alvo.rel, url);
     blobsVivos.push(url);
-    originalRefByBlob.set(url, './' + alvo.rel);
     assetFileByRef.set(alvo.rel, alvo.en.file);   // arquivo ORIGINAL (alta) p/ o Gerar PNG
   }
   // troca do mais LONGO pro mais curto, pra um caminho curto nunca comer um longo
   achados.sort((a, b) => b.ref.de.length - a.ref.de.length);
   for(const { ref, alvo } of achados){
-    html = html.split(ref.de).join(ref.para(urlPorRel.get(alvo.rel)));
+    const url = urlPorRel.get(alvo.rel);
+    // no Salvar, devolvo o endereço EXATO que a peça escreveu (ref.caminho) — preserva
+    // `../pasta-irmã/x.jpg` e o `%20` do espaço, em vez de forçar tudo pra `./…`.
+    originalRefByBlob.set(url, ref.caminho);
+    html = html.split(ref.de).join(ref.para(url));
   }
 
   // AGORA sim a peça carregou: fixa o alvo do Salvar (a pasta com escrita, ou nada).

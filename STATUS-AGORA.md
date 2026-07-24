@@ -7,10 +7,11 @@
 > o handoff é o **manual**.
 
 **Atualizado:** 2026-07-24 · **Motivo:** 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em
-paralelo + leitura manual + teste no navegador). **As 3 etapas ✅ no ar** (10 correções): brilho atrás
-da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso de memória · Delete no
-controle · "Ver código todo" na digitação · limite do PNG · shrinkToUrl · nome à prova de maiúscula. Bordas
-raríssimas deixadas de fora de propósito (listadas no bloco abaixo). · Antes,
+paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
+pendente): brilho atrás da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso
+de memória · Delete no controle · "Ver código todo" na digitação · limite do PNG · shrinkToUrl · nome à prova
+de maiúscula · nome ambíguo · salvar preserva `../` e `%20` · wrapper aninhado · enquadramento em `px` ·
+caixinha SVG centralizada. · Antes,
 em **2026-07-23**, saiu o ⚠️ **aviso de foto que não apareceu** + 📁 **as duas portas de abrir viraram UMA**. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
 (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento). · Antes, em **2026-07-20**,
 saiu o 🖼️ **botão "Adicionar imagem"
@@ -75,12 +76,22 @@ de foto/texto) + minha leitura das ~2.500 linhas + **verificação de cada achad
   **Testado no navegador:** Delete com foco num campo não remove (e sem foco remove normal); "Ver código todo"
   encerra a digitação; foto grande encolhe e o Salvar devolve `./assets/…` sem base64; `pickName` pula nome
   já existente mesmo com caixa diferente. **0 erro de JS.**
-- **Deixados de fora de propósito (bordas raríssimas — o Carlos pode pedir depois):** (a) duas fotos com o
-  MESMO nome de arquivo em pastas diferentes podem casar na mesma (fallback por nome); (b) no salvar, um
-  caminho `../pasta-irmã/x.jpg` ou com `%20` é reescrito pra `./…`; (c) contagem de slides pode divergir se
-  houver `.slide-wrapper` DENTRO de outro; (d) enquadramento definido em `px` (não `%`) no design dá um
-  pulinho no 1º arraste; (e) a caixinha de texto SVG desalinha ~19px enquanto se digita texto centralizado
-  (cosmético; a peça só muda ao confirmar).
+- **✅ ETAPA 4 (bordas raríssimas) — FEITA e testada** (o Carlos pediu "atacar tudo pra rodar liso"):
+  (a) **nome de arquivo ambíguo:** se o MESMO nome existe em pastas diferentes, o casamento "2ª chance por
+     nome" é DESLIGADO pra aquele nome (senão duas fotos diferentes casariam na mesma) — o endereço que não
+     casa por caminho completo vira aviso, em vez de mostrar a foto errada.
+  (b) **salvar preserva o endereço exato:** em vez de forçar tudo pra `./…`, o Salvar devolve o endereço que a
+     peça escreveu (`ref.caminho`) — mantém `../pasta-irmã/x.jpg` e o `%20` do espaço.
+  (c) **contagem de slides:** `slideList()` (e a barra de slides, que agora usa ela) ignora `.slide-wrapper`
+     ANINHADO — conta igual ao robô do Gerar PNG, sem divergir.
+  (d) **enquadramento em `px`:** `getObjPos` agora converte `px` → `%` no espaço do "cover", pra a foto não dar
+     um pulinho no 1º arraste (antes caía no centro). `%` continua exato; sem medida, cai no centro (seguro).
+  (e) **caixinha de texto SVG:** com texto centralizado/à direita, a caixa é movida pra a esquerda (metade da
+     folga no centro, a folga toda à direita) pra o texto digitado ficar sobre o texto real (era ~19px torto).
+  **Testado no navegador:** `../` e `%20` preservados no salvar; nome ambíguo NÃO casa (vira aviso) e nome
+  único casa; wrapper aninhado conta 2 (não 3); `getObjPos` de `0px`→0%, `-225px`→~50%, `%` exato; caixinha
+  centralizada desloca 19px (e "start" não desloca). **Regressão** do fluxo comum intacta (`./assets` salva
+  exato, sem base64). **0 erro de JS.**
 - **Limite declarado (não é bug):** o aviso de foto faltando enxerga `<img>`; foto de **fundo por CSS** não é
   detectada.
 
