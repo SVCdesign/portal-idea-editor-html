@@ -7,9 +7,10 @@
 > o handoff é o **manual**.
 
 **Atualizado:** 2026-07-24 · **Motivo:** 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em
-paralelo + leitura manual + teste no navegador). **Etapas 1 e 2 ✅ no ar:** brilho atrás da foto ·
-texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso de memória. **Etapa 3 pendente**
-(ver bloco abaixo). · Antes,
+paralelo + leitura manual + teste no navegador). **As 3 etapas ✅ no ar** (10 correções): brilho atrás
+da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso de memória · Delete no
+controle · "Ver código todo" na digitação · limite do PNG · shrinkToUrl · nome à prova de maiúscula. Bordas
+raríssimas deixadas de fora de propósito (listadas no bloco abaixo). · Antes,
 em **2026-07-23**, saiu o ⚠️ **aviso de foto que não apareceu** + 📁 **as duas portas de abrir viraram UMA**. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
 (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento). · Antes, em **2026-07-20**,
 saiu o 🖼️ **botão "Adicionar imagem"
@@ -56,8 +57,30 @@ de foto/texto) + minha leitura das ~2.500 linhas + **verificação de cada achad
   **Testado no navegador:** reset no-op e "Aplicar" sem mudança **não** geram passo (undo fica desabilitado);
   mudança real gera e desfaz limpo; cadeia de 3 desfazeres encadeados OK; e o teto de memória cortou 20
   retratos de 5 MB pra caber nos 80 MB. **0 erro de JS.**
-- **⏳ ETAPA 3 (pendente):** Delete apaga o selecionado com foco num slider · "Ver código todo" não encerra a
-  digitação · bordas raras (limite do Gerar PNG, nome com maiúscula no Windows, etc.).
+- **✅ ETAPA 3 (bordas) — FEITA e testada:**
+  6. **Delete apagava o selecionado com foco num controle** (`handleGlobalKeys`): mexer num slider de
+     "Escurecer/Clarear" e apertar Delete removia a película. **Correção:** quando o foco está num controle de
+     formulário (INPUT/TEXTAREA/SELECT — slider, seletor de cor, campo), o Delete é pra ele, não remove o
+     elemento. Delete "normal" (sem foco em campo) segue removendo.
+  7. **"Ver código todo" não encerrava a digitação** (`#full`): abria o código inteiro com a digitação ainda
+     ativa por baixo. **Correção:** encerra a edição de texto (comum e SVG) antes de mostrar o documento.
+  8. **Limite do Gerar PNG desalinhado** (editor 140 MB × servidor 150 MB, mas o corpo vai em base64 +33%):
+     fotos ~112–140 MB passavam no editor e o servidor derrubava depois. **Correção:** limite do editor baixou
+     pra ~100 MB (→ ~133 MB de corpo, abaixo do teto do servidor).
+  9. **`shrinkToUrl` podia devolver endereço morto** se o canvas falhasse (`toBlob` = null): revogava a foto e
+     devolvia o endereço já revogado → foto sumia sem cair no aviso. **Correção:** se o canvas falha, devolve a
+     original **sem** revogar.
+  10. **`pickName` sensível a maiúscula no Windows:** podia sobrescrever um `-editado.html` já existente com
+     caixa diferente. **Correção:** compara ignorando maiúscula/minúscula.
+  **Testado no navegador:** Delete com foco num campo não remove (e sem foco remove normal); "Ver código todo"
+  encerra a digitação; foto grande encolhe e o Salvar devolve `./assets/…` sem base64; `pickName` pula nome
+  já existente mesmo com caixa diferente. **0 erro de JS.**
+- **Deixados de fora de propósito (bordas raríssimas — o Carlos pode pedir depois):** (a) duas fotos com o
+  MESMO nome de arquivo em pastas diferentes podem casar na mesma (fallback por nome); (b) no salvar, um
+  caminho `../pasta-irmã/x.jpg` ou com `%20` é reescrito pra `./…`; (c) contagem de slides pode divergir se
+  houver `.slide-wrapper` DENTRO de outro; (d) enquadramento definido em `px` (não `%`) no design dá um
+  pulinho no 1º arraste; (e) a caixinha de texto SVG desalinha ~19px enquanto se digita texto centralizado
+  (cosmético; a peça só muda ao confirmar).
 - **Limite declarado (não é bug):** o aviso de foto faltando enxerga `<img>`; foto de **fundo por CSS** não é
   detectada.
 

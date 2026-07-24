@@ -887,6 +887,11 @@ function handleGlobalKeys(ev){
   if(pngModal && pngModal.style.display !== 'none') return;   // janela de PNG aberta: não interfere
   const k = ev.key || '';
   const inCode = (document.activeElement === codeEl);
+  // foco num CONTROLE do painel (slider, seletor de cor, campo)? Aí o Delete é pra
+  // aquele controle, NÃO pra remover o elemento selecionado. (Antes, mexer num slider
+  // de "Escurecer/Clarear" e apertar Delete apagava a película sem querer.)
+  const ae = document.activeElement;
+  const emControle = !!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
   if((ev.ctrlKey || ev.metaKey) && k.toLowerCase() === 'z' && !ev.shiftKey){
     if(inCode || editingEl) return;    // deixa o desfazer NATIVO do campo de código / do texto
     ev.preventDefault();
@@ -894,7 +899,7 @@ function handleGlobalKeys(ev){
     return;
   }
   if(k === 'Delete'){
-    if(inCode || editingEl) return;    // digitando: Delete apaga caractere, não o elemento
+    if(inCode || editingEl || emControle) return;    // digitando/mexendo num controle: Delete não remove o elemento
     if(selected){ ev.preventDefault(); removeSelected(); }
   }
 }
@@ -1773,6 +1778,7 @@ document.getElementById('apply').addEventListener('click', function(){
 document.getElementById('full').addEventListener('click', function(){
   const doc = iframe.contentDocument;
   if(!doc) return;
+  if(editingEl || svgEditingEl) stopTextEdit();   // se estava digitando, encerra ANTES (senão a digitação continua "fantasma" por baixo)
   clearSel(selected);
   showingFull = true;
   hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
@@ -1841,8 +1847,9 @@ async function shrinkToUrl(file){
     const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
     cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
     const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
-    URL.revokeObjectURL(big);                                 // libera a foto pesada
-    return blob ? URL.createObjectURL(blob) : big;
+    if(!blob) return big;                                     // canvas falhou: devolve a original SEM revogar (senão a prévia ficaria com endereço morto e a foto sumia — sem nem cair no aviso)
+    URL.revokeObjectURL(big);                                 // deu certo: libera a foto pesada
+    return URL.createObjectURL(blob);
   }catch(e){ return big; }                                    // qualquer erro: usa a original
 }
 
@@ -2084,11 +2091,14 @@ function buildFinalHtml(){
   return html;
 }
 
-// escolhe um nome que ainda NÃO existe na pasta (nunca substitui o original)
+// escolhe um nome que ainda NÃO existe na pasta (nunca substitui o original).
+// Compara SEM diferenciar maiúscula/minúscula: no Windows "Peca.html" e "peca.html"
+// são o MESMO arquivo — sem isso, o "salvar" poderia sobrescrever um já existente.
 function pickName(taken){
+  const takenLow = new Set(Array.from(taken, n => String(n).toLowerCase()));
   const base = lastBaseName || 'pagina';
   let name = base + '-editado.html', i = 2;
-  while(taken.has(name)){ name = base + '-editado-' + i + '.html'; i++; }
+  while(takenLow.has(name.toLowerCase())){ name = base + '-editado-' + i + '.html'; i++; }
   return name;
 }
 
@@ -2277,10 +2287,13 @@ loadHtml(SAMPLE);
       // trava de tamanho: as fotos originais somadas não podem passar de ~140 MB
       let totalBytes = 0;
       for(const [, file] of assetFileByRef){ totalBytes += (file && file.size) || 0; }
-      if(totalBytes > 140 * 1024 * 1024){
+      // limite ~100 MB de fotos ORIGINAIS: elas vão pro robô em base64 (que incha ~33%),
+      // então 100 MB viram ~133 MB de corpo — ainda abaixo do teto do servidor (150 MB).
+      // (Antes o editor deixava passar até 140 MB e o servidor derrubava depois, confuso.)
+      if(totalBytes > 100 * 1024 * 1024){
         banner.className = 'png-banner erro';
         banner.textContent = '❌ As fotos originais somam ' + Math.round(totalBytes / 1048576)
-          + ' MB, acima do limite (~140 MB). Reduza o tamanho das imagens e tente de novo.';
+          + ' MB, acima do limite (~100 MB). Reduza o tamanho das imagens e tente de novo.';
         return;
       }
       // 2) junta as imagens/fontes da pasta em qualidade ORIGINAL (não a encolhida da prévia)
