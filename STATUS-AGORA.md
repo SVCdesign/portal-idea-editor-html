@@ -6,8 +6,9 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-24 · **Motivo:** 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em
-paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
+**Atualizado:** 2026-07-24 · **Motivo:** 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
+do studio usam esse nome; o editor só conhecia "overlay"/"scrim") — ver bloco logo abaixo. · Antes,
+🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
 pendente): brilho atrás da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso
 de memória · Delete no controle · "Ver código todo" na digitação · limite do PNG · shrinkToUrl · nome à prova
 de maiúscula · nome ambíguo · salvar preserva `../` e `%20` · wrapper aninhado · enquadramento em `px` ·
@@ -20,6 +21,20 @@ saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" po
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-24) 🎚️ ESCURECER/CLAREAR não achava a película "veil" (✅ CORRIGIDO e testado):** o Carlos abriu a
+peça "Beleza do zero" (`final.html`, feita pelo studio), clicou na foto do slide 6 e no "🎚️ Escurecer/Clarear"
+— e veio *"Não achei a 'película' (overlay/scrim) desta capa"*. **Causa:** essas peças nomeiam a camada de
+escurecimento como **`veil`** (`<div class="veil">`), mas o editor só reconhecia classes com **"overlay"** ou
+**"scrim"**. (Não foi regressão da auditoria — essa parte não foi tocada; provável que "antes funcionava"
+porque as versões pesadas anteriores tinham uma `overlay` criada pelo "Adicionar imagem".) **Correção:** o
+editor agora reconhece **"veil"** também. E o reconhecimento — que estava **COPIADO em 5 lugares** (atalho da
+capa, painel de camadas, ferramenta "Escurecer/Clarear", detecção de seleção, e o `overlayEl` do painel) e foi
+por isso que o "veil" escapou de todos — virou **UM lugar só** (`PELICULA_RE` + `isPelicula()` +
+`acharPelicula()`). Assim, um nome novo entra num ponto e vale pra tudo. **Testado no navegador** (Playwright):
+na estrutura fiel do slide 6 (`img.photo` + `div.veil`), o atalho aparece, acha a película sem alerta, abre o
+painel, nomeia a camada "Escurecimento" e o slider muda o escurecimento; **regressão** OK (`overlay`/`scrim`
+seguem detectados, texto comum não é confundido). **0 erro de JS.**
 
 **(2026-07-24) 🔍 AUDITORIA PROFUNDA — correções por etapa:** o Carlos pediu uma vistoria minuciosa de todo
 o código. Rodei **3 auditores adversariais em paralelo** (histórico/eventos · salvar/PNG/pasta · ferramentas

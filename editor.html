@@ -947,13 +947,22 @@ function renderChildren(el){
 // atalhos da capa: botões diretos pra Imagem e pra Escurecer/Clarear — sem precisar
 // caçar na árvore do código (num slide de capa, a foto e a película ficam ATRÁS do
 // texto, então clicar na capa pega o texto). Aparece quando o slide tem foto/película.
+// ---- reconhecer a "película" (a camada que escurece a foto) EM UM LUGAR SÓ ----
+// Nomes que contam como película: "overlay"/"scrim" (o que o editor cria) e "veil"
+// (o "véu" que as peças do studio usam). Antes esse reconhecimento estava COPIADO em
+// 5 lugares (atalho da capa, camadas, ferramentas, seleção) — e o "veil" tinha escapado
+// de todos. Centralizando aqui, um nome novo entra num ponto só e vale pra tudo.
+const PELICULA_RE = /(?:overlay|scrim|veil)/i;
+function isPelicula(el){ return !!(el && el.classList && [...el.classList].some(c => PELICULA_RE.test(c))); }
+function acharPelicula(slide){ return slide ? slide.querySelector('[class*="scrim"],[class*="overlay"],[class*="veil"]') : null; }
+
 function renderCapaAtalhos(el){
   const bar = document.getElementById('capa-atalhos');
   bar.innerHTML = '';
   const slide = el.closest && el.closest('.slide-wrapper, .slide');
   if(!slide){ bar.style.display = 'none'; return; }
   const foto = slide.querySelector('img.hero-photo') || slide.querySelector('[class*="photo"] img') || slide.querySelector('img');
-  const pelicula = slide.querySelector('[class*="scrim"], [class*="overlay"]');
+  const pelicula = acharPelicula(slide);
   if(!foto && !pelicula){ bar.style.display = 'none'; return; }
   bar.style.display = '';
   const lab = document.createElement('span'); lab.className = 'nav-label'; lab.textContent = 'Atalhos da capa:';
@@ -991,7 +1000,7 @@ function layerInfo(el){
   if(tag === 'img') return { kind:'foto', icon:'🖼️', name:'Foto' };
   const cls = (el.className && typeof el.className === 'string') ? el.className : '';
   if(el.classList && el.classList.contains('bokeh')) return { kind:'brilho', icon:'✨', name:'Brilho' };
-  if(/overlay|scrim/i.test(cls))                     return { kind:'overlay', icon:'◑', name:'Escurecimento' };
+  if(isPelicula(el))                                 return { kind:'overlay', icon:'◑', name:'Escurecimento' };
   if(tag === 'svg')                                  return { kind:'svg', icon:'⬡', name:'Ícone' };
   const txt = directLayerText(el);
   if(txt) return { kind:'texto', icon:'T', name:'Texto: “' + (txt.length > 22 ? txt.slice(0,22) + '…' : txt) + '”' };
@@ -1127,7 +1136,7 @@ function isTextEl(el){
 function showToolsFor(el){
   const img = (el && el.tagName === 'IMG');
   const bok = !img && !!(el && el.classList && el.classList.contains('bokeh'));   // brilho (bokeh)
-  const ovl = !img && !bok && !!(el && el.classList && [...el.classList].some(c => /overlay|scrim/i.test(c)));
+  const ovl = !img && !bok && isPelicula(el);   // película (overlay/scrim/veil)
   const txt = !img && !ovl && !bok && isTextEl(el);
   toolsEl.hidden = img || txt || ovl || bok;   // comum (mover/zoom) só para o resto
   photoToolsEl.hidden = !img;    // imagens: ajustar a foto
@@ -1535,9 +1544,9 @@ photoToolsEl.addEventListener('click', function(ev){
       case 'reset': resetPhoto(); break;
       case 'overlay': {
         const slide = selected.closest('.slide-wrapper, .slide, .hero') || selected.parentNode;
-        const scrim = slide && slide.querySelector('[class*="scrim"], [class*="overlay"]');
+        const scrim = acharPelicula(slide);
         if(scrim) selectElement(scrim);
-        else alert('Não achei a "película" (overlay/scrim) desta capa pra escurecer/clarear.');
+        else alert('Não achei a "película" (overlay / scrim / veil) desta capa pra escurecer/clarear.');
         break;
       }
     }
@@ -2404,7 +2413,7 @@ loadHtml(SAMPLE);
       + 'rgba(' + c + ',' + a(st.baixo) + ') 80%, '
       + 'rgba(' + c + ',' + a(st.baixo) + ') 100%)';
   }
-  const overlayEl = () => (selected && selected.classList && [...selected.classList].some(c => /overlay|scrim/i.test(c))) ? selected : null;
+  const overlayEl = () => (typeof isPelicula === 'function' && isPelicula(selected)) ? selected : null;
   function labels(){ ['geral','topo','meio','baixo'].forEach(k => { const b = el('ov-v-' + k); if(b) b.textContent = st[k] + '%'; }); }
   function marcarCor(btn){ document.querySelectorAll('.ov-cor').forEach(b => b.classList.remove('primary')); if(btn) btn.classList.add('primary'); }
   function sliders(){ ['geral','topo','meio','baixo'].forEach(k => { const r = el('ov-s-' + k); if(r) r.value = st[k]; }); }
