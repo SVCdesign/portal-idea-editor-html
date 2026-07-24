@@ -22,6 +22,24 @@ saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2)
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
 
+---
+### 🚚 TROCA DE PC — estado em 2026-07-24 (leia isto primeiro se abriu num PC novo)
+- **Código + texto:** tudo **commitado e no GitHub** (`main` = `origin/main`, working tree limpo). No PC novo,
+  um **`git pull`** traz tudo. **Nada de código pendente.**
+- **Assets pesados (fotos das peças) NÃO vêm pelo Git** — vêm pelo **Google Drive**. Antes de sair deste PC e
+  ao chegar no novo, confirme o **Drive VERDE** (terminou de sincronizar). Ex. da peça de hoje:
+  `E:\...\Criador de Carrossel\07- Julho\03- Beleza do Zero\` (o `final.html` + a pasta `assets/`).
+- **`previas/`** é local-only (está no `.gitignore`) — se não existir no PC novo, **crie** quando precisar.
+- **`conversa-entre-mundos`** (pasta neutra, fora do Git) é local-only — copie à mão se for usar no PC novo.
+- **`.codex/hooks.json`** é config local de ferramenta — não precisa viajar.
+- **Como abrir o editor:** atalho **`Abrir-Editor-HTML.bat`** (NÃO abra `editor.html` direto — vira `file://` e
+  o "salvar na pasta" para de funcionar).
+- **Pendências NÃO-código (dependem do Carlos):** (1) avisar o mundo editorial que há **turno-02** esperando
+  resposta (`dialogos-entre-mundos/sistema-de-ideas-html-sv/.../2026-07-23-imagem-referenciada-vs-embutida/`);
+  (2) perguntar ao **html-studio** se ele lê os **dois** mecanismos de enquadramento ao mesmo tempo
+  (`object-position` + `transform`) — mudei essa regra ao consertar o bug do zoom.
+---
+
 **(2026-07-24) 🎚️ ESCURECER/CLAREAR não achava a película "veil" (✅ CORRIGIDO e testado):** o Carlos abriu a
 peça "Beleza do zero" (`final.html`, feita pelo studio), clicou na foto do slide 6 e no "🎚️ Escurecer/Clarear"
 — e veio *"Não achei a 'película' (overlay/scrim) desta capa"*. **Causa:** essas peças nomeiam a camada de
