@@ -6,9 +6,10 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-23 · **Motivo:** ⚠️ **NOVO — o editor AVISA quando uma foto da peça não apareceu**
-(o antifalha que impede o erro dos 6,9 MB) + 📁 **as duas portas de abrir viraram UMA** — ver o bloco logo
-abaixo. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
+**Atualizado:** 2026-07-24 · **Motivo:** 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em
+paralelo + leitura manual + teste no navegador). **Etapa 1 (impacto alto) ✅ no ar:** brilho atrás da foto ·
+texto SVG que apagava a cor · salvar na pasta errada. **Etapas 2 e 3 pendentes** (ver bloco abaixo). · Antes,
+em **2026-07-23**, saiu o ⚠️ **aviso de foto que não apareceu** + 📁 **as duas portas de abrir viraram UMA**. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
 (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento). · Antes, em **2026-07-20**,
 saiu o 🖼️ **botão "Adicionar imagem"
 (foto de FUNDO)** (força uma foto pra dentro de um slide feito SEM foto). · Antes, em **2026-07-18**,
@@ -16,6 +17,36 @@ saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" po
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+**(2026-07-24) 🔍 AUDITORIA PROFUNDA — correções por etapa:** o Carlos pediu uma vistoria minuciosa de todo
+o código. Rodei **3 auditores adversariais em paralelo** (histórico/eventos · salvar/PNG/pasta · ferramentas
+de foto/texto) + minha leitura das ~2.500 linhas + **verificação de cada achado no navegador** (Playwright).
+**Boa notícia:** nada catastrófico, nada irreversível, e a área mais recente (espelhar/zoom/enquadrar) passou
+**limpa**. Achados confirmados viram correção **por etapa de prioridade** (autorizado pelo Carlos, 2026-07-24).
+- **✅ ETAPA 1 (impacto alto) — FEITA e testada:**
+  1. **Brilho atrás da foto de fundo** (`addBokeh`): usar "🖼️ Adicionar imagem" e depois "✨ Adicionar brilho"
+     fazia o brilho nascer como `firstChild` com `z-index:auto`, ATRÁS da foto opaca (o mesmo sumiço de antes,
+     por outro caminho). **Correção:** se o slide tem foto de fundo (`<img>` position:absolute), o brilho entra
+     LOGO DEPOIS dela, com o mesmo `z-index` → fica na frente da foto, atrás do texto/película. Sem foto de
+     fundo, mantém o brilho clássico (firstChild) — zero mudança nas peças que já funcionavam.
+  2. **Texto SVG apagava a cor das palavras** (`closeSvgTextEdit`): editar um `<text>` com `<tspan>`s coloridos
+     colapsava tudo numa cor só, **em silêncio**. **Correção:** quando há tspans, o editor **pergunta antes**
+     (confirm) e ensina o caminho seguro (dois cliques na palavra colorida editam só ela). Texto simples troca
+     direto, como antes.
+  3. **Salvar na pasta errada após "Abrir peça" cancelado** (`loadFolder`): o `dirHandle` (alvo do Salvar) era
+     fixado ANTES de a peça carregar; se o open fosse cancelado ou a pasta não tivesse HTML (os `return`), o
+     Salvar mirava a pasta nova com a peça velha. **Correção:** o handle vira **candidato**; o `loadFolder` só
+     o adota NO FIM, quando a peça realmente carrega. Open cancelado → tudo continua na peça/pasta anterior.
+  **Testado no navegador:** brilho aparece na frente da foto (confirmado por captura); aviso do SVG nos 3
+  caminhos (recusa preserva a cor / aceita junta / texto simples troca sem perguntar); salvar mira a pasta
+  certa no sucesso e mantém a anterior no cancelamento; e a **regressão** do "Abrir peça" normal segue intacta
+  (foto casa, Salvar devolve `./assets/…` sem base64, aviso de foto faltando dispara). **0 erro de JS.**
+- **⏳ ETAPA 2 (pendente):** Ctrl+Z "morto" (botões gravam passo sem mudar nada) · peso de memória do
+  "Adicionar imagem" no histórico (base64 copiado a cada passo).
+- **⏳ ETAPA 3 (pendente):** Delete apaga o selecionado com foco num slider · "Ver código todo" não encerra a
+  digitação · bordas raras (limite do Gerar PNG, nome com maiúscula no Windows, etc.).
+- **Limite declarado (não é bug):** o aviso de foto faltando enxerga `<img>`; foto de **fundo por CSS** não é
+  detectada.
 
 **(2026-07-23) ⚠️ AVISO DE FOTO QUE NÃO APARECEU + 📁 UMA porta só de abrir (✅ FEITO e testado):**
 **O caso que gerou isto (vale ler — explica tudo):** o Carlos abriu a peça "Beleza do zero" pela pasta

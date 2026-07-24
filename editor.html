@@ -1161,7 +1161,20 @@ function addBokeh(){
   b.setAttribute('style', BOKEH_BASE
     + ' width:' + size + 'px; height:' + size + 'px;'
     + ' left:' + Math.round((sw - size) / 2) + 'px; top:' + Math.round((sh - size) / 2) + 'px;');
-  slide.insertBefore(b, slide.firstChild);   // atrás do conteúdo, como os bokehs originais
+  // Onde inserir o brilho? Se o slide TEM uma foto de fundo (ex.: veio do "Adicionar
+  // imagem"), ela é OPACA — pôr o brilho no fundo o esconde atrás dela (o "brilho atrás
+  // da foto"). Nesse caso, coloco o brilho LOGO NA FRENTE da foto: visível por cima dela
+  // e ainda atrás do texto/película. Sem foto de fundo, mantenho o brilho clássico (no
+  // fundo do slide), pra não mudar nada nas peças que já funcionavam.
+  const bgFoto = Array.from(slide.children).find(ch =>
+    ch.tagName === 'IMG' && /^(absolute|fixed)$/.test(getComputedStyle(ch).position));
+  if(bgFoto){
+    const zFoto = parseInt(getComputedStyle(bgFoto).zIndex, 10);
+    if(Number.isFinite(zFoto)) b.style.zIndex = String(zFoto);   // mesmo nível da foto…
+    bgFoto.insertAdjacentElement('afterend', b);                 // …e logo depois = por cima dela
+  }else{
+    slide.insertBefore(b, slide.firstChild);   // sem foto de fundo: atrás do conteúdo, como os bokehs originais
+  }
   selectElement(b);                          // já seleciona pra ajustar/arrastar na hora
   crumbEl.textContent = '✨ brilho adicionado — ajuste ao lado (ou arraste pra posicionar) · Ctrl+Z desfaz';
 }
@@ -1669,7 +1682,20 @@ function closeSvgTextEdit(save){
   if(!svgEditingEl) return;
   const el = svgEditingEl; svgEditingEl = null;   // zera JÁ (evita reentrada pelo blur ao esconder)
   if(save && svgEditBox && svgEditBox.value !== el.textContent){
-    el.textContent = svgEditBox.value;    // troca SÓ o texto — nada mais toca a peça
+    // ARMADILHA: se este texto tem PARTES com cor/estilo próprios (tspans), trocar o
+    // textContent apaga TODAS elas (vira uma cor só) — e sem avisar. Então, quando há
+    // tspans, pergunto antes e ensino o caminho seguro (dois cliques na palavra colorida
+    // editam SÓ ela, sem perder a cor). Texto simples (sem tspan) troca direto, como antes.
+    const temPartesColoridas = !!el.querySelector('tspan');
+    if(temPartesColoridas && !window.confirm(
+        'Atenção: este texto tem partes com cores/estilos diferentes.\n\n'
+      + 'Se você editar por aqui, elas viram uma COR SÓ (as cores separadas se perdem).\n\n'
+      + 'Dica: pra trocar só uma palavra colorida SEM perder a cor, dê DOIS CLIQUES direto nela.\n\n'
+      + 'Quer editar assim mesmo (juntando tudo numa cor)?')){
+      // usuário recusou: mantém a estrutura colorida intacta, não troca nada
+    }else{
+      el.textContent = svgEditBox.value;    // troca SÓ o texto — nada mais toca a peça
+    }
   }
   if(svgEditBox) svgEditBox.style.display = 'none';
   if(selected === el) refreshCodeBox();   // o código à direita mostra o texto novo
@@ -1858,7 +1884,11 @@ function chooseHtml(htmls){
 // o miolo: recebe [{file, key}] e monta a prévia religando só as imagens usadas
 // dePasta = veio de uma PASTA de verdade (botão/arrastar a pasta) ou é um arquivo
 // solto largado no editor. Só muda o CONSELHO que o aviso de foto faltando dá.
-async function loadFolder(entries, dePasta){
+// candidateHandle = a pasta com permissão de escrita (onde o Salvar vai gravar). Só
+// vira o dirHandle "pra valer" NO FIM, quando a peça REALMENTE carrega — assim, se o
+// "Abrir peça" for cancelado ou a pasta não tiver HTML (os `return` abaixo), o alvo do
+// Salvar continua sendo a peça ANTERIOR, e não uma pasta nova de peça nenhuma.
+async function loadFolder(entries, dePasta, candidateHandle){
   const htmls = entries.filter(en => /\.html?$/i.test(en.file.name));
   if(!htmls.length){ alert('Não achei nenhum arquivo .html dentro dessa pasta.'); return; }
   // ordena: o mais "raso" (menos barras no caminho) primeiro, depois por nome
@@ -1923,6 +1953,9 @@ async function loadFolder(entries, dePasta){
     html = html.split(ref.de).join(ref.para(urlPorRel.get(alvo.rel)));
   }
 
+  // AGORA sim a peça carregou: fixa o alvo do Salvar (a pasta com escrita, ou nada).
+  // Só chega aqui quem passou de todos os `return` acima — nunca num open cancelado.
+  dirHandle = candidateHandle || null;
   crumbEl.textContent = '';
   loadHtml(html);
 }
@@ -1934,16 +1967,15 @@ document.getElementById('folder').addEventListener('click', async function(){
     let handle;
     try{ handle = await window.showDirectoryPicker({ mode: 'readwrite' }); }
     catch(e){ return; }  // usuário cancelou a janela
-    dirHandle = handle;
-    await loadFolder(await collectFromHandle(handle, ''), true);
+    // NÃO fixo o dirHandle aqui: passo como CANDIDATO; o loadFolder só o adota se a
+    // peça realmente carregar (senão o Salvar miraria uma pasta nova de peça nenhuma).
+    await loadFolder(await collectFromHandle(handle, ''), true, handle);
   }else{
-    dirHandle = null;
     document.getElementById('folderInput').click();
   }
 });
 document.getElementById('folderInput').addEventListener('change', function(e){
-  dirHandle = null;
-  const files = Array.from(e.target.files || []);
+  const files = Array.from(e.target.files || []);   // modo leitura: sem handle de escrita (loadFolder zera o dirHandle no fim)
   // caminho SEM o nome da pasta-raiz (ex.: "01/assets/x.jpg" -> "assets/x.jpg")
   const keyOf = f => { const p=(f.webkitRelativePath||f.name).replace(/\\/g,'/'); const i=p.indexOf('/'); return i===-1?p:p.slice(i+1); };
   loadFolder(files.map(f => ({ file: f, key: keyOf(f) })), true);
@@ -1978,21 +2010,20 @@ document.getElementById('folderInput').addEventListener('change', function(e){
       if(it.kind === 'file' && it.getAsFileSystemHandle){
         try{
           const h = await it.getAsFileSystemHandle();
-          if(h && h.kind === 'directory'){ dirHandle = h; await loadFolder(await collectFromHandle(h, ''), true); return; }
+          if(h && h.kind === 'directory'){ await loadFolder(await collectFromHandle(h, ''), true, h); return; }   // h = candidato; vira alvo do Salvar só se carregar
         }catch(err){}
       }
     }
     // 2) fallback: lê os arquivos da pasta via entries (salvar cai em "Salvar como"/download)
     const entries = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
     if(entries.length){
-      dirHandle = null;
       const files = [];
       for(const en of entries){ if(en.isDirectory){ await walkDir(en, '', files); } else { await walkFile(en, '', files); } }
-      if(files.length){ loadFolder(files, true); return; }
+      if(files.length){ loadFolder(files, true); return; }   // sem handle de escrita: loadFolder zera o dirHandle só se carregar
     }
     // 3) último caso: arquivos soltos, sem estrutura de pasta
     const plain = Array.prototype.slice.call(e.dataTransfer.files || []);
-    if(plain.length){ dirHandle = null; loadFolder(plain.map(f => ({ file: f, key: f.name })), false); }
+    if(plain.length){ loadFolder(plain.map(f => ({ file: f, key: f.name })), false); }
   });
   function walkFile(entry, prefix, out){
     return new Promise(res => entry.file(f => { out.push({ file: f, key: prefix + entry.name }); res(); }, () => res()));
