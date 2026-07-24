@@ -7,8 +7,9 @@
 > o handoff é o **manual**.
 
 **Atualizado:** 2026-07-24 · **Motivo:** 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em
-paralelo + leitura manual + teste no navegador). **Etapa 1 (impacto alto) ✅ no ar:** brilho atrás da foto ·
-texto SVG que apagava a cor · salvar na pasta errada. **Etapas 2 e 3 pendentes** (ver bloco abaixo). · Antes,
+paralelo + leitura manual + teste no navegador). **Etapas 1 e 2 ✅ no ar:** brilho atrás da foto ·
+texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso de memória. **Etapa 3 pendente**
+(ver bloco abaixo). · Antes,
 em **2026-07-23**, saiu o ⚠️ **aviso de foto que não apareceu** + 📁 **as duas portas de abrir viraram UMA**. · Antes, em **2026-07-22**, saiu o ⇄ **botão "Espelhar"** + 🐛 **dois bugs corrigidos**
 (o brilho nascia atrás do slide; o zoom jogava fora o enquadramento). · Antes, em **2026-07-20**,
 saiu o 🖼️ **botão "Adicionar imagem"
@@ -41,8 +42,20 @@ de foto/texto) + minha leitura das ~2.500 linhas + **verificação de cada achad
   caminhos (recusa preserva a cor / aceita junta / texto simples troca sem perguntar); salvar mira a pasta
   certa no sucesso e mantém a anterior no cancelamento; e a **regressão** do "Abrir peça" normal segue intacta
   (foto casa, Salvar devolve `./assets/…` sem base64, aviso de foto faltando dispara). **0 erro de JS.**
-- **⏳ ETAPA 2 (pendente):** Ctrl+Z "morto" (botões gravam passo sem mudar nada) · peso de memória do
-  "Adicionar imagem" no histórico (base64 copiado a cada passo).
+- **✅ ETAPA 2 (irritação + memória) — FEITA e testada:**
+  4. **Ctrl+Z "morto"** (`comHistorico`): botões (centralizar, zoom no limite, "↺ desfazer" sem ajuste,
+     "Aplicar" sem mexer no código) gravavam um passo mesmo sem mudar nada — daí um Ctrl+Z "gastava" o passo
+     vazio e parecia travado. **Correção:** um ajudante `comHistorico()` tira um retrato ANTES, roda a ação e
+     só grava no Desfazer **se a peça mudou de verdade** (o mesmo padrão que arrastes e sliders já usavam).
+     Convertidos: setas/zoom/centro (elemento), ajustar foto, ajustar texto, "Aplicar", cor/reset do overlay
+     e do brilho, mover brilho.
+  5. **Peso de memória do "Adicionar imagem"** (`MAX_HISTORY_BYTES`): com a foto EMBUTIDA (base64), cada um dos
+     30 retratos do histórico copiava a foto inteira → memória enchia e o navegador travava. **Correção:** além
+     do teto de 30 passos, agora há um teto de **PESO (~80 MB)**: solta os retratos mais antigos até caber
+     (mantém ao menos 1). Peças leves seguem com os 30 desfazeres; só as pesadas guardam menos.
+  **Testado no navegador:** reset no-op e "Aplicar" sem mudança **não** geram passo (undo fica desabilitado);
+  mudança real gera e desfaz limpo; cadeia de 3 desfazeres encadeados OK; e o teto de memória cortou 20
+  retratos de 5 MB pra caber nos 80 MB. **0 erro de JS.**
 - **⏳ ETAPA 3 (pendente):** Delete apaga o selecionado com foco num slider · "Ver código todo" não encerra a
   digitação · bordas raras (limite do Gerar PNG, nome com maiúscula no Windows, etc.).
 - **Limite declarado (não é bug):** o aviso de foto faltando enxerga `<img>`; foto de **fundo por CSS** não é

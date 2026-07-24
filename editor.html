@@ -424,6 +424,7 @@ let assetFileByRef = new Map();   // caminho real -> arquivo ORIGINAL (imagem/fo
 // limpo (sem nossos marcadores internos) e mantém as imagens blob: da prévia,
 // pra prévia continuar mostrando as fotos ao desfazer.
 const MAX_HISTORY = 30;
+const MAX_HISTORY_BYTES = 80 * 1024 * 1024;   // teto de MEMÓRIA do histórico (~80 MB) — ver pushHistory
 let history = [];          // pilha de retratos (innerHTML do <html>) — estados anteriores
 let dragBefore = null;     // retrato de antes de arrastar (commit só se algo mudou)
 let textBefore = null;     // retrato de antes de digitar num texto (commit só se mudou)
@@ -795,10 +796,26 @@ function pushHistory(snap){
   if(history.length && history[history.length - 1] === snap) return;   // nada mudou: não duplica
   history.push(snap);
   if(history.length > MAX_HISTORY) history.shift();   // passou de 30: joga fora o mais antigo
+  // TETO DE MEMÓRIA: quando a foto entra EMBUTIDA (base64, via "Adicionar imagem"),
+  // cada retrato do histórico carrega uma cópia inteira dela — 30 retratos podem
+  // encher a memória e travar o navegador. Então, além do teto de 30, há um teto de
+  // PESO: solta os retratos mais antigos até caber no orçamento (mantém ao menos 1).
+  let bytes = 0; for(const s of history) bytes += s.length;
+  while(history.length > 1 && bytes > MAX_HISTORY_BYTES){ bytes -= history.shift().length; }
   updateUndoBtn();
 }
 // atalho: guarda o estado ATUAL, antes de uma mudança
 function recordBefore(){ pushHistory(snapshotHtml()); }
+// roda uma operação e só grava no Desfazer se ela MUDOU a peça de verdade. Evita o
+// "passo morto" (Ctrl+Z que não desfaz nada) de botões que às vezes não mudam nada:
+// centralizar o que já está no centro, zoom/seta no limite, "↺ desfazer" sem ajuste,
+// "Aplicar" sem ter mexido no código. (Arrastes e sliders já faziam isso à parte.)
+function comHistorico(fn){
+  const antes = snapshotHtml();
+  fn();
+  const depois = snapshotHtml();
+  if(depois !== antes) pushHistory(antes);
+}
 
 function updateUndoBtn(){
   const b = document.getElementById('undo');
@@ -1345,19 +1362,20 @@ function dragMoveTo(rawTx, rawTy){
 
 toolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
-  recordBefore();
-  const STEP = 6;
-  switch(b.dataset.act){
-    case 'up':    nudge(0, -STEP); break;
-    case 'down':  nudge(0,  STEP); break;
-    case 'left':  nudge(-STEP, 0); break;
-    case 'right': nudge( STEP, 0); break;
-    case 'cx':    centerOnSlide('h'); break;
-    case 'cy':    centerOnSlide('v'); break;
-    case 'zin':   zoom(1.08); break;
-    case 'zout':  zoom(1/1.08); break;
-    case 'reset': resetTf(); break;
-  }
+  comHistorico(() => {
+    const STEP = 6;
+    switch(b.dataset.act){
+      case 'up':    nudge(0, -STEP); break;
+      case 'down':  nudge(0,  STEP); break;
+      case 'left':  nudge(-STEP, 0); break;
+      case 'right': nudge( STEP, 0); break;
+      case 'cx':    centerOnSlide('h'); break;
+      case 'cy':    centerOnSlide('v'); break;
+      case 'zin':   zoom(1.08); break;
+      case 'zout':  zoom(1/1.08); break;
+      case 'reset': resetTf(); break;
+    }
+  });
 });
 
 // ---- ajustar FOTO: mexe no ENQUADRAMENTO da imagem, não no texto -------
@@ -1482,25 +1500,28 @@ function resetPhoto(){
 
 photoToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
-  if(b.dataset.pact !== 'overlay') recordBefore();   // "overlay" só troca a seleção, não muda nada
-  const STEP = 4;
-  switch(b.dataset.pact){
-    case 'up':    panPhoto(0, -STEP); break;
-    case 'down':  panPhoto(0,  STEP); break;
-    case 'left':  panPhoto(-STEP, 0); break;
-    case 'right': panPhoto( STEP, 0); break;
-    case 'zin':   zoomPhoto(1.08); break;
-    case 'zout':  zoomPhoto(1/1.08); break;
-    case 'flipx': flipPhotoX(); break;
-    case 'reset': resetPhoto(); break;
-    case 'overlay': {
-      const slide = selected.closest('.slide-wrapper, .slide, .hero') || selected.parentNode;
-      const scrim = slide && slide.querySelector('[class*="scrim"], [class*="overlay"]');
-      if(scrim) selectElement(scrim);
-      else alert('Não achei a "película" (overlay/scrim) desta capa pra escurecer/clarear.');
-      break;
+  // comHistorico só grava se mudou algo. "overlay" só troca a seleção (não muda a peça),
+  // então naturalmente não gera passo no Desfazer — sem precisar de exceção à parte.
+  comHistorico(() => {
+    const STEP = 4;
+    switch(b.dataset.pact){
+      case 'up':    panPhoto(0, -STEP); break;
+      case 'down':  panPhoto(0,  STEP); break;
+      case 'left':  panPhoto(-STEP, 0); break;
+      case 'right': panPhoto( STEP, 0); break;
+      case 'zin':   zoomPhoto(1.08); break;
+      case 'zout':  zoomPhoto(1/1.08); break;
+      case 'flipx': flipPhotoX(); break;
+      case 'reset': resetPhoto(); break;
+      case 'overlay': {
+        const slide = selected.closest('.slide-wrapper, .slide, .hero') || selected.parentNode;
+        const scrim = slide && slide.querySelector('[class*="scrim"], [class*="overlay"]');
+        if(scrim) selectElement(scrim);
+        else alert('Não achei a "película" (overlay/scrim) desta capa pra escurecer/clarear.');
+        break;
+      }
     }
-  }
+  });
 });
 
 // ---- ajustar TEXTO: tamanho da fonte (nítido) + largura da caixa (re-quebra) ----
@@ -1709,23 +1730,24 @@ function closeSvgTextEdit(save){
 
 textToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
-  if(b.dataset.tact !== 'edit') recordBefore();   // "edit" cuida do próprio Desfazer (ao terminar de digitar)
-  const STEP = 6;
-  switch(b.dataset.tact){
-    case 'edit':    startTextEdit(selected); break;
-    case 'up':      nudge(0, -STEP); break;
-    case 'down':    nudge(0,  STEP); break;
-    case 'left':    nudge(-STEP, 0); break;
-    case 'right':   nudge( STEP, 0); break;
-    case 'cx':      centerOnSlide('h'); break;
-    case 'cy':      centerOnSlide('v'); break;
-    case 'smaller': changeFont(-2); break;
-    case 'bigger':  changeFont(2); break;
-    case 'narrow':  changeWidth(-10); break;
-    case 'widen':   changeWidth(10); break;
-    case 'fit':     fitBox(); break;
-    case 'reset':   resetText(); break;
-  }
+  if(b.dataset.tact === 'edit'){ startTextEdit(selected); return; }   // "edit" cuida do próprio Desfazer (ao terminar de digitar)
+  comHistorico(() => {
+    const STEP = 6;
+    switch(b.dataset.tact){
+      case 'up':      nudge(0, -STEP); break;
+      case 'down':    nudge(0,  STEP); break;
+      case 'left':    nudge(-STEP, 0); break;
+      case 'right':   nudge( STEP, 0); break;
+      case 'cx':      centerOnSlide('h'); break;
+      case 'cy':      centerOnSlide('v'); break;
+      case 'smaller': changeFont(-2); break;
+      case 'bigger':  changeFont(2); break;
+      case 'narrow':  changeWidth(-10); break;
+      case 'widen':   changeWidth(10); break;
+      case 'fit':     fitBox(); break;
+      case 'reset':   resetText(); break;
+    }
+  });
 });
 
 // ---- 3) Aplica a edição: troca só aquele elemento, ao vivo ----
@@ -1733,13 +1755,14 @@ document.getElementById('apply').addEventListener('click', function(){
   if(showingFull){ alert('Você está vendo o código todo. Clique num elemento na prévia para editar só ele.'); return; }
   if(!selected){ alert('Clique num elemento na prévia primeiro.'); return; }
   try{
-    recordBefore();                     // retrato pro Desfazer antes de aplicar
+    const antes = snapshotHtml();       // retrato de antes (só grava no Desfazer se MUDAR)
     clearSel(selected);
     selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
     selected = null; layerLock = null;
     hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
     updateRemoveBtn();
     renderSlideBar();   // mantém a barra de slides em dia se algo mudou
+    if(snapshotHtml() !== antes) pushHistory(antes);   // "Aplicar" sem mudar o código não vira passo morto
     crumbEl.textContent = '✓ aplicado — clique de novo num elemento para continuar';
   }catch(err){
     alert('Não consegui aplicar: ' + err.message);
@@ -2395,7 +2418,7 @@ loadHtml(SAMPLE);
       r.addEventListener('change', ovCommit);
     }
   });
-  document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { if(typeof recordBefore === 'function') recordBefore(); st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }));
+  document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
   const pick = el('ov-picker');
   if(pick){
     pick.addEventListener('pointerdown', ovGrab);
@@ -2405,11 +2428,12 @@ loadHtml(SAMPLE);
   const reset = el('ov-reset');
   if(reset) reset.addEventListener('click', () => {
     const ov = overlayEl(); if(!ov) return;
-    if(typeof recordBefore === 'function') recordBefore();
-    ov.style.removeProperty('background');
-    if(ov.getAttribute('style') === '') ov.removeAttribute('style');
-    if(typeof refreshCodeBox === 'function') refreshCodeBox();
-    window.__ovSync();
+    comHistorico(() => {
+      ov.style.removeProperty('background');
+      if(ov.getAttribute('style') === '') ov.removeAttribute('style');
+      if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    });
+    window.__ovSync();   // fora do histórico: só re-lê os controles, não muda a peça
   });
 })();
 </script>
@@ -2477,7 +2501,7 @@ loadHtml(SAMPLE);
       r.addEventListener('change', commit);
     }
   });
-  document.querySelectorAll('.bk-cor').forEach(btn => btn.addEventListener('click', () => { if(typeof recordBefore === 'function') recordBefore(); st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }));
+  document.querySelectorAll('.bk-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
   const pick = el('bk-picker');
   if(pick){
     pick.addEventListener('pointerdown', grab);
@@ -2488,16 +2512,17 @@ loadHtml(SAMPLE);
   const bt = el('bokehtools');
   if(bt) bt.addEventListener('click', (ev) => {
     const b = ev.target.closest('button'); if(!b || !b.dataset.bk || !selected) return;
-    if(typeof recordBefore === 'function') recordBefore();
-    const S = 6;
-    switch(b.dataset.bk){
-      case 'left':  if(typeof nudge === 'function') nudge(-S, 0); break;
-      case 'right': if(typeof nudge === 'function') nudge(S, 0); break;
-      case 'up':    if(typeof nudge === 'function') nudge(0, -S); break;
-      case 'down':  if(typeof nudge === 'function') nudge(0, S); break;
-      case 'cx':    if(typeof centerOnSlide === 'function') centerOnSlide('h'); break;
-      case 'cy':    if(typeof centerOnSlide === 'function') centerOnSlide('v'); break;
-    }
+    comHistorico(() => {
+      const S = 6;
+      switch(b.dataset.bk){
+        case 'left':  if(typeof nudge === 'function') nudge(-S, 0); break;
+        case 'right': if(typeof nudge === 'function') nudge(S, 0); break;
+        case 'up':    if(typeof nudge === 'function') nudge(0, -S); break;
+        case 'down':  if(typeof nudge === 'function') nudge(0, S); break;
+        case 'cx':    if(typeof centerOnSlide === 'function') centerOnSlide('h'); break;
+        case 'cy':    if(typeof centerOnSlide === 'function') centerOnSlide('v'); break;
+      }
+    });
   });
 })();
 </script>
