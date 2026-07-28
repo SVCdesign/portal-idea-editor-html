@@ -1865,15 +1865,20 @@ function isImageFile(f){
 }
 
 // devolve uma URL interna de uma versão ENCOLHIDA da imagem (origem intacta)
-async function shrinkToUrl(file){
+// `maxLado` é OPCIONAL: sem ele, vale o MAX_PREVIEW_SIDE de sempre (as fotos da
+// peça). Quem precisa de algo bem menor — as miniaturas do painel de PNG, que são
+// tampinhas de 120px — passa o próprio limite. Assim o encolhedor continua sendo
+// UM só, em vez de nascer uma cópia parecida no painel.
+async function shrinkToUrl(file, maxLado){
+  const limite = maxLado || MAX_PREVIEW_SIDE;
   const big = URL.createObjectURL(file);
   try{
     const img = await new Promise((res, rej) => {
       const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = big;
     });
     const maxSide = Math.max(img.naturalWidth, img.naturalHeight);
-    if(maxSide <= MAX_PREVIEW_SIDE) return big;               // já é pequena: usa como está
-    const k = MAX_PREVIEW_SIDE / maxSide;
+    if(maxSide <= limite) return big;                         // já é pequena: usa como está
+    const k = limite / maxSide;
     const cw = Math.round(img.naturalWidth * k), ch = Math.round(img.naturalHeight * k);
     const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
     cv.getContext('2d').drawImage(img, 0, 0, cw, ch);
@@ -2248,10 +2253,23 @@ loadHtml(SAMPLE);
   const countEl = document.getElementById('pngCount');
   const banner  = document.getElementById('pngBanner');
   const zipBtn  = document.getElementById('pngZip');
-  let ultimos = [];          // [{nome, base64}] do último render (para "Baixar tudo")
+  // [{nome, blob, largura, altura}] do último render (para "Baixar" e "Baixar tudo").
+  // Guardamos ARQUIVO (blob), não o texto base64: o base64 de um PNG de 6 MB é uma
+  // string de ~8 MB presa na memória do JavaScript; o blob o navegador administra
+  // sozinho (e pode até encostar no disco). 13 páginas = ~104 MB de texto a menos.
+  let ultimos = [];
+  let miniaturas = [];       // endereços internos das tampinhas (pra liberar depois)
+  let geracaoToken = 0;      // se outra geração começar no meio, a antiga desiste
   let gerando = false;
+  const THUMB_MAX = 320;     // maior lado da miniatura (a tampinha tem 120px de altura)
 
-  function fechar(){ overlay.style.display = 'none'; }
+  // libera as tampinhas da geração anterior. Sem isto, cada "Gerar PNG" deixaria
+  // para trás os endereços internos das miniaturas antigas.
+  function limparMiniaturas(){
+    for(const u of miniaturas){ try{ URL.revokeObjectURL(u); }catch(e){} }
+    miniaturas = [];
+  }
+  function fechar(){ overlay.style.display = 'none'; limparMiniaturas(); }
   // base64 -> bytes; e download via Blob (aguenta arquivos grandes, ao contrário do data: URL)
   function b64ToBytes(base64){ return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)); }
   function baixarBlob(nome, blob){
@@ -2261,8 +2279,8 @@ loadHtml(SAMPLE);
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
-  function baixarPng(nome, base64){
-    baixarBlob((lastBaseName ? lastBaseName + '-' : '') + nome, new Blob([b64ToBytes(base64)], { type: 'image/png' }));
+  function baixarPng(nome, blob){
+    baixarBlob((lastBaseName ? lastBaseName + '-' : '') + nome, blob);
   }
   // --- ZIP mínimo, método "stored" (os PNGs já são comprimidos) — sem biblioteca externa ---
   const _crcTab = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); } t[n] = c >>> 0; } return t; })();
@@ -2306,14 +2324,22 @@ loadHtml(SAMPLE);
     });
   }
 
-  overlay.addEventListener('click', function(ev){
+  overlay.addEventListener('click', async function(ev){
     if(ev.target === overlay || ev.target.classList.contains('png-cancel')){ fechar(); return; }
     const dl = ev.target.closest('.png-dl');
-    if(dl){ const i = +dl.dataset.i; if(ultimos[i]) baixarPng(ultimos[i].nome, ultimos[i].base64); return; }
+    if(dl){ const i = +dl.dataset.i; if(ultimos[i]) baixarPng(ultimos[i].nome, ultimos[i].blob); return; }
     if(ev.target === zipBtn){
-      if(!ultimos.length) return;
-      const files = ultimos.map((s) => ({ name: s.nome, bytes: b64ToBytes(s.base64) }));
-      baixarBlob((lastBaseName || 'carrossel') + '.zip', makeZip(files));
+      if(!ultimos.length || zipBtn.disabled) return;
+      // o ZIP precisa dos bytes; leio dos blobs SÓ agora, na hora do clique (antes
+      // eles ficavam guardados em base64 o tempo todo, mesmo sem ninguém baixar).
+      zipBtn.disabled = true;
+      try{
+        const files = [];
+        for(const s of ultimos){ files.push({ name: s.nome, bytes: new Uint8Array(await s.blob.arrayBuffer()) }); }
+        baixarBlob((lastBaseName || 'carrossel') + '.zip', makeZip(files));
+      }finally{
+        zipBtn.disabled = false;
+      }
     }
   });
 
@@ -2324,6 +2350,8 @@ loadHtml(SAMPLE);
     btn.disabled = true;
 
     // painel em estado "gerando…"
+    const meuToken = ++geracaoToken;
+    limparMiniaturas();
     ultimos = [];
     grid.innerHTML = '';
     zipBtn.style.display = 'none';
@@ -2361,7 +2389,13 @@ loadHtml(SAMPLE);
       const data = await resp.json().catch(() => ({ ok:false, erro:'resposta inválida do servidor' }));
       if(!resp.ok || !data.ok){ throw new Error(data.erro || ('erro ' + resp.status)); }
 
-      ultimos = Array.isArray(data.slides) ? data.slides : [];
+      // base64 -> arquivo (blob), UMA vez. Daqui pra frente ninguém mais mexe no
+      // texto gigante: ele fica sem dono e o navegador recolhe.
+      ultimos = (Array.isArray(data.slides) ? data.slides : []).map((s) => ({
+        nome: s.nome,
+        blob: new Blob([b64ToBytes(s.base64)], { type: 'image/png' }),
+        largura: s.largura, altura: s.altura,
+      }));
       const n = ultimos.length;
       const tam = resumoTamanho(ultimos);
       banner.className = 'png-banner';
@@ -2375,10 +2409,18 @@ loadHtml(SAMPLE);
       grid.innerHTML = '';
       ultimos.forEach((s, i) => {
         const card = document.createElement('div'); card.className = 'png-card';
-        const src = 'data:image/png;base64,' + s.base64;
         const thumb = document.createElement('div');
         thumb.className = 'png-thumb';
-        thumb.style.backgroundImage = 'url("' + src + '")';
+        thumb.textContent = '…';
+        // ANTES: a tampinha de 120px recebia o PNG INTEIRO embutido — o navegador
+        // abria a imagem toda (2160×2700) na memória só pra desenhar isto. Com 10
+        // slides dava centenas de MB. AGORA: encolhe pra ~320px e usa a versão leve.
+        shrinkToUrl(s.blob, THUMB_MAX).then((url) => {
+          if(meuToken !== geracaoToken){ try{ URL.revokeObjectURL(url); }catch(e){} return; }  // outra geração entrou no meio
+          miniaturas.push(url);
+          thumb.textContent = '';
+          thumb.style.backgroundImage = 'url("' + url + '")';
+        }).catch(() => { thumb.textContent = s.nome; });
         const foot = document.createElement('div');
         foot.className = 'png-foot';
         foot.innerHTML = '<span>' + s.nome + (s.largura && s.altura ? ' · ' + s.largura + '×' + s.altura : '') + '</span>';

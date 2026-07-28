@@ -71,10 +71,11 @@ carrossel.** Na dúvida, ganha o carrossel.
   gerou 3 páginas em **1696×2528 exatos** — a prova de que o molde exporta no tamanho de gráfica.
 - **✅ AUDITORIA DO "GERAR PNG" (feita antes de mexer, a pedido do Carlos):** li o caminho inteiro
   (`editor.html` → `server.mjs` → `scripts/render-core.mjs`). **Achados, por peso:**
-  🔴 **(1) A janela dos PNGs come memória à toa** — cada miniatura de **120px de altura** recebe o **PNG inteiro**
-  embutido (`editor.html`, `thumb.style.backgroundImage = 'url("data:image/png;base64,…")'`). Um carrossel de 10
-  slides gasta ~230 MB só de miniatura. **Já é assim hoje, no carrossel** (não tem a ver com o livrinho). Conserto
-  barato: endereço interno (blob) + miniatura encolhida. ⚠️ **NÃO FEITO — o Carlos preferiu não mexer agora.**
+  🔴 **(1) A janela dos PNGs comia memória à toa** — cada miniatura de **120px de altura** recebia o **PNG
+  inteiro** embutido (`thumb.style.backgroundImage = 'url("data:image/png;base64,…")'`), então o navegador abria a
+  imagem toda (2160×2700) só pra desenhar a tampinha. Um carrossel de 10 slides gastava ~230 MB só de miniatura,
+  mais ~80 MB de texto base64. Era o achado mais pesado e **não tinha a ver com o livrinho — era do carrossel**.
+  ✅ **CORRIGIDO em 2026-07-28** (o Carlos pediu depois) — ver o bloco abaixo.
   🟡 **(2) "2160×2700" escrito à mão em 4 lugares** → mentia em peça que não fosse 4:5. **CORRIGIDO** (ver abaixo).
   🟡 **(3) "sempre 2160" nunca foi verdade:** a conta é `2160 ÷ largura do slide` com piso 1 — slide mais largo
   que 2160 sai maior que 2160. 🟡 **(4) só o PRIMEIRO slide é medido** (`.first()`): o viewport e a ampliação de
@@ -99,6 +100,23 @@ carrossel.** Na dúvida, ganha o carrossel.
   viram "tamanhos variados". **Testado no navegador** (Playwright, `editor.html` oficial, servidor de teste numa
   porta separada pra não mexer no do Carlos): carrossel → *"PNGs fiéis em 2160×2700"*; livrinho → *"PNGs fiéis em
   1696×2528"*, 13 cartões. **0 erro de JS** (os 404 eram as fotos, peça carregada sem a pasta).
+- **✅ ACHADO 🔴 CORRIGIDO — miniaturas leves na janela do Gerar PNG (FEITO e testado):** mexeu **só no
+  `editor.html`**, dentro do painel de PNG. Três coisas: (a) a tampinha passou a usar o **encolhedor que já
+  existia** (`shrinkToUrl`), que ganhou um **2º argumento opcional** de tamanho máximo — **sem 2º argumento o
+  comportamento é o de hoje** (`MAX_PREVIEW_SIDE = 1400`), então as fotos da prévia não mudam em nada; a
+  miniatura pede **320px**; (b) a lista `ultimos` deixou de guardar o **texto base64** (~8 MB por PNG) e passou a
+  guardar o **blob** — o "Baixar" já recebia blob, e o ZIP lê os bytes **só na hora do clique**; (c) os endereços
+  das miniaturas são **liberados** ao fechar o painel e ao gerar de novo, com um **token de geração** pra uma
+  miniatura atrasada não vazar depois que outra geração começou.
+  **Medido no navegador** (livrinho de 13 páginas, artes reais): as **13 miniaturas juntas pesam 0,3 MB** (antes
+  eram os 13 PNGs inteiros, ~78 MB, e ~300 MB já decodificados); a **memória do JavaScript foi de 4 MB pra 9 MB**
+  (antes só o base64 já seria ~104 MB). **Downloads conferidos de verdade** (interceptando o link): "Baixar"
+  entregou `livrinho-02.png` de 5,94 MB com **assinatura de PNG**, e "Baixar tudo" entregou `livrinho.zip` de
+  81,29 MB com **assinatura de ZIP**, com o botão reabilitando no fim. **Vazamento testado:** endereço de
+  miniatura da geração anterior **fica morto** depois de fechar o painel. **Regressão do carrossel pela
+  interface:** 3 slides, *"PNGs fiéis em 2160×2700"*, miniaturas prontas, download OK. **0 erro de JS.**
+  ⚪ **Achado novo, pequeno, NÃO mexido:** o nome do download usa o `lastBaseName`, que **não é zerado** ao abrir
+  um HTML avulso/colar depois de ter aberto uma pasta — o arquivo sai com o nome da peça ANTERIOR.
 - **✅ TESTE DE PONTA A PONTA (a corrente inteira, com as fotos de verdade):** montei a pasta da peça com o
   molde + as **13 artes reais (44 MB)** e mandei pelo mesmo caminho do botão **📁 Abrir peça** (`loadFolder`).
   Resultado: **13 páginas**, as **13 fotos desenharam**, **zero aviso de foto faltando**, 13 assets em alta
