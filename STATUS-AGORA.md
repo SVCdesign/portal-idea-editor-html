@@ -6,7 +6,9 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-24 · **Motivo:** 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
+**Atualizado:** 2026-07-28 · **Motivo:** 📖 **NOVO SUBSISTEMA: Livrinho 14×21 (para gráfica)** — passo 1 (o
+molde) ✅ no ar; passo 2 (tamanho do PNG) ⏸️ **não começou**, precisa de auditoria antes. Ver o bloco logo
+abaixo. · Antes, 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
 do studio usam esse nome; o editor só conhecia "overlay"/"scrim") — ver bloco logo abaixo. · Antes,
 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
 pendente): brilho atrás da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso
@@ -39,6 +41,50 @@ profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo
   (2) perguntar ao **html-studio** se ele lê os **dois** mecanismos de enquadramento ao mesmo tempo
   (`object-position` + `transform`) — mudei essa regra ao consertar o bug do zoom.
 ---
+
+**(2026-07-28) 📖 NOVO SUBSISTEMA — LIVRINHO 14×21 PARA GRÁFICA (passo 1 ✅ / passo 2 ⏸️):** o Carlos
+apontou um livrinho infantil feito por **outro sistema** (`E:\…\matrix-books\livrinho-sao-lourenco-maria-fumaca\
+matrix-portable-preview` — **pasta de referência, não mexer**) e perguntou se dava pra editar aqui e **exportar
+as páginas em PNG pra gráfica imprimir** (livreto grampeado 14×21 cm).
+**Diagnóstico:** aquele arquivo é um **aplicativo** (capa que abre, página que vira) e o texto das 12 páginas
+**não está no HTML** — mora numa lista dentro do `app.js`. Como o editor edita e salva **o que está na tela**,
+a edição seria **apagada** ao reabrir (o script remonta tudo). Não é bug: é formato incompatível.
+**Decisão do Carlos:** em vez de ensinar o editor a mexer em JavaScript (mecanismo novo, frágil), **mudar o
+formato na origem** — ele leva a receita pro outro sistema.
+🚨 **REGRA QUE O CARLOS DEIXOU GRAVADA (2026-07-28):** o **carrossel do Instagram é sagrado** — é o que ele usa
+**todos os dias**; o livrinho é bônus (1× por semana). **Nada deste subsistema pode balançar o caminho do
+carrossel.** Na dúvida, ganha o carrossel.
+- **✅ PASSO 1 — o molde (FEITO e testado):** nasceu `Subsistemas/Fluxo do Subsistema Livrinho/` com
+  `LEIA-PRIMEIRO.md`, `RECEITA-PARA-O-OUTRO-SISTEMA.md` (a especificação, auto-suficiente, é o que o Carlos
+  entrega) e `molde-livrinho-14x21.html` (o molde funcionando, capa + 12 páginas). **A ideia:** o livrinho
+  **se disfarça de carrossel** — cada página é um `<section class="slide">`, só que com medida de livro
+  (**848×1264 na tela → 1696×2528 no PNG**, o mesmo truque do 1080→2160). Por isso o `editor.html`
+  **não precisou aprender nada novo**. ⚠️ **Zero linha do editor foi tocada** (`git diff` dos arquivos já
+  existentes: **vazio**) — só entraram arquivos novos.
+  **Testado no navegador** (Playwright, no `editor.html` oficial, servidor 4599): as **13 páginas** aparecem na
+  barrinha `[1]…[13]`; **toda página mede 848×1264**; o caminho clicável desce até `h2.page-title`; **ferramentas
+  de foto e de texto abrem**; **Atalhos da capa** aparecem; a película **`veil` é reconhecida**; o painel de
+  **camadas** lista; a **edição de texto** entra e o **salvo sai limpo** (sem `contenteditable`/marcas, com
+  `./assets/…` preservado, **sem base64**, e a `<meta>` do tamanho intacta); o **aviso de foto faltando** dispara
+  com nome + descrição + slide certos. **0 erro de JS** (os 404 eram as fotos, carregado sem a pasta).
+  E o **motor do PNG** foi rodado num script à parte (sem tocar no projeto): mediu 13 páginas de 848×1264 e
+  gerou 3 páginas em **1696×2528 exatos** — a prova de que o molde exporta no tamanho de gráfica.
+- **⏸️ PASSO 2 — o tamanho do PNG (NÃO COMEÇOU · auditoria primeiro):** hoje o "Gerar PNG" sai **sempre em 2160
+  de largura**; nesta peça isso daria 2160×3220 (errado pra impressão). O número mora em
+  `scripts/render-core.mjs`, **linha 12** (`const TARGET_W = 2160`), usado em **UMA linha**
+  (`dsf = TARGET_W / box.width`). **Duas boas notícias da análise:** (a) o **1080×1350 do Instagram não está
+  escrito em lugar nenhum** — o robô **mede o slide** e calcula a ampliação, já é flexível; (b) o molde já traz a
+  plaquinha `<meta name="sv-export-largura" content="1696">`, hoje **ignorada** (inofensiva).
+  **Trava de segurança combinada:** a regra vira *"se a peça declarar a largura, usa a dela; **se não declarar,
+  2160, exatamente como hoje**"* — carrossel não declara nada → cai no caminho antigo, idêntico. E **antes/depois**
+  gerar o PNG de um carrossel de verdade e **comparar**: um pixel diferente = desfaz.
+- **⚠️ ACHADO IMPORTANTE (nas artes, não no código):** as 12 ilustrações têm uma **moldura branca desenhada
+  dentro do próprio JPG** — **~86 a 92 px (≈ 7 a 8 mm)**, medido pixel a pixel na `pagina-01.jpg`. Numa peça
+  impressa isso vira faixa branca em volta e **acaba com a sangria** (se a faca cair 1 mm pra dentro, aparece
+  uma tira branca torta). As artes precisam ir **até a borda**. Remendo provisório: zoom ~1,15× no ✂️ Ajustar
+  foto, página por página.
+- **Pendências não-código:** arte da **capa** (`assets/capa.jpg`, 1696×2528) ainda não existe (o molde já tem o
+  lugar dela); confirmar com a gráfica se querem **contracapa** e se aceitam **PNG** ou preferem **PDF**.
 
 **(2026-07-24) 🎚️ ESCURECER/CLAREAR não achava a película "veil" (✅ CORRIGIDO e testado):** o Carlos abriu a
 peça "Beleza do zero" (`final.html`, feita pelo studio), clicou na foto do slide 6 e no "🎚️ Escurecer/Clarear"

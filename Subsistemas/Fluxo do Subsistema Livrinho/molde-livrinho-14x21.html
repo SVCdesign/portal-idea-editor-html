@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Livrinho 14x21 — O Trem das Águas (molde)</title>
+
+<!-- ┌──────────────────────────────────────────────────────────────────────┐
+     │ MOLDE DE LIVRINHO 14×21 cm — livreto grampeado, para gráfica.        │
+     │                                                                      │
+     │ Este arquivo usa o MESMO esqueleto dos carrosséis (<section class=   │
+     │ "slide">), só que com a medida de página de livro. Por isso o Editor  │
+     │ HTML já sabe editar tudo aqui sem aprender nada novo.                 │
+     │                                                                      │
+     │ MEDIDAS (não mude sem ler a receita):                                 │
+     │   • na tela   : 848 × 1264 px  (metade)                               │
+     │   • no PNG    : 1696 × 2528 px (dobro — igual ao tamanho das artes)   │
+     │   • no papel  : 143,6 × 214,0 mm a 300 dpi → a gráfica corta em       │
+     │                 140 × 210 mm (a sobra é a SANGRIA)                    │
+     │   • margem segura: 44 px da borda — nada de texto além disso          │
+     │                                                                      │
+     │ A linha <meta name="sv-export-largura"> abaixo é a plaquinha que diz  │
+     │ ao "Gerar PNG" o tamanho desta peça. Hoje ela ainda não faz efeito    │
+     │ (o robô sai em 2160 de largura, o padrão do carrossel). Quando o      │
+     │ passo 2 entrar, esta peça passa a sair em 1696 e o carrossel continua │
+     │ em 2160 exatamente como sempre.                                       │
+     └──────────────────────────────────────────────────────────────────────┘ -->
+<meta name="sv-export-largura" content="1696">
+
+<style>
+  :root{
+    /* ---- as únicas medidas que definem a página ---- */
+    --pagina-w: 848px;      /* na tela (o PNG sai no dobro) */
+    --pagina-h: 1264px;
+    --margem: 44px;         /* área segura: texto nunca passa daqui */
+
+    /* ---- paleta do livrinho ---- */
+    --papel:  #fff8ea;
+    --tinta:  #3a2415;
+    --suave:  #7b6048;
+    --capa-a: #cc654f;
+    --capa-b: #62301f;
+  }
+
+  html,body{ margin:0; padding:0; }
+  body{
+    background:#241a12;
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--tinta);
+    display:flex; flex-direction:column; align-items:center;
+    gap:30px; padding:30px 0;
+  }
+
+  /* ===== A PÁGINA ===== *
+   * Tudo o que estiver DENTRO daqui vai para o PNG e para a gráfica.
+   * Tudo o que estiver FORA (o fundo escuro, o espaço entre as páginas)
+   * fica de fora sozinho — o robô fotografa só esta caixa. */
+  .slide{
+    position:relative;
+    width:  var(--pagina-w);
+    height: var(--pagina-h);
+    overflow:hidden;
+    background:#f0dcc0;
+  }
+
+  /* a arte da página (foto de fundo, ocupa a página inteira) */
+  .page-photo{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  /* a "película" — o Editor chama de Escurecer/Clarear e já reconhece "veil" */
+  .veil{
+    position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(58,36,21,.42), rgba(58,36,21,.06) 46%, rgba(255,255,255,.06));
+    pointer-events:none;
+  }
+
+  /* a área segura: o texto vive aqui dentro e nunca cai na parte cortada */
+  .pad{
+    position:absolute;
+    left:var(--margem); right:var(--margem);
+    top:var(--margem);  bottom:var(--margem);
+    display:flex; flex-direction:column; justify-content:flex-end;
+  }
+
+  /* o cartãozinho de texto */
+  .page-copy{
+    padding:26px 30px;
+    border-radius:14px;
+    background:rgba(255,248,234,.92);
+    box-shadow:0 12px 30px rgba(43,25,12,.22);
+  }
+  .page-title{
+    margin:0 0 10px;
+    font-size:40px; line-height:1.05;
+    color:var(--tinta);
+  }
+  .page-text{
+    margin:0;
+    font-size:24px; line-height:1.42;
+    color:var(--suave);
+  }
+
+  /* o número da página (é impresso de verdade) */
+  .page-number{
+    position:absolute;
+    right:var(--margem); top:var(--margem);
+    min-width:44px; height:44px; padding:0 12px;
+    border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(58,36,21,.72); color:var(--papel);
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight:700; font-size:20px;
+  }
+
+  /* ===== A CAPA ===== *
+   * Mesma página, só com outro traje. O fundo em degradê é o "plano B":
+   * enquanto a arte da capa não existir, a capa ainda fica apresentável. */
+  .capa{ background:linear-gradient(145deg, var(--capa-a), var(--capa-b) 70%); }
+  .capa .pad{ justify-content:space-between; }
+  /* na capa a película escurece EM CIMA e EMBAIXO (onde ficam os textos) e deixa
+     o miolo limpo — senão o título branco some no céu claro da ilustração */
+  .capa .veil{
+    background:
+      linear-gradient(to bottom, rgba(40,24,12,.60), rgba(40,24,12,.16) 30%, rgba(40,24,12,0) 48%),
+      linear-gradient(to top,    rgba(40,24,12,.60), rgba(40,24,12,0) 26%);
+  }
+  .capa-topo{ color:var(--papel); }
+  .capa-chapeu{
+    margin:0 0 14px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size:19px; font-weight:700;
+    letter-spacing:.10em; text-transform:uppercase;
+    opacity:.92;
+  }
+  .capa-titulo{
+    margin:0;
+    font-size:96px; line-height:.94;
+    max-width:10ch;
+    text-shadow:0 6px 22px rgba(0,0,0,.35);
+  }
+  .capa-rodape{
+    margin:0;
+    color:var(--papel);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size:26px; font-weight:700;
+    text-shadow:0 4px 16px rgba(0,0,0,.35);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<section class="slide capa">
+  <img class="page-photo" src="./assets/capa.jpg" alt="Capa: a Maria Fumaça saindo da estação de São Lourenço">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="capa-topo">
+      <p class="capa-chapeu">Livreto grampeado 14×21 cm</p>
+      <h1 class="capa-titulo">O Trem das Águas</h1>
+    </div>
+    <p class="capa-rodape">São Lourenço · Minas Gerais</p>
+  </div>
+</section>
+
+<!-- ============ PÁGINA 1 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-01.jpg" alt="A estação de São Lourenço com a Maria Fumaça parada nos trilhos">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">A estação</h2>
+      <p class="page-text">Na charmosa estação de São Lourenço, vive uma Maria Fumaça muito especial, com ferro reluzente, chaminé elegante e um coração cheio de vapor.</p>
+    </div>
+  </div>
+  <span class="page-number">1</span>
+</section>
+
+<!-- ============ PÁGINA 2 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-02.jpg" alt="A feirinha de artesanato ao redor da estação">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">A feirinha</h2>
+      <p class="page-text">Logo cedo, a estação se enche de vida. Ao redor, a feirinha mostra artesanatos feitos à mão, cores vibrantes e fantoches cheios de histórias.</p>
+    </div>
+  </div>
+  <span class="page-number">2</span>
+</section>
+
+<!-- ============ PÁGINA 3 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-03.jpg" alt="A Maria Fumaça apitando e chamando os passageiros">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Piuíiii!</h2>
+      <p class="page-text">De repente... Piuíiii! Piuíiii! É o aviso da Maria Fumaça chamando todos os passageiros para embarcar.</p>
+    </div>
+  </div>
+  <span class="page-number">3</span>
+</section>
+
+<!-- ============ PÁGINA 4 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-04.jpg" alt="A moça da estação conferindo os bilhetes dos passageiros">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Todos a bordo</h2>
+      <p class="page-text">A moça da estação confere os bilhetes com atenção e anuncia sorrindo: Todos a bordo! A aventura vai começar!</p>
+    </div>
+  </div>
+  <span class="page-number">4</span>
+</section>
+
+<!-- ============ PÁGINA 5 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-05.jpg" alt="As rodas de ferro girando e a fumaça branca subindo no céu">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Chug-chug-chug</h2>
+      <p class="page-text">As rodas de ferro começam a girar devagarzinho. Uma fumaça branquinha, parecida com algodão, dança no céu de Minas Gerais.</p>
+    </div>
+  </div>
+  <span class="page-number">5</span>
+</section>
+
+<!-- ============ PÁGINA 6 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-06.jpg" alt="A paisagem vista pela janela do trem: morros verdes e vaquinhas">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Pela janela</h2>
+      <p class="page-text">Pela janela, a paisagem é um show: morros verdes, vaquinhas no pasto e passarinhos tentando apostar corrida com a Maria Fumaça.</p>
+    </div>
+  </div>
+  <span class="page-number">6</span>
+</section>
+
+<!-- ============ PÁGINA 7 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-07.jpg" alt="Violeiros tocando e cantando dentro do vagão">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Violeiros no trem</h2>
+      <p class="page-text">Durante o passeio, os violeiros tocam, cantam e contam piadas. Os passageiros batem palmas, dão risadas e entram na alegria.</p>
+    </div>
+  </div>
+  <span class="page-number">7</span>
+</section>
+
+<!-- ============ PÁGINA 8 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-08.jpg" alt="A chegada na estação de Soledade de Minas">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Soledade de Minas</h2>
+      <p class="page-text">Olha só! Chegamos em Soledade de Minas. A estação recebe os viajantes com cores, sorrisos e uma paisagem tranquila.</p>
+    </div>
+  </div>
+  <span class="page-number">8</span>
+</section>
+
+<!-- ============ PÁGINA 9 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-09.jpg" alt="A feirinha de Soledade com doces, artesanato e pastéis">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Novos tesouros</h2>
+      <p class="page-text">Na feirinha de Soledade, há um mundo de tesouros para descobrir: museu, artesanato, doces cheirosos e pastéis fresquinhos.</p>
+    </div>
+  </div>
+  <span class="page-number">9</span>
+</section>
+
+<!-- ============ PÁGINA 10 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-10.jpg" alt="Os passageiros voltando para o trem com lembranças nas mãos">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Hora de voltar</h2>
+      <p class="page-text">Depois de passear, provar delícias e escolher lembranças especiais, é hora de voltar. A Maria Fumaça apita alegre: Piuíiii!</p>
+    </div>
+  </div>
+  <span class="page-number">10</span>
+</section>
+
+<!-- ============ PÁGINA 11 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-11.jpg" alt="O trem voltando nos trilhos com o sol baixo no horizonte">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Recordações</h2>
+      <p class="page-text">De volta aos trilhos rumo a São Lourenço, o sol fica fininho no horizonte. Os passageiros descansam com o coração cheio de recordações.</p>
+    </div>
+  </div>
+  <span class="page-number">11</span>
+</section>
+
+<!-- ============ PÁGINA 12 ============ -->
+<section class="slide">
+  <img class="page-photo" src="./assets/pagina-12.jpg" alt="A Maria Fumaça entrando devagar na estação, soltando o último vapor">
+  <div class="veil"></div>
+  <div class="pad">
+    <div class="page-copy">
+      <h2 class="page-title">Até amanhã</h2>
+      <p class="page-text">A Maria Fumaça entra devagarinho na estação. Missão cumprida! Ela solta seu último suspiro de vapor e deseja felicidades a todos.</p>
+    </div>
+  </div>
+  <span class="page-number">12</span>
+</section>
+
+</body>
+</html>
