@@ -84,7 +84,7 @@ carrossel.** Na dúvida, ganha o carrossel.
   fixo). ⚪ **(6)** o Gerar PNG só tem foto em alta se a peça foi aberta **pela pasta**. ⚪ **(7)** o limite de
   100 MB conta as fotos da pasta, não o HTML (foto embutida escapa). ⚪ **(8)** o rótulo "Mantém o 4:5" do Ajustar
   foto está datado — **a ferramenta NÃO assume 4:5** (usa `cover` + %; funciona em qualquer proporção, confirmado
-  no livrinho). **(3)–(8) ficaram registrados e NÃO foram mexidos.**
+  no livrinho). **(3)–(8) ✅ TODOS CORRIGIDOS depois** — ver o bloco da 2ª auditoria abaixo.
 - **✅ PASSO 2 — a peça declara a largura do PNG (FEITO e testado):** o robô agora lê
   `<meta name="sv-export-largura">` **na passada de medição que já abre o Chrome**; achou número válido, usa;
   **senão, `TARGET_W = 2160` de sempre**. Mexeu **só** em `scripts/render-core.mjs` — o `editor.html` não
@@ -117,6 +117,40 @@ carrossel.** Na dúvida, ganha o carrossel.
   interface:** 3 slides, *"PNGs fiéis em 2160×2700"*, miniaturas prontas, download OK. **0 erro de JS.**
   ⚪ **Achado novo, pequeno, NÃO mexido:** o nome do download usa o `lastBaseName`, que **não é zerado** ao abrir
   um HTML avulso/colar depois de ter aberto uma pasta — o arquivo sai com o nome da peça ANTERIOR.
+- **✅ 2ª AUDITORIA + AS 6 ARMADILHAS RESTANTES CORRIGIDAS (o Carlos pediu "corrige os 6, sem exceção"):** a
+  vistoria dos 4 lugares que seriam tocados achou **mais 5 coisas** que não estavam na lista:
+  **N1** a medição roda numa janela de **1280×1600** e a foto numa janela do **tamanho do slide** — peça com
+  medida relativa (`vw`/`%`) muda de layout entre as duas e o slide fotografado não é o que foi medido;
+  **N2** um slide escondido **derrubava a geração inteira** (não havia proteção por slide);
+  **N3** o robô manda até **20 endereços** das imagens quebradas e o editor **jogava todos fora**, mostrando só a
+  quantidade; **N4** a trava de **cima** (8×) também desobedecia a plaquinha calada; **N5** o `JSON.stringify` do
+  envio monta o corpo inteiro na memória num pico só.
+  **O que entrou** (`render-core.mjs` + `editor.html`):
+  **(5)+N1** — uma medida só, **arredondada**, usada na conta E na janela; e o robô **confere a medida de novo
+  dentro da janela da foto**, avisando quando o slide muda de tamanho entre as duas passadas. Medida quebrada
+  (ex.: 540,4px) vira **aviso**, não um PNG torto em silêncio.
+  **(4)** — os slides são **agrupados por tamanho** e cada grupo é fotografado com a ampliação dele. Peça com
+  todos iguais (todo carrossel) = **1 grupo = caminho idêntico ao de antes**. Peça misturada ganha aviso.
+  **(3)+N4** — a trava de **baixo** (que forçava no mínimo 1× e impedia obedecer uma largura menor) **saiu**; a
+  de **cima** (8×) **ficou**, porque o Chrome não desenha acima de ~16.000px — mas agora **avisa** quando age.
+  **N2** — proteção **slide a slide**: um slide problemático vira aviso e os outros são salvos.
+  **(7)+N5** — a trava de tamanho passou a medir o **corpo inteiro do envio** (HTML + fotos em base64), não só as
+  fotos da pasta, e a mensagem **diz o que está pesando** (código × fotos).
+  **(6)+N3** — o painel agora **lista quais** imagens falharam (até 6), em vez de só contar.
+  **(8)** — "Mantém o 4:5" virou "Mantém o formato do slide".
+  **(9)** — `lastBaseName` passou a ser **zerado** no `forgetFolderAssets()`.
+  🛡️ **PROVA:** o carrossel de 3 slides foi renderizado pelo robô **de antes** e pelo **de agora** — **mesmo
+  hash SHA-256, byte a byte idêntico**, 2160×2700, mesmo depois do laço ter sido reescrito.
+  **7 testes do robô, todos OK:** tamanhos diferentes (2160×2700, 2160×2700, 2160×2160 + aviso) · medida quebrada
+  (avisa) · slide escondido (salva 01 e 03, avisa do 2) · pedir 540 num slide de 1080 → **540×675** (antes saía
+  1080×1350) · pedir 8000 num slide de 400 → 3200×4000 **com aviso** · imagem quebrada **diz o endereço** ·
+  carrossel comum **sem aviso nenhum**. **No navegador:** aviso lista o arquivo que faltou · nome esquecido ao
+  colar (`livrinho` → nulo; baixa como `01.png`/`carrossel.zip`) · trava de tamanho barrou um HTML de 145 MB
+  **antes de enviar**, culpando o código · livrinho 13 páginas em 1696×2528 · carrossel 3 slides em 2160×2700.
+  **0 erro de JS.**
+  ⚠️ **Nota honesta:** a igualdade byte a byte vale **na mesma rodada**. Um slide com **texto em gradiente** deu
+  hash diferente entre rodadas separadas (variação de rasterização do Chrome) — por isso o antes/depois é sempre
+  comparado **na mesma execução**.
 - **✅ TESTE DE PONTA A PONTA (a corrente inteira, com as fotos de verdade):** montei a pasta da peça com o
   molde + as **13 artes reais (44 MB)** e mandei pelo mesmo caminho do botão **📁 Abrir peça** (`loadFolder`).
   Resultado: **13 páginas**, as **13 fotos desenharam**, **zero aviso de foto faltando**, 13 assets em alta

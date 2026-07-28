@@ -144,7 +144,8 @@
   .genpng-btn:hover{background:var(--accent2);color:#2a1000}
   .genpng-btn:disabled{opacity:.55;cursor:default;background:var(--line);color:var(--muted)}
   .png-banner{background:#0b2a22;border:1px solid #1f5a48;color:#a7f0d8;font-size:12px;
-              padding:8px 10px;border-radius:8px;margin-bottom:12px;line-height:1.5}
+              padding:8px 10px;border-radius:8px;margin-bottom:12px;line-height:1.5;
+              white-space:pre-line}   /* pre-line: a lista de avisos vem com quebra de linha */
   .png-banner.erro{background:#2a1213;border-color:#5a2626;color:#ffb4b4}
   .png-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
   .png-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
@@ -268,7 +269,7 @@
           </div>
         </div>
         <div id="phototools" class="tools" hidden>
-          <div class="tlabel">✂️ Ajustar foto — dê zoom e <b>arraste a foto com o mouse</b> (ou use as setas). Mantém o 4:5 e não toca no texto:</div>
+          <div class="tlabel">✂️ Ajustar foto — dê zoom e <b>arraste a foto com o mouse</b> (ou use as setas). Mantém o formato do slide e não toca no texto:</div>
           <div class="tgrid">
             <button data-pact="left"  title="enquadrar mais à esquerda">←</button>
             <button data-pact="up"    title="enquadrar mais acima">↑</button>
@@ -444,6 +445,11 @@ function soltarBlobs(lista){
 function forgetFolderAssets(){
   soltarBlobs(blobsVivos); blobsVivos = [];
   dirHandle = null; originalRefByBlob = new Map(); assetFileByRef = new Map(); veioDePasta = false;
+  // o NOME da peça também tem que ser esquecido. Sem isto, quem abrisse uma pasta e
+  // depois colasse outro HTML continuava salvando/baixando com o nome da peça ANTIGA
+  // (o PNG de um carrossel colado saía chamado "livrinho-01.png"). Sem nome, os
+  // nomes voltam a ser os genéricos: "pagina-editado.html" e "carrossel.zip".
+  lastBaseName = null;
 }
 
 function loadHtml(html){
@@ -2363,16 +2369,22 @@ loadHtml(SAMPLE);
     try{
       // 1) HTML final (com os seus ajustes) — mesma base do "Salvar"
       const html = buildFinalHtml();
-      // trava de tamanho: as fotos originais somadas não podem passar de ~140 MB
-      let totalBytes = 0;
-      for(const [, file] of assetFileByRef){ totalBytes += (file && file.size) || 0; }
-      // limite ~100 MB de fotos ORIGINAIS: elas vão pro robô em base64 (que incha ~33%),
-      // então 100 MB viram ~133 MB de corpo — ainda abaixo do teto do servidor (150 MB).
-      // (Antes o editor deixava passar até 140 MB e o servidor derrubava depois, confuso.)
-      if(totalBytes > 100 * 1024 * 1024){
+      // TRAVA DE TAMANHO — mede o CORPO INTEIRO do envio, não só as fotos da pasta.
+      // Antes só as fotos eram contadas: uma peça com foto EMBUTIDA (base64, do
+      // "🖼️ Adicionar imagem") passava batido aqui e o servidor derrubava depois,
+      // com uma mensagem genérica que não dizia o que estava grande.
+      let fotosBytes = 0;
+      for(const [, file] of assetFileByRef){ fotosBytes += (file && file.size) || 0; }
+      const htmlBytes = new Blob([html]).size;              // tamanho real em bytes (UTF-8)
+      const corpoBytes = htmlBytes + Math.ceil(fotosBytes * 4 / 3);   // as fotos viajam em base64 (+33%)
+      const TETO = 140 * 1024 * 1024;                       // abaixo do teto do servidor (150 MB)
+      if(corpoBytes > TETO){
+        const mb = (n) => Math.round(n / 1048576);
         banner.className = 'png-banner erro';
-        banner.textContent = '❌ As fotos originais somam ' + Math.round(totalBytes / 1048576)
-          + ' MB, acima do limite (~100 MB). Reduza o tamanho das imagens e tente de novo.';
+        banner.textContent = '❌ O envio ficaria com ~' + mb(corpoBytes) + ' MB, acima do limite (~'
+          + mb(TETO) + ' MB): a peça tem ' + mb(htmlBytes) + ' MB de código'
+          + (htmlBytes > 5 * 1048576 ? ' (foto embutida pelo "Adicionar imagem" pesa aqui)' : '')
+          + ' e ' + mb(fotosBytes) + ' MB de fotos na pasta. Reduza o tamanho das imagens e tente de novo.';
         return;
       }
       // 2) junta as imagens/fontes da pasta em qualidade ORIGINAL (não a encolhida da prévia)
@@ -2401,9 +2413,15 @@ loadHtml(SAMPLE);
       banner.className = 'png-banner';
       banner.textContent = '✅ Pronto! PNGs fiéis' + (tam ? ' em ' + tam : '')
         + '. Clique em "Baixar" em cada slide, ou "Baixar tudo (.zip)".';
+      // avisos do robô. ANTES mostrava só a QUANTIDADE ("2 imagens podem não ter
+      // carregado") e jogava fora a lista de endereços que o robô manda — o usuário
+      // sabia que faltou algo, mas não O QUÊ. Agora mostra quais (até 6).
       if(Array.isArray(data.avisos) && data.avisos.length){
+        const av = data.avisos;
         banner.className = 'png-banner erro';
-        banner.textContent += ' ⚠️ Atenção: ' + data.avisos.length + ' imagem(ns) pode não ter carregado — confira o resultado.';
+        banner.textContent += '\n⚠️ ' + av.length + (av.length === 1 ? ' aviso:' : ' avisos:') + '\n'
+          + av.slice(0, 6).map(a => '• ' + a).join('\n')
+          + (av.length > 6 ? '\n• …e mais ' + (av.length - 6) : '');
       }
       countEl.textContent = n + (n === 1 ? ' slide' : ' slides') + (tam ? ' · PNG ' + tam : '');
       grid.innerHTML = '';

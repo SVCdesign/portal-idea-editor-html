@@ -24,6 +24,14 @@ const SLIDE_ATTR = 'data-sv-slide'    // marca interna dos slides de topo (some 
 const META_LARGURA = 'sv-export-largura'
 const LARGURA_MIN = 200, LARGURA_MAX = 8000
 
+// Trava de CIMA da ampliação. NÃO é capricho: o Chrome não desenha imagem acima de
+// ~16.000 px de lado. Sem ela, um slide pequeno pedindo uma largura grande faria o
+// robô falhar em vez de entregar. Quando ela age, sai um AVISO (antes era calado).
+// A trava de BAIXO (que forçava no mínimo 1×) foi removida: ela impedia o robô de
+// obedecer a largura pedida quando o slide já era maior que ela.
+const DSF_MAX = 8
+const DSF_MIN = 0.05    // só pra nunca virar zero/negativo
+
 // lê a plaquinha da página já aberta. Blindado dos três lados: se não existir, se
 // vier com lixo (letra, 0, número absurdo) ou se a leitura der erro, devolve null
 // e quem chama cai no TARGET_W de sempre.
@@ -116,12 +124,26 @@ async function marcarSlides(page) {
   }, SLIDE_ATTR)
 }
 
+// mede TODOS os slides marcados (antes só o primeiro era medido, e o tamanho dele
+// valia pra todo mundo — peça com um slide de tamanho diferente saía torta).
+async function medirSlides(page) {
+  return await page.evaluate((ATTR) => {
+    const out = []
+    document.querySelectorAll('[' + ATTR + ']').forEach((el) => {
+      const i = Number(el.getAttribute(ATTR))
+      const r = el.getBoundingClientRect()
+      out[i] = { largura: r.width, altura: r.height }
+    })
+    return out
+  }, SLIDE_ATTR)
+}
+
 // lista imagens que ficaram quebradas (referência não encontrada), pra avisar
 async function imagensQuebradas(page) {
   return await page.evaluate(() =>
     Array.from(document.images)
       .filter((img) => img.complete && img.naturalWidth === 0)
-      .map((img) => img.getAttribute('src') || '(sem src)')
+      .map((img) => 'imagem não carregou: ' + (img.getAttribute('src') || '(sem src)'))
       .slice(0, 20)
   )
 }
@@ -154,8 +176,12 @@ export async function renderSlidesToPng({ html, assets = [] }) {
     await writeFile(htmlPath, html, 'utf8')
     const fileUrl = pathToFileURL(htmlPath).href
 
-    // 1) passada de medição: tamanho real do primeiro slide (ou da página toda)
-    let box = null
+    const avisos = []
+
+    // 1) passada de medição: mede TODOS os slides (não só o primeiro) e lê a
+    //    plaquinha da largura. Também é aqui que conferimos as imagens quebradas
+    //    — isso não depende da ampliação, então basta uma vez.
+    let medidas = []                 // [{largura, altura}] na ordem do documento
     let usouBody = false
     let larguraAlvo = TARGET_W       // o padrão de sempre (carrossel)
     {
@@ -163,54 +189,103 @@ export async function renderSlidesToPng({ html, assets = [] }) {
       try {
         await page.goto(fileUrl, { waitUntil: 'load' })
         await esperarPronto(page)
-        // aproveita esta MESMA passada (o Chrome já está aberto) pra ver se a peça
-        // declarou a largura dela. Nulo = peça comum = 2160, como sempre.
         const declarada = await larguraDeclarada(page)
         if (declarada) larguraAlvo = declarada
+        avisos.push(...await imagensQuebradas(page))
         const n = await marcarSlides(page)
-        if (n > 0) box = await page.locator('[' + SLIDE_ATTR + ']').first().boundingBox()
-        if (!box) {
+        if (n > 0) medidas = await medirSlides(page)
+        // cai pra "página inteira" se não houver slide NENHUM aproveitável (antes o
+        // teste era só no primeiro: uma peça cujo 1º slide estivesse escondido caía
+        // no fallback mesmo tendo os outros bons)
+        if (!medidas.some((m) => m && m.largura > 0 && m.altura > 0)) {
           // sem .slide: a página inteira vira 1 slide (usa a extensão ROLÁVEL)
-          box = await page.evaluate(() => ({
-            width: document.documentElement.scrollWidth || document.body.scrollWidth,
-            height: document.documentElement.scrollHeight || document.body.scrollHeight,
+          const b = await page.evaluate(() => ({
+            largura: document.documentElement.scrollWidth || document.body.scrollWidth,
+            altura: document.documentElement.scrollHeight || document.body.scrollHeight,
           }))
+          medidas = [b]
           usouBody = true
         }
       } finally {
         await browser.close().catch(() => {})
       }
     }
-    if (!box || box.width <= 0) throw new Error('Não encontrei nenhum slide no HTML.')
+    if (!medidas.length) throw new Error('Não encontrei nenhum slide no HTML.')
 
-    // 2) passada de render em alta resolução (escala pra dar ~larguraAlvo px de largura)
-    const dsf = Math.max(1, Math.min(8, larguraAlvo / box.width))
-    const slides = []
-    let avisos = []
-    {
-      const { browser, page } = await abrir(dsf, { width: Math.ceil(box.width), height: Math.ceil(box.height) })
+    // 2) agrupa os slides por TAMANHO (arredondado). Peça normal — todos os slides
+    //    iguais, que é todo carrossel — vira UM grupo só, e aí o caminho é
+    //    exatamente o de antes. Só peça misturada abre mais de um grupo.
+    const grupos = new Map()
+    medidas.forEach((m, i) => {
+      if (!m || !(m.largura > 0) || !(m.altura > 0)) {
+        avisos.push('slide ' + (i + 1) + ': tamanho inválido (' + (m ? m.largura + '×' + m.altura : 'sem medida') + ') — pulado')
+        return
+      }
+      // medida quebrada (ex.: 1080,4 px) não tem como virar um PNG exato: a conta e a
+      // janela passam a usar o arredondado, e o desencontro vira aviso em vez de um
+      // PNG com 1 px a mais ou a menos sem ninguém saber.
+      if (Math.abs(m.largura - Math.round(m.largura)) > 0.01 || Math.abs(m.altura - Math.round(m.altura)) > 0.01) {
+        avisos.push('slide ' + (i + 1) + ': medida quebrada (' + m.largura.toFixed(2) + '×' + m.altura.toFixed(2)
+          + ') — o PNG pode sair com 1 px de diferença. Use medidas em px inteiros.')
+      }
+      const w = Math.round(m.largura), h = Math.round(m.altura)
+      const chave = w + 'x' + h
+      if (!grupos.has(chave)) grupos.set(chave, { w, h, indices: [] })
+      grupos.get(chave).indices.push(i)
+    })
+    if (!grupos.size) throw new Error('Não encontrei nenhum slide utilizável no HTML.')
+    if (grupos.size > 1) {
+      avisos.push('esta peça tem slides de ' + grupos.size + ' tamanhos diferentes ('
+        + [...grupos.keys()].join(', ') + ') — cada tamanho foi fotografado com a ampliação dele.')
+    }
+
+    // 3) uma passada de foto por GRUPO de tamanho
+    const slides = new Array(medidas.length).fill(null)
+    for (const g of grupos.values()) {
+      const bruto = larguraAlvo / g.w
+      const dsf = Math.max(DSF_MIN, Math.min(DSF_MAX, bruto))
+      if (bruto > DSF_MAX) {
+        avisos.push('slide(s) de ' + g.w + 'px: a ampliação foi limitada em ' + DSF_MAX + '× (limite do Chrome), '
+          + 'então o PNG sai com ' + Math.round(g.w * DSF_MAX) + 'px em vez dos ' + larguraAlvo + 'px pedidos.')
+      }
+      const { browser, page } = await abrir(dsf, { width: g.w, height: g.h })
       try {
         await page.goto(fileUrl, { waitUntil: 'load' })
         await esperarPronto(page)
-        avisos = await imagensQuebradas(page)
 
         if (usouBody) {
           const buf = await page.screenshot({ type: 'png', fullPage: true })
-          slides.push({ nome: '01.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) })
-        } else {
-          await marcarSlides(page)
-          const loc = page.locator('[' + SLIDE_ATTR + ']')
-          const n = await loc.count()
-          for (let i = 0; i < n; i++) {
-            const buf = await loc.nth(i).screenshot({ type: 'png' })
-            slides.push({ nome: String(i + 1).padStart(2, '0') + '.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) })
+          slides[0] = { nome: '01.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) }
+          continue
+        }
+
+        await marcarSlides(page)
+        // CONFERE a medida DENTRO desta janela: a passada de medição roda numa janela
+        // de 1280×1600 e esta roda no tamanho do slide. Peça que usa medida relativa
+        // (vw, %) muda de layout entre as duas — e aí o slide fotografado não é do
+        // tamanho que foi medido. Antes isso passava calado.
+        const conferido = await medirSlides(page)
+        for (const i of g.indices) {
+          const c = conferido[i]
+          if (c && (Math.abs(Math.round(c.largura) - g.w) > 1 || Math.abs(Math.round(c.altura) - g.h) > 1)) {
+            avisos.push('slide ' + (i + 1) + ': mudou de tamanho ao ser fotografado ('
+              + g.w + '×' + g.h + ' → ' + Math.round(c.largura) + '×' + Math.round(c.altura)
+              + '). Peças com medida relativa (vw/%) fazem isso; use px fixo.')
+          }
+          // um slide problemático vira AVISO — não derruba os outros (antes, um
+          // slide escondido/quebrado perdia a geração inteira)
+          try {
+            const buf = await page.locator('[' + SLIDE_ATTR + '="' + i + '"]').screenshot({ type: 'png' })
+            slides[i] = { nome: String(i + 1).padStart(2, '0') + '.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) }
+          } catch (err) {
+            avisos.push('slide ' + (i + 1) + ': não consegui fotografar (' + (err && err.message ? err.message.split('\n')[0] : err) + ')')
           }
         }
       } finally {
         await browser.close().catch(() => {})
       }
     }
-    return { slides, avisos }
+    return { slides: slides.filter(Boolean), avisos }
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
