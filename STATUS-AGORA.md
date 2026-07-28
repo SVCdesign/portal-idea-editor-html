@@ -99,6 +99,12 @@ carrossel.** Na dúvida, ganha o carrossel.
   viram "tamanhos variados". **Testado no navegador** (Playwright, `editor.html` oficial, servidor de teste numa
   porta separada pra não mexer no do Carlos): carrossel → *"PNGs fiéis em 2160×2700"*; livrinho → *"PNGs fiéis em
   1696×2528"*, 13 cartões. **0 erro de JS** (os 404 eram as fotos, peça carregada sem a pasta).
+- **✅ TESTE DE PONTA A PONTA (a corrente inteira, com as fotos de verdade):** montei a pasta da peça com o
+  molde + as **13 artes reais (44 MB)** e mandei pelo mesmo caminho do botão **📁 Abrir peça** (`loadFolder`).
+  Resultado: **13 páginas**, as **13 fotos desenharam**, **zero aviso de foto faltando**, 13 assets em alta
+  registrados pro robô. Editei um título pela prévia, cliquei **🖼️ Gerar PNG** e vieram **13 PNGs em 1696×2528**,
+  **sem aviso de imagem quebrada**, com a edição dentro. É o elo que faltava: abrir pela pasta → editar →
+  exportar no tamanho de gráfica.
 - **⚠️ ACHADO IMPORTANTE (nas artes, não no código):** as 12 ilustrações têm uma **moldura branca desenhada
   dentro do próprio JPG** — **~86 a 92 px (≈ 7 a 8 mm)**, medido pixel a pixel na `pagina-01.jpg`. Numa peça
   impressa isso vira faixa branca em volta e **acaba com a sangria** (se a faca cair 1 mm pra dentro, aparece
