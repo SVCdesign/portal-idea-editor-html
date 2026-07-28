@@ -114,9 +114,14 @@ No `<head>`, uma linha só:
 <meta name="sv-export-largura" content="1696">
 ```
 
-É por ela que o "Gerar PNG" vai saber que **esta peça é livrinho** e não
-carrossel. Peça **sem** essa linha continua saindo em 2160 de largura (o padrão
-do Instagram), como sempre foi.
+É por ela que o "Gerar PNG" sabe que **esta peça é livrinho** e não carrossel. Peça
+**sem** essa linha continua saindo em 2160 de largura (o padrão do Instagram), como
+sempre foi. **Sem essa linha o livrinho sai no tamanho errado** (2160 × 3220), então
+ela não é opcional.
+
+O valor tem que ser um **número inteiro entre 200 e 8000**. Qualquer outra coisa
+(letra, vazio, zero, negativo, `1696.5`, `99999`) é ignorada e a peça volta para
+2160 — de propósito, para nunca quebrar o carrossel por causa de um erro de digitação.
 
 ---
 

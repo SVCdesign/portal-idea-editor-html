@@ -7,8 +7,8 @@
 > o handoff é o **manual**.
 
 **Atualizado:** 2026-07-28 · **Motivo:** 📖 **NOVO SUBSISTEMA: Livrinho 14×21 (para gráfica)** — passo 1 (o
-molde) ✅ no ar; passo 2 (tamanho do PNG) ⏸️ **não começou**, precisa de auditoria antes. Ver o bloco logo
-abaixo. · Antes, 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
+molde) ✅, **auditoria do Gerar PNG** ✅ e **passo 2 (a peça declara a largura) ✅ no ar e testado**, com o
+carrossel provado **byte a byte idêntico**. Ver o bloco logo abaixo. · Antes, 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
 do studio usam esse nome; o editor só conhecia "overlay"/"scrim") — ver bloco logo abaixo. · Antes,
 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
 pendente): brilho atrás da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso
@@ -69,15 +69,36 @@ carrossel.** Na dúvida, ganha o carrossel.
   com nome + descrição + slide certos. **0 erro de JS** (os 404 eram as fotos, carregado sem a pasta).
   E o **motor do PNG** foi rodado num script à parte (sem tocar no projeto): mediu 13 páginas de 848×1264 e
   gerou 3 páginas em **1696×2528 exatos** — a prova de que o molde exporta no tamanho de gráfica.
-- **⏸️ PASSO 2 — o tamanho do PNG (NÃO COMEÇOU · auditoria primeiro):** hoje o "Gerar PNG" sai **sempre em 2160
-  de largura**; nesta peça isso daria 2160×3220 (errado pra impressão). O número mora em
-  `scripts/render-core.mjs`, **linha 12** (`const TARGET_W = 2160`), usado em **UMA linha**
-  (`dsf = TARGET_W / box.width`). **Duas boas notícias da análise:** (a) o **1080×1350 do Instagram não está
-  escrito em lugar nenhum** — o robô **mede o slide** e calcula a ampliação, já é flexível; (b) o molde já traz a
-  plaquinha `<meta name="sv-export-largura" content="1696">`, hoje **ignorada** (inofensiva).
-  **Trava de segurança combinada:** a regra vira *"se a peça declarar a largura, usa a dela; **se não declarar,
-  2160, exatamente como hoje**"* — carrossel não declara nada → cai no caminho antigo, idêntico. E **antes/depois**
-  gerar o PNG de um carrossel de verdade e **comparar**: um pixel diferente = desfaz.
+- **✅ AUDITORIA DO "GERAR PNG" (feita antes de mexer, a pedido do Carlos):** li o caminho inteiro
+  (`editor.html` → `server.mjs` → `scripts/render-core.mjs`). **Achados, por peso:**
+  🔴 **(1) A janela dos PNGs come memória à toa** — cada miniatura de **120px de altura** recebe o **PNG inteiro**
+  embutido (`editor.html`, `thumb.style.backgroundImage = 'url("data:image/png;base64,…")'`). Um carrossel de 10
+  slides gasta ~230 MB só de miniatura. **Já é assim hoje, no carrossel** (não tem a ver com o livrinho). Conserto
+  barato: endereço interno (blob) + miniatura encolhida. ⚠️ **NÃO FEITO — o Carlos preferiu não mexer agora.**
+  🟡 **(2) "2160×2700" escrito à mão em 4 lugares** → mentia em peça que não fosse 4:5. **CORRIGIDO** (ver abaixo).
+  🟡 **(3) "sempre 2160" nunca foi verdade:** a conta é `2160 ÷ largura do slide` com piso 1 — slide mais largo
+  que 2160 sai maior que 2160. 🟡 **(4) só o PRIMEIRO slide é medido** (`.first()`): o viewport e a ampliação de
+  TODOS vêm dele; peça com slides de tamanhos diferentes sai torta. 🟡 **(5) medida quebrada → PNG com 1 px a
+  mais/menos** (acontece com `vw`/`%`; pro Instagram é indiferente, **pra gráfica não** — por isso o molde usa px
+  fixo). ⚪ **(6)** o Gerar PNG só tem foto em alta se a peça foi aberta **pela pasta**. ⚪ **(7)** o limite de
+  100 MB conta as fotos da pasta, não o HTML (foto embutida escapa). ⚪ **(8)** o rótulo "Mantém o 4:5" do Ajustar
+  foto está datado — **a ferramenta NÃO assume 4:5** (usa `cover` + %; funciona em qualquer proporção, confirmado
+  no livrinho). **(3)–(8) ficaram registrados e NÃO foram mexidos.**
+- **✅ PASSO 2 — a peça declara a largura do PNG (FEITO e testado):** o robô agora lê
+  `<meta name="sv-export-largura">` **na passada de medição que já abre o Chrome**; achou número válido, usa;
+  **senão, `TARGET_W = 2160` de sempre**. Mexeu **só** em `scripts/render-core.mjs` — o `editor.html` não
+  precisou saber de nada. **Três blindagens:** sem plaquinha → 2160 · lixo (letra, vazia, `0`, negativa,
+  `1696.5`, `99999`) → 2160 · erro na leitura → 2160. Aceita só **inteiro de 200 a 8000** (espaços tolerados).
+  🛡️ **PROVA DE QUE O CARROSSEL NÃO MUDOU:** o mesmo carrossel de 3 slides 1080×1350 (foto, gradiente em texto,
+  brilho, sombra) foi renderizado pelo robô **de antes** e pelo **de agora** → os 3 PNGs saíram com o **mesmo
+  hash SHA-256**, byte a byte idênticos, 2160×2700. As **10 blindagens** passaram. O livrinho saiu **1696×2528**
+  nas 13 páginas.
+- **✅ PASSO 2b — o editor mostra o tamanho REAL (FEITO e testado):** o robô devolve `largura`/`altura` de cada
+  PNG **lidos do cabeçalho do próprio arquivo** (IHDR — número de verdade, não conta que arredonda), e o editor
+  mostra o que veio: no aviso, no contador e em cada cartão (`01.png · 1696×2528`). Slides de tamanhos diferentes
+  viram "tamanhos variados". **Testado no navegador** (Playwright, `editor.html` oficial, servidor de teste numa
+  porta separada pra não mexer no do Carlos): carrossel → *"PNGs fiéis em 2160×2700"*; livrinho → *"PNGs fiéis em
+  1696×2528"*, 13 cartões. **0 erro de JS** (os 404 eram as fotos, peça carregada sem a pasta).
 - **⚠️ ACHADO IMPORTANTE (nas artes, não no código):** as 12 ilustrações têm uma **moldura branca desenhada
   dentro do próprio JPG** — **~86 a 92 px (≈ 7 a 8 mm)**, medido pixel a pixel na `pagina-01.jpg`. Numa peça
   impressa isso vira faixa branca em volta e **acaba com a sangria** (se a faca cair 1 mm pra dentro, aparece

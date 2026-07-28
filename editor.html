@@ -226,7 +226,7 @@
     <button id="addBokeh" title="Adicionar um brilho (bokeh) no slide que está à vista">✨ Adicionar brilho</button>
     <button id="addImage" title="Adicionar uma imagem (PNG/JPG) de fundo no slide à vista — mesmo que a peça tenha sido feita sem foto">🖼️ Adicionar imagem</button>
     <input type="file" id="addImageInput" accept="image/png,image/jpeg,image/webp" hidden>
-    <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução (2160×2700), fiéis, pelo navegador robô">🖼️ Gerar PNG</button>
+    <button id="genpng" class="genpng-btn" title="gerar os PNGs dos slides em alta resolução, fiéis, pelo navegador robô (carrossel: 2160×2700)">🖼️ Gerar PNG</button>
   </header>
 
   <main>
@@ -2237,7 +2237,10 @@ loadHtml(SAMPLE);
 </script>
 <script>
 /* ---- 🖼️ Gerar PNG: manda o slide (com os ajustes) + as imagens da pasta pro robô
-   local (server.mjs -> render-core.mjs) e mostra os PNGs fiéis em 2160×2700. ---- */
+   local (server.mjs -> render-core.mjs) e mostra os PNGs fiéis no TAMANHO REAL de
+   cada peça (carrossel: 2160×2700; livrinho da gráfica: 1696×2528). O tamanho vem
+   medido do cabeçalho do próprio PNG — antes era texto fixo aqui, que MENTIA em
+   qualquer peça que não fosse o 4:5 do Instagram. ---- */
 (function(){
   const btn     = document.getElementById('genpng');
   const overlay = document.getElementById('pngModal');
@@ -2282,6 +2285,17 @@ loadHtml(SAMPLE);
     for(const c of central){ partes.push(c); centralSize += c.length; }
     partes.push(_concat([_u32(0x06054b50), _u16(0), _u16(0), _u16(files.length), _u16(files.length), _u32(centralSize), _u32(centralStart), _u16(0)]));
     return new Blob(partes, { type: 'application/zip' });
+  }
+  // resume o tamanho REAL dos PNGs que voltaram do robô (ele mede no cabeçalho de
+  // cada arquivo). Todos iguais -> "1696×2528"; misturados -> avisa que variam.
+  // Se vier resposta velha (sem os números), devolve vazio e o texto some — nunca
+  // volta a chutar um tamanho.
+  function resumoTamanho(lista){
+    const tams = lista.map(s => (s && s.largura && s.altura) ? (s.largura + '×' + s.altura) : null).filter(Boolean);
+    if(!tams.length) return '';
+    const unicos = [...new Set(tams)];
+    if(unicos.length === 1) return unicos[0];
+    return 'tamanhos variados (' + unicos.slice(0, 3).join(', ') + (unicos.length > 3 ? '…' : '') + ')';
   }
   function fileToBase64(file){
     return new Promise((res, rej) => {
@@ -2349,13 +2363,15 @@ loadHtml(SAMPLE);
 
       ultimos = Array.isArray(data.slides) ? data.slides : [];
       const n = ultimos.length;
+      const tam = resumoTamanho(ultimos);
       banner.className = 'png-banner';
-      banner.textContent = '✅ Pronto! PNGs fiéis em 2160×2700 (retina). Clique em "Baixar" em cada slide, ou "Baixar tudo (.zip)".';
+      banner.textContent = '✅ Pronto! PNGs fiéis' + (tam ? ' em ' + tam : '')
+        + '. Clique em "Baixar" em cada slide, ou "Baixar tudo (.zip)".';
       if(Array.isArray(data.avisos) && data.avisos.length){
         banner.className = 'png-banner erro';
         banner.textContent += ' ⚠️ Atenção: ' + data.avisos.length + ' imagem(ns) pode não ter carregado — confira o resultado.';
       }
-      countEl.textContent = n + (n === 1 ? ' slide' : ' slides') + ' · PNG 2160×2700 (retina)';
+      countEl.textContent = n + (n === 1 ? ' slide' : ' slides') + (tam ? ' · PNG ' + tam : '');
       grid.innerHTML = '';
       ultimos.forEach((s, i) => {
         const card = document.createElement('div'); card.className = 'png-card';
@@ -2365,7 +2381,7 @@ loadHtml(SAMPLE);
         thumb.style.backgroundImage = 'url("' + src + '")';
         const foot = document.createElement('div');
         foot.className = 'png-foot';
-        foot.innerHTML = '<span>' + s.nome + '</span>';
+        foot.innerHTML = '<span>' + s.nome + (s.largura && s.altura ? ' · ' + s.largura + '×' + s.altura : '') + '</span>';
         const b = document.createElement('button');
         b.className = 'png-dl'; b.dataset.i = String(i); b.textContent = 'Baixar';
         foot.appendChild(b);

@@ -1,7 +1,8 @@
 // Motor de render reaproveitável: recebe um HTML + as imagens/fontes (em memória)
-// e devolve os PNGs de cada slide em alta resolução (2160 de largura = 2× do 1080
-// do Instagram). Usa o Chrome JÁ instalado no PC (playwright-core, canal 'chrome')
-// — sem baixar o Chromium de ~150 MB. Espelha a engine do sistema da empresa.
+// e devolve os PNGs de cada slide em alta resolução — por padrão 2160 de largura
+// (2× do 1080 do Instagram), ou a largura que a própria peça declarar (ver
+// META_LARGURA abaixo). Usa o Chrome JÁ instalado no PC (playwright-core, canal
+// 'chrome') — sem baixar o Chromium de ~150 MB. Espelha a engine do sistema da empresa.
 
 import { chromium } from 'playwright-core'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
@@ -9,9 +10,49 @@ import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const TARGET_W = 2160                 // 2× de 1080 (Instagram 4:5 → 2160×2700)
+const TARGET_W = 2160                 // 2× de 1080 (Instagram 4:5 → 2160×2700) — O PADRÃO
 const CHROME_FALLBACK = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 const SLIDE_ATTR = 'data-sv-slide'    // marca interna dos slides de topo (some no fim)
+
+// ---- largura de saída DECLARADA PELA PEÇA -------------------------------
+// Por que existe: o carrossel do Instagram sempre saiu em 2160 de largura, e isso
+// NÃO PODE MUDAR — é o que o Carlos usa todos os dias. Mas o livrinho 14×21 da
+// gráfica precisa sair em 1696 (o tamanho exato das artes). Em vez de trocar o
+// número, a peça passou a poder DECLARAR o dela:
+//     <meta name="sv-export-largura" content="1696">
+// Peça SEM a plaquinha (todo carrossel) → 2160, exatamente como sempre foi.
+const META_LARGURA = 'sv-export-largura'
+const LARGURA_MIN = 200, LARGURA_MAX = 8000
+
+// lê a plaquinha da página já aberta. Blindado dos três lados: se não existir, se
+// vier com lixo (letra, 0, número absurdo) ou se a leitura der erro, devolve null
+// e quem chama cai no TARGET_W de sempre.
+async function larguraDeclarada(page) {
+  try {
+    const cru = await page.evaluate((nome) => {
+      const m = document.querySelector('meta[name="' + nome + '"]')
+      return m ? m.getAttribute('content') : null
+    }, META_LARGURA)
+    if (cru == null) return null
+    const n = Number(String(cru).trim())
+    if (!Number.isFinite(n) || !Number.isInteger(n)) return null
+    if (n < LARGURA_MIN || n > LARGURA_MAX) return null
+    return n
+  } catch {
+    return null
+  }
+}
+
+// tamanho real de um PNG, lido do cabeçalho do próprio arquivo (IHDR: largura no
+// byte 16, altura no 20). É o número de verdade — não uma conta que pode arredondar.
+function tamanhoDoPng(buf) {
+  try {
+    if (buf.length < 24) return null
+    return { largura: buf.readUInt32BE(16), altura: buf.readUInt32BE(20) }
+  } catch {
+    return null
+  }
+}
 
 // erro amigável (em português) quando o Chrome não é encontrado
 export class ChromeAusenteError extends Error {}
@@ -94,7 +135,7 @@ function caminhoSeguro(p) {
 /**
  * Renderiza os slides de um HTML em PNGs de alta resolução.
  * @param {{ html: string, assets?: Array<{path:string, base64:string}> }} entrada
- * @returns {Promise<{ slides: Array<{nome:string, base64:string}>, avisos: string[] }>}
+ * @returns {Promise<{ slides: Array<{nome:string, base64:string, largura?:number, altura?:number}>, avisos: string[] }>}
  */
 export async function renderSlidesToPng({ html, assets = [] }) {
   if (!html || typeof html !== 'string') throw new Error('HTML vazio.')
@@ -116,11 +157,16 @@ export async function renderSlidesToPng({ html, assets = [] }) {
     // 1) passada de medição: tamanho real do primeiro slide (ou da página toda)
     let box = null
     let usouBody = false
+    let larguraAlvo = TARGET_W       // o padrão de sempre (carrossel)
     {
       const { browser, page } = await abrir(1, { width: 1280, height: 1600 })
       try {
         await page.goto(fileUrl, { waitUntil: 'load' })
         await esperarPronto(page)
+        // aproveita esta MESMA passada (o Chrome já está aberto) pra ver se a peça
+        // declarou a largura dela. Nulo = peça comum = 2160, como sempre.
+        const declarada = await larguraDeclarada(page)
+        if (declarada) larguraAlvo = declarada
         const n = await marcarSlides(page)
         if (n > 0) box = await page.locator('[' + SLIDE_ATTR + ']').first().boundingBox()
         if (!box) {
@@ -137,8 +183,8 @@ export async function renderSlidesToPng({ html, assets = [] }) {
     }
     if (!box || box.width <= 0) throw new Error('Não encontrei nenhum slide no HTML.')
 
-    // 2) passada de render em alta resolução (escala pra dar ~2160px de largura)
-    const dsf = Math.max(1, Math.min(8, TARGET_W / box.width))
+    // 2) passada de render em alta resolução (escala pra dar ~larguraAlvo px de largura)
+    const dsf = Math.max(1, Math.min(8, larguraAlvo / box.width))
     const slides = []
     let avisos = []
     {
@@ -150,14 +196,14 @@ export async function renderSlidesToPng({ html, assets = [] }) {
 
         if (usouBody) {
           const buf = await page.screenshot({ type: 'png', fullPage: true })
-          slides.push({ nome: '01.png', base64: buf.toString('base64') })
+          slides.push({ nome: '01.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) })
         } else {
           await marcarSlides(page)
           const loc = page.locator('[' + SLIDE_ATTR + ']')
           const n = await loc.count()
           for (let i = 0; i < n; i++) {
             const buf = await loc.nth(i).screenshot({ type: 'png' })
-            slides.push({ nome: String(i + 1).padStart(2, '0') + '.png', base64: buf.toString('base64') })
+            slides.push({ nome: String(i + 1).padStart(2, '0') + '.png', base64: buf.toString('base64'), ...tamanhoDoPng(buf) })
           }
         }
       } finally {

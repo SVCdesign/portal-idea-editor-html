@@ -74,27 +74,31 @@ outro sistema, que passa a gerar o livrinho já no molde que o editor domina.
 Estes três arquivos. **Não encostam em nenhuma linha do editor** — risco zero para
 o carrossel.
 
-### Passo 2 — o tamanho do PNG ⏸️ NÃO COMEÇOU (precisa de auditoria antes)
-Hoje o "Gerar PNG" sai **sempre em 2160 px de largura** (o padrão do Instagram).
-Para o livrinho ele precisa sair em **1696**.
+### Passo 2 — o tamanho do PNG ✅ FEITO (2026-07-28, depois da auditoria)
+O "Gerar PNG" saía **sempre em 2160 px de largura** (o padrão do Instagram). Agora a
+peça pode **declarar a largura dela** — e o livrinho sai em **1696 × 2528**.
 
-**Onde mora o número:** [`scripts/render-core.mjs`](../../scripts/render-core.mjs),
-linha 12 — `const TARGET_W = 2160`. É usado em **uma linha só** (`dsf = TARGET_W /
-box.width`).
+**Como ficou** (`scripts/render-core.mjs`): na passada de medição, que já abre o
+Chrome, o robô lê `<meta name="sv-export-largura">`. Se achar um número válido, usa
+ele; **senão usa o `TARGET_W = 2160` de sempre**. O `editor.html` não precisou saber
+de nada disso.
 
-**Duas notícias boas encontradas na análise:**
-- O **1080×1350 do Instagram não está escrito em lugar nenhum**. O robô **mede o
-  slide** e calcula a ampliação. Ele já é flexível por natureza.
-- O molde já traz a plaquinha `<meta name="sv-export-largura" content="1696">`.
-  Hoje ela é ignorada (inofensiva); no passo 2 ela passa a mandar.
+**As três blindagens** (todas testadas): sem plaquinha → 2160 · plaquinha com letra,
+vazia, zero, negativa, quebrada (1696.5) ou absurda (99999) → 2160 · erro na leitura
+→ 2160. Aceita só inteiro entre 200 e 8000, com espaços em volta tolerados.
 
-**A trava de segurança combinada com o Carlos:**
-> A regra vira *"se a peça declarar a largura, usa a dela; **se não declarar, 2160,
-> exatamente como hoje**"*. Um carrossel não declara nada → cai no caminho antigo,
-> idêntico. E **antes/depois** se gera o PNG de um carrossel de verdade e se
-> **compara**: um pixel diferente = desfaz.
+**A prova de que o carrossel não mudou:** o mesmo carrossel de 3 slides (1080×1350,
+com foto, gradiente em texto, brilho e sombra) foi renderizado pelo robô **de antes**
+e pelo **de agora**, e os PNGs saíram com o **mesmo hash SHA-256** — byte a byte
+idênticos, 2160×2700. Esse teste vive em `previas/`-style, fora do Git; para repetir,
+basta guardar uma cópia do `render-core.mjs` antes de mexer e comparar os hashes.
 
-**Ordem combinada:** auditoria do "Gerar PNG" **primeiro**, só então o código.
+### Passo 2b — o editor mostra o tamanho real ✅ FEITO (2026-07-28)
+O texto "2160×2700" estava **escrito à mão em 4 lugares** do `editor.html` e mentia em
+qualquer peça que não fosse 4:5. Agora o robô devolve `largura` e `altura` de cada PNG
+— **lidos do cabeçalho do próprio arquivo**, não calculados — e o editor mostra o que
+veio, no aviso, no contador e em cada cartão. Peças com slides de tamanhos diferentes
+aparecem como "tamanhos variados".
 
 ### Ainda em aberto (depende do Carlos)
 - ⚠️ **As artes atuais têm moldura branca desenhada dentro do arquivo** (~86 a 92 px,
