@@ -157,6 +157,30 @@ carrossel.** Na dúvida, ganha o carrossel.
   registrados pro robô. Editei um título pela prévia, cliquei **🖼️ Gerar PNG** e vieram **13 PNGs em 1696×2528**,
   **sem aviso de imagem quebrada**, com a edição dentro. É o elo que faltava: abrir pela pasta → editar →
   exportar no tamanho de gráfica.
+- **✅ (2026-08-02) 🫧 NOVO PAINEL: TRANSPARÊNCIA (+ conserto de um defeito antigo do Desfazer):** o Carlos
+  quis deixar o cartãozinho de texto do livrinho vazado, pra a arte aparecer por trás. **A distinção que
+  importa:** `opacity` desbota **o texto junto** (leitura sofre); mexer só na **cor de fundo** deixa o texto
+  sólido. O painel tem os dois modos, com **"Só o fundo" como padrão**.
+  **Onde aparece:** `#transptools` é o **primeiro painel que NÃO é exclusivo** — ele aparece **junto** com o
+  painel específico (Ajustar foto / Ajustar texto / Ajustes rápidos), porque transparência vale pra todos. A
+  única exceção é a **película**, que já tem o Escurecer/Clarear dela.
+  **📄 Aplicar em todas as páginas** — a **primeira coisa do editor que mexe em vários slides de uma vez**.
+  Alvo = mesma etiqueta + mesmas classes (fora as internas `__ya_*`), dentro de cada slide do `slideList()`.
+  A auditoria mostrou que **o Desfazer já dava conta sozinho**: ele guarda um **retrato do documento inteiro**,
+  então envolver a mudança em UM `comHistorico` faz **um Ctrl+Z voltar as 12 páginas juntas** — confirmado no
+  teste. E a contagem é **honesta**: conta o que REALMENTE mudou ("mudei 11 elementos… (1 já estava assim)");
+  apertar de novo diz *"já estavam assim — nada mudou"* e **não gasta passo do Desfazer**.
+  🔧 **DEFEITO ANTIGO CONSERTADO (achado na auditoria):** o "antes" dos sliders (`ovBefore` na película, `antes`
+  no brilho) só era limpo no evento `change` — que **não dispara se o valor não muda**. Clicar na barrinha sem
+  mexer deixava o retrato **preso**; depois de outras edições, o próximo arrasto gravava aquele retrato VELHO e
+  **um Ctrl+Z voltava demais**, levando as edições do meio junto. Conserto: `pointerup`/`keyup` também confirmam.
+  **Testado com a peça REAL do Carlos** (12 cartões, com as edições dele de `translate`+`scale`): painel aparece
+  junto com o de elemento · lê o valor certo (92%) · "só o fundo" muda o fundo e **o texto fica em opacity 1** ·
+  as edições dele **convivem** no mesmo `style` · aplicar em todas = 12/12 · **um Desfazer volta as 12 e as
+  edições dele sobrevivem** · "tudo junto" aplica `opacity` · Reset limpa só o que o painel escreveu · elemento
+  **sem fundo** trava a barrinha e explica · **película não mostra o painel** · foto mostra os dois painéis.
+  **Regressão do carrossel:** 3 slides, aplicar em todas OK, **salvo sai limpo**, **Gerar PNG em 2160×2700**.
+  **0 erro de JS.** E o teste que reproduz o defeito antigo do Desfazer passou.
 - **✅ (2026-08-02) O LIVRINHO ANIMADO + A MOLDURA BRANCA RESOLVIDA:** o Carlos editou a peça de
   verdade (`D:\00- CODIGO\matrix-editor-reference` — subiu o cartão de texto 14px e reduziu pra 92,6% nas
   12 páginas) e pediu **duas saídas do mesmo trabalho**: a peça de trabalho (páginas → PNG pra gráfica) e o

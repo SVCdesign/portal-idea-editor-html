@@ -355,6 +355,26 @@
             <label class="ov-row"><span>Suavidade (borrado) <b id="bk-v-blur">40px</b></span><input type="range" id="bk-s-blur" min="0" max="120" value="40"></label>
           </div>
         </div>
+        <!-- 🫧 TRANSPARÊNCIA: aparece JUNTO com o painel específico (não no lugar dele),
+             porque vale pra caixa, texto e foto igualmente. A única exceção é a película,
+             que já tem o Escurecer/Clarear dela. -->
+        <div id="transptools" class="tools" hidden>
+          <div class="tlabel">🫧 Transparência — deixa o elemento vazado, e a arte aparece por trás:</div>
+          <div class="tgrid">
+            <span class="ov-lab">O que fica vazado:</span>
+            <button class="tp-modo primary" data-modo="fundo" title="só o fundo do elemento fica transparente — o TEXTO continua sólido e legível (é quase sempre o que se quer)">Só o fundo</button>
+            <button class="tp-modo" data-modo="tudo" title="o elemento inteiro fica transparente, texto junto — a leitura fica mais fraca">Tudo junto</button>
+          </div>
+          <div class="ov-sliders">
+            <label class="ov-row"><span>Opacidade <b id="tp-v">100%</b></span><input type="range" id="tp-s" min="0" max="100" value="100"></label>
+          </div>
+          <div class="tgrid" style="margin-top:10px">
+            <button id="tp-todas" title="repete esta mesma transparência em todos os elementos iguais, em todas as páginas">📄 Aplicar em todas as páginas</button>
+            <span class="sep"></span>
+            <button id="tp-reset">↺ Voltar ao original</button>
+            <span class="hint" id="tp-aviso"></span>
+          </div>
+        </div>
           </div>
         </div>
         <div class="sec codigo" id="sec-codigo">
@@ -408,6 +428,7 @@ const photoToolsEl = document.getElementById('phototools');
 const textToolsEl = document.getElementById('texttools');
 const overlayToolsEl = document.getElementById('overlaytools');
 const bokehToolsEl = document.getElementById('bokehtools');
+const transpToolsEl = document.getElementById('transptools');
 const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
 let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
@@ -1129,7 +1150,7 @@ function setPreviewCursor(c){
   const body = iframe.contentDocument && iframe.contentDocument.body;
   if(body) body.style.cursor = c;
 }
-function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; setPreviewCursor(''); }
+function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; transpToolsEl.hidden = true; setPreviewCursor(''); }
 
 // é um elemento de texto? (tag de texto comum, ou tem texto escrito direto nele)
 const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
@@ -1149,8 +1170,12 @@ function showToolsFor(el){
   textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
   overlayToolsEl.hidden = !ovl;  // overlay: escurecer/clarear/cor
   bokehToolsEl.hidden = !bok;    // brilho: tamanho/cor/intensidade/suavidade
+  // transparência: aparece JUNTO com o painel específico (não no lugar dele) — vale
+  // pra caixa, texto e foto. Fora só a película, que já tem o Escurecer/Clarear dela.
+  transpToolsEl.hidden = !el || ovl;
   if(ovl && window.__ovSync) window.__ovSync();
   if(bok && window.__bkSync) window.__bkSync();
+  if(!transpToolsEl.hidden && window.__tpSync) window.__tpSync(el);
   setPreviewCursor(img ? 'grab' : (el ? 'move' : ''));   // texto/elemento: dá pra arrastar
 }
 
@@ -2542,6 +2567,12 @@ loadHtml(SAMPLE);
       r.addEventListener('keydown', ovGrab);
       r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
       r.addEventListener('change', ovCommit);
+      // CONSERTO (2026-08-02): sem estes dois, clicar na barrinha SEM mexer deixava o
+      // "antes" preso (o 'change' não dispara quando o valor não muda). Aí, depois de
+      // outras edições, o próximo arrasto gravava aquele retrato VELHO — e um Ctrl+Z
+      // voltava demais, levando as edições do meio junto.
+      r.addEventListener('pointerup', ovCommit);
+      r.addEventListener('keyup', ovCommit);
     }
   });
   document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
@@ -2625,6 +2656,8 @@ loadHtml(SAMPLE);
       r.addEventListener('keydown', grab);
       r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
       r.addEventListener('change', commit);
+      r.addEventListener('pointerup', commit);   // ver o CONSERTO comentado no painel da película
+      r.addEventListener('keyup', commit);
     }
   });
   document.querySelectorAll('.bk-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
@@ -2649,6 +2682,163 @@ loadHtml(SAMPLE);
         case 'cy':    if(typeof centerOnSlide === 'function') centerOnSlide('v'); break;
       }
     });
+  });
+})();
+</script>
+<script>
+/* ---- 🫧 TRANSPARÊNCIA: deixa um elemento vazado (a arte aparece por trás) ----
+   DOIS MODOS, e a diferença importa:
+     • "só o fundo" → mexe SÓ na cor de fundo. O texto continua sólido e legível.
+       É quase sempre o que se quer num cartãozinho de texto sobre a foto.
+     • "tudo junto" → mexe no `opacity` do elemento inteiro; o texto desbota junto.
+   A película (overlay) NÃO usa este painel: ela já tem o Escurecer/Clarear dela. */
+(function(){
+  const slider  = document.getElementById('tp-s');
+  const valEl   = document.getElementById('tp-v');
+  const avisoEl = document.getElementById('tp-aviso');
+  const bTodas  = document.getElementById('tp-todas');
+  const bReset  = document.getElementById('tp-reset');
+  let modo = 'fundo';
+  let antes = null;          // retrato de antes de arrastar (commit só se mudar)
+
+  const alvo = () => (typeof selected !== 'undefined' ? selected : null);
+  const avisar = (t) => { if(avisoEl) avisoEl.textContent = t || ''; };
+
+  // cor de fundo do elemento como {r,g,b,a}. Devolve null quando o modo "só o fundo"
+  // não se aplica: elemento sem fundo nenhum, ou com degradê/imagem no lugar da cor.
+  function corFundo(el){
+    const s = getComputedStyle(el);
+    if(s.backgroundImage && s.backgroundImage !== 'none') return null;
+    const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,/\s]+([\d.%]+))?/i.exec(s.backgroundColor || '');
+    if(!m) return null;
+    const r = +m[1], g = +m[2], b = +m[3];
+    const a = m[4] === undefined ? 1 : (String(m[4]).indexOf('%') >= 0 ? parseFloat(m[4]) / 100 : parseFloat(m[4]));
+    // rgba(0,0,0,0) é o "sem fundo" padrão do navegador. Mas se NÓS já escrevemos um
+    // fundo inline, então é um fundo de verdade que o usuário levou a zero.
+    const inline = el.getAttribute('style') || '';
+    if(r === 0 && g === 0 && b === 0 && a === 0 && !/background/i.test(inline)) return null;
+    return { r, g, b, a };
+  }
+
+  function valorAtual(el){
+    if(modo === 'tudo'){
+      const o = parseFloat(getComputedStyle(el).opacity);
+      return Math.round((isNaN(o) ? 1 : o) * 100);
+    }
+    const c = corFundo(el);
+    return c ? Math.round(c.a * 100) : 100;
+  }
+
+  // devolve `true` só se o elemento REALMENTE mudou. É o que faz a contagem do
+  // "aplicar em todas" ser honesta: sem isso ela dizia "apliquei em 12" mesmo quando
+  // nada mudava (ex.: modo "tudo junto" com a barrinha em 100%).
+  function aplicarEm(el, pct){
+    const antesDoStyle = el.getAttribute('style') || '';
+    if(modo === 'tudo'){
+      if(pct >= 100) el.style.removeProperty('opacity');
+      else el.style.opacity = String(pct / 100);
+    }else{
+      const c = corFundo(el); if(!c) return false;
+      el.style.backgroundColor = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + (pct / 100) + ')';
+    }
+    if(el.getAttribute('style') === '') el.removeAttribute('style');
+    return (el.getAttribute('style') || '') !== antesDoStyle;
+  }
+
+  // deixa o painel refletindo o elemento selecionado (chamado pelo showToolsFor)
+  window.__tpSync = function(el){
+    if(!el) return;
+    const podeFundo = !!corFundo(el);
+    if(modo === 'fundo' && !podeFundo){
+      slider.disabled = true;
+      avisar(getComputedStyle(el).backgroundImage !== 'none'
+        ? 'o fundo aqui é um degradê/imagem — use "Tudo junto".'
+        : 'este elemento não tem cor de fundo — use "Tudo junto".');
+    }else{
+      slider.disabled = false;
+      avisar('');
+    }
+    const v = valorAtual(el);
+    slider.value = String(v);
+    valEl.textContent = v + '%';
+  };
+
+  document.querySelectorAll('.tp-modo').forEach(btn => btn.addEventListener('click', () => {
+    modo = btn.dataset.modo;
+    document.querySelectorAll('.tp-modo').forEach(b => b.classList.toggle('primary', b === btn));
+    window.__tpSync(alvo());
+  }));
+
+  function grab(){ if(antes == null && typeof snapshotHtml === 'function') antes = snapshotHtml(); }
+  function commit(){
+    if(antes == null) return;
+    const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null;
+    if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes);
+    antes = null;
+  }
+  slider.addEventListener('pointerdown', grab);
+  slider.addEventListener('keydown', grab);
+  slider.addEventListener('input', () => {
+    const el = alvo(); if(!el) return;
+    const pct = +slider.value;
+    valEl.textContent = pct + '%';
+    aplicarEm(el, pct);
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  });
+  slider.addEventListener('change', commit);
+  slider.addEventListener('pointerup', commit);
+  slider.addEventListener('keyup', commit);
+
+  // "o mesmo elemento" nas outras páginas = mesma etiqueta + mesmas classes.
+  // As classes internas do editor (__ya_sel / __ya_editing) ficam de fora, senão o
+  // seletor só casaria com o que está selecionado agora.
+  function seletorDe(el){
+    const cls = Array.from(el.classList).filter(c => c.indexOf('__ya_') !== 0);
+    if(!cls.length) return null;
+    const esc = (c) => (window.CSS && CSS.escape) ? CSS.escape(c) : c;
+    return el.tagName.toLowerCase() + '.' + cls.map(esc).join('.');
+  }
+
+  bTodas.addEventListener('click', () => {
+    const el = alvo(); if(!el) return;
+    const sel = seletorDe(el);
+    if(!sel){ avisar('este elemento não tem classe pra eu reconhecer nas outras páginas — ajuste um por um.'); return; }
+    const doc = iframe.contentDocument; if(!doc) return;
+    let paginas = slideList();
+    if(!paginas.length && doc.body) paginas = [doc.body];   // peça sem slides: a página toda
+    const pct = +slider.value;
+    let n = 0, tocadas = 0, iguais = 0, achados = 0;
+    comHistorico(() => {
+      for(const s of paginas){
+        let mexeu = false;
+        s.querySelectorAll(sel).forEach(e => {
+          achados++;
+          if(aplicarEm(e, pct)){ n++; mexeu = true; } else { iguais++; }
+        });
+        if(mexeu) tocadas++;
+      }
+    });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    if(!achados){ avisar('não achei nenhum elemento igual nas outras páginas.'); return; }
+    avisar(n
+      ? '✅ mudei ' + n + (n === 1 ? ' elemento' : ' elementos') + ', em ' + tocadas
+        + (tocadas === 1 ? ' página' : ' páginas')
+        + (iguais ? ' (' + iguais + ' já estava' + (iguais > 1 ? 'm' : '') + ' assim)' : '')
+        + '. Um ↩ Desfazer volta tudo.'
+      : 'achei ' + achados + (achados === 1 ? ' elemento igual, mas ele já estava' : ' elementos iguais, mas já estavam')
+        + ' assim — nada mudou.');
+  });
+
+  bReset.addEventListener('click', () => {
+    const el = alvo(); if(!el) return;
+    comHistorico(() => {
+      el.style.removeProperty('opacity');
+      el.style.removeProperty('background-color');
+      if(el.getAttribute('style') === '') el.removeAttribute('style');
+    });
+    window.__tpSync(el);
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    avisar('voltou ao original.');
   });
 })();
 </script>
