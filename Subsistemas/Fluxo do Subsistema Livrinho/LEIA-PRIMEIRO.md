@@ -49,6 +49,28 @@ outro sistema, que passa a gerar o livrinho já no molde que o editor domina.
 | `LEIA-PRIMEIRO.md` | este guia |
 | `RECEITA-PARA-O-OUTRO-SISTEMA.md` | a **especificação**, auto-suficiente. É o que o Carlos entrega ao sistema que gera os livrinhos. |
 | `molde-livrinho-14x21.html` | o **molde funcionando**, já preenchido com a história de São Lourenço (capa + 12 páginas). Serve de exemplo **e** de peça inicial. |
+| `ferramentas/montar-livrinho-animado.mjs` | transforma a peça EDITADA no **livrinho que abre e vira página** (o que o Carlos manda pra irmã). Ver abaixo. |
+| `ferramentas/tirar-moldura-das-artes.ps1` | tira a **moldura branca** desenhada dentro dos JPGs e padroniza tudo em 1696×2528. |
+
+---
+
+## 📖 O livrinho animado (a "peça de mostrar")
+O Carlos quer **duas saídas do mesmo trabalho**: a **peça de trabalho** (as páginas soltas,
+que ele edita aqui e viram PNG pra gráfica) e a **peça de mostrar** (o livrinho que abre e
+vira página, que ele manda pra irmã).
+
+**A direção importa.** Pegar um livrinho-aplicativo e tentar editar por dentro é o que
+quebrou lá atrás. O contrário é trivial: as **páginas são a fonte da verdade** e o livrinho
+animado é **descartável** — o script lê as `<section class="slide">` da peça editada e as
+embrulha **inteiras**, com o CSS original. Nada é redigitado, então **toda edição do Carlos
+aparece sozinha** e não há como perdê-la. Editou de novo? Roda o script de novo.
+
+`node "ferramentas/montar-livrinho-animado.mjs"` — os caminhos de entrada e saída estão nas
+primeiras linhas do arquivo. Depois é preciso encolher as fotos pra tela (o script de
+moldura serve de base) — o livrinho de 13 páginas fica em ~5,7 MB.
+
+⚠️ **Por enquanto é "na mão" (decisão do Carlos, 2026-08-02):** ele pede, a IA roda. Virar
+botão no editor ficou pra depois — *"depois a gente evolui com calma"*.
 
 ---
 
@@ -101,12 +123,16 @@ veio, no aviso, no contador e em cada cartão. Peças com slides de tamanhos dif
 aparecem como "tamanhos variados".
 
 ### Ainda em aberto (depende do Carlos)
-- ⚠️ **As artes atuais têm moldura branca desenhada dentro do arquivo** (~86 a 92 px,
-  ≈ 7 a 8 mm — medido pixel a pixel na `pagina-01.jpg`). Numa peça impressa isso vira
-  uma faixa branca em volta da página e **acaba com a sangria**: se a faca da gráfica
-  cair 1 mm para dentro, aparece uma tira branca torta na borda. As artes precisam ir
-  **até a borda do arquivo**. Remendo provisório: zoom de ~1,15× no **✂️ Ajustar foto**,
-  página por página.
+- ⚠️ **MOLDURA BRANCA NAS ARTES — remendada em 2026-08-02; o conserto de verdade continua
+  com a outra IA.** As artes vinham com uma borda branca desenhada **dentro** do JPG e —
+  pior — **de tamanho diferente em cada uma**: `pagina-05` tinha **0 px** e `pagina-03`
+  tinha **119 px**. Lado a lado no livrinho, as ilustrações pareciam de tamanhos
+  diferentes (foi o **Carlos** quem viu). **Remendo aplicado:**
+  `ferramentas/tirar-moldura-das-artes.ps1` mede a moldura de cada arte, corta e devolve em
+  1696×2528 sangrando até a borda. **Preço:** estica de 7% a 16% (perde um tico de nitidez)
+  e come ~4 mm de desenho em cima/embaixo. **Os originais ficaram guardados** em
+  `assets-originais/`, ao lado de `assets/`. 👉 **Ainda vale cobrar da outra IA as artes já
+  sangrando até a borda** — aí o remendo some e a qualidade é máxima.
 - A arte da **capa** (`assets/capa.jpg`, 1696 × 2528 px) ainda não existe. O molde já
   tem o lugar dela e um fundo em degradê para não ficar feio enquanto isso.
 - Confirmar com a gráfica se querem **contracapa** (o verso) como arte separada.

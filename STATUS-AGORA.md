@@ -157,6 +157,24 @@ carrossel.** Na dúvida, ganha o carrossel.
   registrados pro robô. Editei um título pela prévia, cliquei **🖼️ Gerar PNG** e vieram **13 PNGs em 1696×2528**,
   **sem aviso de imagem quebrada**, com a edição dentro. É o elo que faltava: abrir pela pasta → editar →
   exportar no tamanho de gráfica.
+- **✅ (2026-08-02) O LIVRINHO ANIMADO + A MOLDURA BRANCA RESOLVIDA:** o Carlos editou a peça de
+  verdade (`D:\00- CODIGO\matrix-editor-reference` — subiu o cartão de texto 14px e reduziu pra 92,6% nas
+  12 páginas) e pediu **duas saídas do mesmo trabalho**: a peça de trabalho (páginas → PNG pra gráfica) e o
+  **livrinho que abre e vira página**, pra mandar pra irmã dele (que não mexe com computador e tinha gostado do
+  livrinho da outra IA). **A direção é o que faz funcionar:** as páginas são a **fonte da verdade** e o livrinho
+  é **descartável** — o script lê as `<section class="slide">` e as embrulha **inteiras**, com o CSS original.
+  Nada é redigitado, então **não há como perder edição**. Ferramenta guardada em
+  `Subsistemas/Fluxo do Subsistema Livrinho/ferramentas/montar-livrinho-animado.mjs`. **Por enquanto é "na mão"**
+  (decisão do Carlos): ele pede, a IA roda. Virar botão ficou pra depois. Entregue em
+  `D:\00- CODIGO\livrinho-o-trem-das-aguas-PARA-ENVIAR` (~5,7 MB, pasta com HTML + assets + LEIA-ISTO.txt).
+  **Testado no navegador:** abre/fecha, vira e volta, para no fim, setas do teclado, clique na página, reabre,
+  **0 erro de JS**. Ajustes que o Carlos pediu no caminho: o livro estava **pequeno** (eu reservava 190px fixos
+  de rodapé — agora **mede** o rodapé de verdade, e entrou um botão **Tela cheia**: 676×504 → **1322×985**).
+  🎯 **E o achado dele:** as ilustrações pareciam de **tamanhos diferentes**. Medi as 13: a moldura branca
+  desenhada dentro do JPG **variava de 0 px (`pagina-05`) a 119 px (`pagina-03`)**. Corrigido com
+  `ferramentas/tirar-moldura-das-artes.ps1` (corta a moldura de cada uma e devolve em 1696×2528, sangrando).
+  **Originais preservados em `assets-originais/`.** Preço: estica 7–16% e come ~4 mm de desenho em cima/baixo.
+  **O conserto definitivo continua sendo a outra IA gerar as artes já sangrando** — está na receita.
 - **⚠️ ACHADO IMPORTANTE (nas artes, não no código):** as 12 ilustrações têm uma **moldura branca desenhada
   dentro do próprio JPG** — **~86 a 92 px (≈ 7 a 8 mm)**, medido pixel a pixel na `pagina-01.jpg`. Numa peça
   impressa isso vira faixa branca em volta e **acaba com a sangria** (se a faca cair 1 mm pra dentro, aparece
