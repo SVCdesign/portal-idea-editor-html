@@ -6,9 +6,11 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-07-28 · **Motivo:** 📖 **NOVO SUBSISTEMA: Livrinho 14×21 (para gráfica)** — passo 1 (o
-molde) ✅, **auditoria do Gerar PNG** ✅ e **passo 2 (a peça declara a largura) ✅ no ar e testado**, com o
-carrossel provado **byte a byte idêntico**. Ver o bloco logo abaixo. · Antes, 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
+**Atualizado:** 2026-08-09 · **Motivo:** 🧭 **CONSOLIDAÇÃO PRA TROCA DE PC** + 🔍 **auditoria completa da
+EDIÇÃO DE HTML DO CLIENTE** (o foco real deste mundo), pedida pelo Carlos depois de uma temporada mexendo no
+livrinho. **Resultado: nada quebrou** — ver o bloco `🎯 O FOCO` logo abaixo. · Antes, 📖 o **subsistema
+Livrinho 14×21** (molde ✅, auditoria do Gerar PNG ✅, a peça declara a largura ✅, painel de Transparência ✅,
+livrinho animado ✅) — **agora PAUSADO a pedido dele**. · Antes, 🎚️ **Escurecer/Clarear agora reconhece a película "veil"** (as peças
 do studio usam esse nome; o editor só conhecia "overlay"/"scrim") — ver bloco logo abaixo. · Antes,
 🔍 **AUDITORIA PROFUNDA + correções por etapa** (3 auditores em paralelo + leitura manual + teste no navegador). **As 4 etapas ✅ no ar** (15 correções — nada
 pendente): brilho atrás da foto · texto SVG que apagava a cor · salvar na pasta errada · Ctrl+Z "morto" · peso
@@ -25,24 +27,81 @@ saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2)
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
 
 ---
-### 🚚 TROCA DE PC — estado em 2026-07-24 (leia isto primeiro se abriu num PC novo)
-- **Código + texto:** tudo **commitado e no GitHub** (`main` = `origin/main`, working tree limpo). No PC novo,
-  um **`git pull`** traz tudo. **Nada de código pendente.**
-- **Assets pesados (fotos das peças) NÃO vêm pelo Git** — vêm pelo **Google Drive**. Antes de sair deste PC e
-  ao chegar no novo, confirme o **Drive VERDE** (terminou de sincronizar). Ex. da peça de hoje:
-  `E:\...\Criador de Carrossel\07- Julho\03- Beleza do Zero\` (o `final.html` + a pasta `assets/`).
-- **`previas/`** é local-only (está no `.gitignore`) — se não existir no PC novo, **crie** quando precisar.
-- **`conversa-entre-mundos`** (pasta neutra, fora do Git) é local-only — copie à mão se for usar no PC novo.
-- **`.codex/hooks.json`** é config local de ferramenta — não precisa viajar.
-- **Como abrir o editor:** atalho **`Abrir-Editor-HTML.bat`** (NÃO abra `editor.html` direto — vira `file://` e
-  o "salvar na pasta" para de funcionar).
-- **Pendências NÃO-código (dependem do Carlos):** (1) avisar o mundo editorial que há **turno-02** esperando
-  resposta (`dialogos-entre-mundos/sistema-de-ideas-html-sv/.../2026-07-23-imagem-referenciada-vs-embutida/`);
+## 🎯 O FOCO DESTE MUNDO — leia antes de qualquer coisa (2026-08-09)
+
+> **Este editor existe para o Carlos EDITAR HTML DE PEÇAS DE CLIENTE.** É o que ele usa
+> **todos os dias** e é o que paga a conta. Carrossel do Instagram (1080×1350 → PNG 2160×2700)
+> é o formato principal.
+>
+> ⚠️ **O LIVRINHO 14×21 ESTÁ PAUSADO.** Entre 28/07 e 02/08 evoluímos bastante um subsistema de
+> livrinho infantil para gráfica. O Carlos avaliou e disse, com todas as letras, que **perdeu o
+> foco**: *"esse editor foi feito para demanda de clientes… eu acabei perdendo o foco e indo para
+> um outro lado de coisas que eu faço bem pouco"*. **Não retome o livrinho por conta própria** —
+> só se ele pedir. O que foi feito está pronto e documentado em
+> `Subsistemas/Fluxo do Subsistema Livrinho/`, esperando.
+>
+> 🚨 **A regra que manda em tudo:** *o carrossel do Instagram é sagrado.* Toda novidade entra como
+> **caminho paralelo**, com o comportamento de hoje como padrão. E antes de dizer "pronto", rode a
+> **regressão da peça de cliente** (receita no fim deste bloco).
+
+### ✅ Auditoria da edição de cliente (feita em 2026-08-09, a pedido dele)
+O Carlos ficou com medo de que a temporada do livrinho tivesse quebrado o que ele mais usa. Auditei
+em duas frentes — **li o diff completo** do `editor.html` desde o último commit antes do livrinho
+(`e2e9a79`) **e testei o fluxo inteiro no navegador** com uma peça de cliente de verdade (3 slides,
+gradiente em texto, foto, overlay, brilho). **Veredito: nada quebrou.**
+- As 5 mudanças no `editor.html` são **aditivas ou consertos** — o laço central (clicar→código,
+  editar→aplicar, texto, foto, camadas, slides, desfazer, salvar) **não foi reescrito**.
+- Passaram: abrir pela pasta · clicar→código · editar→Aplicar (gradiente preservado) · cada elemento
+  com o painel certo · editar texto ao vivo · mover/aumentar · zoom na foto · slider do overlay ·
+  camadas · barra de slides · Desfazer em sequência · Remover (botão **e** tecla Delete) ·
+  **Salvar sai limpo** (sem marcas, sem base64) · Ver código todo · Colar · Exemplo ·
+  **Gerar PNG 2160×2700**. **0 erro de JS.**
+- **Única mudança de comportamento visível:** o painel **🫧 Transparência** agora aparece **junto**
+  com o painel de sempre em qualquer elemento com texto ou foto. Não substitui nada. O Carlos foi
+  avisado e **ficou de dizer** se quer que ele apareça só no livrinho — **pergunta em aberto.**
+
+### 🚚 TROCA DE PC — estado em 2026-08-09
+- **Código + texto:** tudo **commitado e no GitHub** (`main` = `origin/main`, working tree limpo).
+  No PC novo, um **`git pull`** traz tudo. **Nada de código pendente.**
+- **Assets pesados (fotos das peças) NÃO vêm pelo Git** — vêm pelo **Google Drive**. Confirme o
+  **Drive VERDE** (terminou de sincronizar) antes de sair e ao chegar.
+- **`previas/`** é local-only (`.gitignore`) — **não viaja**. Havia 10 prévias aqui; no PC novo a
+  pasta pode não existir: **crie quando precisar**. ⚠️ A prévia `previa-cor-do-texto.html` era uma
+  **feature esperando aprovação** — o código dela foi salvo em
+  [`logs/handoff/PENDENTE-painel-cor-do-texto.md`](logs/handoff/PENDENTE-painel-cor-do-texto.md)
+  justamente pra não se perder.
+- **`node_modules/`** não viaja — no PC novo rode **`npm install`** (o Gerar PNG depende do
+  `playwright-core`; ele usa o **Chrome já instalado**, não baixa Chromium).
+- **`conversa-entre-mundos`** (pasta neutra, fora do Git) é local-only — copie à mão se for usar.
+- **`.codex/`** é config local de ferramenta — não precisa viajar.
+- **Como abrir o editor:** atalho **`Abrir-Editor-HTML.bat`** (NÃO abra `editor.html` direto — vira
+  `file://` e o "salvar na pasta" para de funcionar).
+- ⚠️ **CAMINHOS QUE MORRERAM:** as pastas do livrinho em `D:\00- CODIGO\` (`matrix-editor-reference`
+  e `livrinho-o-trem-das-aguas-PARA-ENVIAR`) **não existem mais** neste PC — confirmado em 09/08.
+  Se um texto antigo apontar pra elas, ignore. A pasta de **referência** do outro sistema no Drive
+  (`E:\…\matrix-books\livrinho-sao-lourenco-maria-fumaca\matrix-portable-preview`) **ainda existe**
+  — é só leitura, **não mexer nela**.
+- **Pendências NÃO-código (dependem do Carlos):** (1) turno-02 esperando resposta do mundo editorial
+  (`dialogos-entre-mundos/sistema-de-ideas-html-sv/.../2026-07-23-imagem-referenciada-vs-embutida/`);
   (2) perguntar ao **html-studio** se ele lê os **dois** mecanismos de enquadramento ao mesmo tempo
-  (`object-position` + `transform`) — mudei essa regra ao consertar o bug do zoom.
+  (`object-position` + `transform`).
+
+### 🧪 A RECEITA DE REGRESSÃO (rode antes de dizer "pronto", sempre)
+1. Ligue o servidor: `node server.mjs` (ou o `.bat`) → `http://localhost:4599/editor.html`.
+2. Monte uma **peça de cliente**: 3 slides `.slide-wrapper > .slide` de **1080×1350**, com
+   gradiente em texto (`background-clip:text`), uma `<img>`, um `.overlay` e um `.bokeh`.
+3. Abra **pela pasta**, edite (código + texto ao vivo + mover + zoom), **Desfaça**, **Remova**.
+4. Confira o **Salvar**: sem `__ya_`, sem `contenteditable`, sem `data:image`, gradiente intacto.
+5. **Gerar PNG** tem que sair **2160×2700**.
+6. **0 erro de JavaScript** no console (só o `favicon.ico` 404, que é inofensivo e antigo).
+> Se mexeu no **robô do PNG** (`scripts/render-core.mjs`), o padrão-ouro é o **teste de hash**:
+> guarde uma cópia do arquivo ANTES, renderize o mesmo carrossel com as duas versões **na mesma
+> rodada** e compare o SHA-256. ⚠️ Compare sempre **na mesma execução** — slide com **texto em
+> gradiente** dá hash diferente entre rodadas separadas (variação de rasterização do Chrome).
 ---
 
-**(2026-07-28) 📖 NOVO SUBSISTEMA — LIVRINHO 14×21 PARA GRÁFICA (passo 1 ✅ / passo 2 ⏸️):** o Carlos
+**(2026-07-28 a 08-02) 📖 SUBSISTEMA LIVRINHO 14×21 — TUDO FEITO, e ⏸️ PAUSADO em 09/08 a pedido do Carlos
+(leia o bloco `🎯 O FOCO` no topo antes de retomar qualquer coisa daqui):** o Carlos
 apontou um livrinho infantil feito por **outro sistema** (`E:\…\matrix-books\livrinho-sao-lourenco-maria-fumaca\
 matrix-portable-preview` — **pasta de referência, não mexer**) e perguntou se dava pra editar aqui e **exportar
 as páginas em PNG pra gráfica imprimir** (livreto grampeado 14×21 cm).
@@ -182,7 +241,8 @@ carrossel.** Na dúvida, ganha o carrossel.
   **Regressão do carrossel:** 3 slides, aplicar em todas OK, **salvo sai limpo**, **Gerar PNG em 2160×2700**.
   **0 erro de JS.** E o teste que reproduz o defeito antigo do Desfazer passou.
 - **✅ (2026-08-02) O LIVRINHO ANIMADO + A MOLDURA BRANCA RESOLVIDA:** o Carlos editou a peça de
-  verdade (`D:\00- CODIGO\matrix-editor-reference` — subiu o cartão de texto 14px e reduziu pra 92,6% nas
+  verdade (`D:\00- CODIGO\matrix-editor-reference` ⚠️ **essa pasta JÁ NÃO EXISTE — sumiu; ver "CAMINHOS QUE
+  MORRERAM" no topo** — ele subiu o cartão de texto 14px e reduziu pra 92,6% nas
   12 páginas) e pediu **duas saídas do mesmo trabalho**: a peça de trabalho (páginas → PNG pra gráfica) e o
   **livrinho que abre e vira página**, pra mandar pra irmã dele (que não mexe com computador e tinha gostado do
   livrinho da outra IA). **A direção é o que faz funcionar:** as páginas são a **fonte da verdade** e o livrinho
@@ -190,7 +250,9 @@ carrossel.** Na dúvida, ganha o carrossel.
   Nada é redigitado, então **não há como perder edição**. Ferramenta guardada em
   `Subsistemas/Fluxo do Subsistema Livrinho/ferramentas/montar-livrinho-animado.mjs`. **Por enquanto é "na mão"**
   (decisão do Carlos): ele pede, a IA roda. Virar botão ficou pra depois. Entregue em
-  `D:\00- CODIGO\livrinho-o-trem-das-aguas-PARA-ENVIAR` (~5,7 MB, pasta com HTML + assets + LEIA-ISTO.txt).
+  `D:\00- CODIGO\livrinho-o-trem-das-aguas-PARA-ENVIAR` (~5,7 MB, pasta com HTML + assets + LEIA-ISTO.txt)
+  — ⚠️ **essa pasta também JÁ NÃO EXISTE mais neste PC** (o Carlos a moveu/apagou); pra refazer, use a
+  ferramenta `montar-livrinho-animado.mjs` do subsistema.
   **Testado no navegador:** abre/fecha, vira e volta, para no fim, setas do teclado, clique na página, reabre,
   **0 erro de JS**. Ajustes que o Carlos pediu no caminho: o livro estava **pequeno** (eu reservava 190px fixos
   de rodapé — agora **mede** o rodapé de verdade, e entrou um botão **Tela cheia**: 676×504 → **1322×985**).
@@ -626,6 +688,14 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 ## O que já está pronto (estado atual do `editor.html`)
 - **Clicar → código → editar ao vivo** (o coração original). O CSS NUNCA é
   reprocessado (gradiente, glow, sombra, blend ficam 100% fiéis).
+- **🫧 Transparência — NOVO (2026-08-02):** aparece **junto** com o painel específico
+  (é o **único painel não-exclusivo**) em qualquer elemento com texto ou foto; a
+  película fica de fora, que já tem o Escurecer/Clarear dela. Dois modos: **"Só o
+  fundo"** (padrão — mexe só na cor de fundo, o **texto continua sólido e legível**) e
+  **"Tudo junto"** (`opacity`, desbota o texto também). Tem **📄 Aplicar em todas as
+  páginas** — a **primeira coisa do editor que mexe em vários slides de uma vez** — que
+  volta **inteira com um Ctrl+Z** (o Desfazer guarda um retrato do documento todo) e
+  **conta só o que realmente mudou**. Por baixo: `#transptools`, `window.__tpSync`.
 - **Navegação:** caminho clicável no topo (subir pro elemento de volta) +
   linha **"Dentro:"** (entrar nos elementos filhos — ex.: chegar na foto) +
   **barra `[1]…[N]`** no topo da prévia pra pular entre slides (só aparece com 2+).
@@ -771,7 +841,10 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 ### Ao CHEGAR num PC/chat (abrir o mundo)
 1. **Git:** rode `node scripts/sync-guard.mjs boot` (ou o vigia avisa no boot, se os
    gatilhos já estiverem ligados). Se disser ATRASADO, baixe antes: `git pull`.
-2. **🟢 Google Drive:** confirme que os ASSETS das peças (imagens/fontes) terminaram
+2. **📦 `npm install`** — o `node_modules/` **não viaja** pelo Git. Sem isso o
+   **Gerar PNG não funciona** (falta o `playwright-core`). O `Abrir-Editor-HTML.bat`
+   tenta instalar sozinho no 1º uso, mas rodar à mão é mais garantido.
+3. **🟢 Google Drive:** confirme que os ASSETS das peças (imagens/fontes) terminaram
    de baixar (ícone verde). Eles viajam pelo Drive, **não** pelo Git.
 3. **Ler o retrato vivo:** este `STATUS-AGORA.md`.
 4. **`conversa-entre-mundos`** é local-only (fora do Git) — copie à mão se for o caso.
@@ -781,21 +854,42 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 - [ ] **🟢 Google Drive sincronizado** (verde) antes de desligar — causa #1 de PC desatualizado.
 - [ ] **`conversa-entre-mundos` com backup**, se mexeu nela.
 
-## Próximo passo — PRÓXIMA IA, RETOME ASSIM
-- Tudo acima foi **validado com o usuário** (testes no navegador via Playwright,
-  que ele autorizou). **Não há bug em aberto.**
-- 🧠 **BRAINSTORM EXAUSTIVO EM ANDAMENTO (2026-07-05):** o Carlos disse que "tem **muita
-  coisa** que ele precisa no editor" e quer ir **um passo de cada vez**. O fluxo que ele
-  gosta: **conversar → Prévia A → ele aprova ("vai") → aplica no `editor.html` → testa no
-  navegador → publica**. Ideias já conversadas nesta leva (o **brilho/bokeh já SAIU** e está
-  no ar):
-  - **Copiar / colar / duplicar elementos** entre slides (pegar um elemento de um slide,
-    levar pra outro e ajustar). Isso **evoluiu** pra ideia de **"botões de adicionar
-    elemento"** — o **✨ Adicionar brilho** é o **PRIMEIRO** dessa família.
-  - **Mais tipos de elemento** além do brilho (mesmo esquema: um botão adiciona → painel
-    ajusta cor/tamanho/etc.). O Carlos vai dizendo **quais**, um de cada vez.
-- 📁 **Prévias desta leva** (local-only, em `previas/`, **fora do Git**): `previa-botoes.html`
-  (reorganização + Salvar como) e `previa-brilho.html` (Adicionar brilho) — só referência.
+## Próximo passo — PRÓXIMA IA, RETOME ASSIM  *(reescrito em 2026-08-09)*
+
+### Onde a conversa parou, exatamente
+O Carlos **trocou de PC** e pediu pra consolidar tudo. Antes disso ele fez duas coisas
+importantes que definem o rumo:
+1. **Chamou o foco de volta:** o mundo é pra **editar HTML de peças de cliente**. O livrinho
+   virou distração e **está pausado**. (Detalhes no bloco `🎯 O FOCO`, no topo.)
+2. **Pediu a auditoria** dessa área. Feita, **nada quebrado**, resultado no mesmo bloco.
+
+### As 2 perguntas em aberto (esperando resposta DELE — não decida sozinho)
+1. 🫧 **O painel de Transparência** aparece hoje em **qualquer** peça (inclusive as de cliente).
+   Ele quer assim, ou prefere que apareça **só no livrinho**? Eu ofereci tirar; ele não respondeu.
+2. 🎨 **O painel de Cor do texto** ficou **pronto e testado numa Prévia A**, mas **ele não chegou a
+   aprovar** — a sessão virou antes. O código está guardado em
+   [`logs/handoff/PENDENTE-painel-cor-do-texto.md`](logs/handoff/PENDENTE-painel-cor-do-texto.md)
+   (a prévia em si **não viaja**: `previas/` é local-only). **Não aplique sem o "vai" dele.**
+
+### Se ele quiser retomar o livrinho (só se ele pedir)
+Está tudo pronto em `Subsistemas/Fluxo do Subsistema Livrinho/` — molde, receita pro outro
+sistema e duas ferramentas (montar o livrinho animado · tirar a moldura das artes). O que
+faltava era **não-código**: artes novas sangrando até a borda, a arte da capa, e confirmar com a
+gráfica (contracapa? PNG ou PDF?). ⚠️ As pastas de trabalho em `D:\00- CODIGO\` **sumiram** — a
+peça que ele tinha editado (cartão de texto subido 14px e reduzido pra 92,6%) **se perdeu**; o
+molde no Git é o ponto de partida de novo.
+
+### O jeito de trabalhar com ele (não improvise)
+- **Conversar → Prévia A → ele aprova ("vai") → aplica no `editor.html` → testa no navegador →
+  publica.** Ele **não programa**: traduza todo termo técnico, **uma pergunta por vez**, respostas
+  curtas.
+- **Sempre pergunte "quer auditoria antes?"** depois do "vai" e **antes da primeira linha** — nunca
+  pule, nem em mudança pequena.
+- **Publicar depois de sucesso é pré-autorizado** (implementou + testou funcionando → commit e push
+  na hora, e atualize este arquivo). Se falhou ou ficou pela metade, **não suba**.
+- Ideias antigas que ele levantou e nunca foram feitas (**só se ele pedir**): copiar/colar/duplicar
+  elementos entre slides · mais "botões de adicionar elemento" (o ✨ brilho foi o primeiro da
+  família) · arrastar as bordas da caixa de texto com o mouse · janela de recorte de foto completa.
 - 🧪 **Como testar o editor no navegador** (sem depender do Carlos clicar): há memória
   auto (`testar-editor-no-navegador`) com a receita — dirige o Chrome real com o
   **playwright-core** do projeto contra o servidor em `http://localhost:4599/editor.html`
