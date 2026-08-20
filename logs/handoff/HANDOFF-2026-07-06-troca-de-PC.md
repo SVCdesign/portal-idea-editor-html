@@ -182,6 +182,37 @@ realce (classe `__ya_sel`) e mostra o código. O CSS de realce é injetado num
 8. **Princípio sagrado:** **o CSS do usuário NUNCA é reprocessado**. Tudo é escrito **inline** no
    elemento. Nada de regenerar/normalizar o CSS da peça.
 
+### Armadilhas acrescentadas na auditoria de 2026-08-20
+
+9. **Retrato do Desfazer só no `input`.** Nos painéis de barrinha (película, brilho, transparência),
+   NUNCA guarde o "antes" no `pointerdown`/`keydown`: sair de **Tab** ou desistir da paleta de cor
+   deixa o retrato **preso**, e ele é usado na próxima mexida — um Ctrl+Z volta demais e come as
+   edições do meio. Guarde no **`input`** (mudança certa, peça ainda intocada) e confirme no
+   `change`/`pointerup`/`keyup`.
+10. **`slideForLayers()` obedece à trava.** Com o cadeado ligado, a lista TEM que ficar no slide da
+    camada travada. Se ela seguir o slide à vista, rolar pra longe faz o cadeado sumir da lista — e
+    como travado ignora clique na prévia, o editor fica sem saída.
+11. **Só descarte o estado da peça quando a peça NOVA entrar.** `forgetFolderAssets()` zera pasta,
+    nome e endereços das fotos. Chamar "por precaução" no começo de um handler (colar, abrir) quebra
+    a peça que está aberta se o usuário cancelar. O `loadFolder` já fazia certo; o "Colar" não fazia.
+12. **`.classe[hidden]` toda vez que a classe tem `display`.** Repetição da nº 6, que voltou no
+    `.sec`. Ao criar QUALQUER classe com `display:` que também use o atributo `hidden`, escreva a
+    regra `.classe[hidden]{display:none}` na mesma hora.
+13. **Dados do arraste são lidos SÓ no primeiro instante.** Depois do 1º `await` dentro do handler de
+    `drop`, `webkitGetAsEntry()` devolve nada e `dataTransfer.files` fica vazio. Colha tudo antes.
+14. **Reconhecer classe por nome: sempre sem diferenciar maiúscula.** `isPelicula` (regex `/i`) e
+    `acharPelicula` (seletor `[class*="…" i]`) TÊM que concordar, senão o editor reconhece a película
+    num painel e nega no outro.
+15. **Foto religada perde o "endereço local".** Numa peça aberta pela pasta, toda foto vira `blob:`.
+    Qualquer checagem que filtre por "endereço local" (como o aviso de foto faltando) precisa aceitar
+    também os `blob:` que NÓS criamos (`originalRefByBlob`), senão arquivo corrompido passa calado.
+
+> 🧪 **Como medir sem se enganar (custou tempo nesta auditoria):** de fora do editor,
+> `window.history` é o **histórico do navegador**, não a pilha do Desfazer (`history` é variável
+> interna do script). Meça pelo **comportamento** (`#undo` está ligado? o que sobrou na peça depois
+> de UM Desfazer?). E confira `document.visibilityState`: **aba escondida não dispara rolagem**, e
+> aí features que dependem de rolagem parecem quebradas sem estar.
+
 ---
 
 ## 7. COMO TESTAR NO NAVEGADOR (o Carlos autorizou Playwright)

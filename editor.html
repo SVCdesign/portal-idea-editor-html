@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Editor HTML — alta fidelidade</title>
+<!-- ícone vazio: sem isto o navegador pede /favicon.ico e escreve um erro 404 no
+     console a cada abertura — barulho que atrapalha achar erro de verdade depois -->
+<link rel="icon" href="data:,">
 <!--
   EDITOR HTML — (opção B do briefing)
   ----------------------------------------------------------------
@@ -174,6 +177,10 @@
   .ov-row input[type=range]{width:100%;accent-color:var(--accent);margin:0}
   /* Painéis que RECOLHEM (seções da direita: Camadas · Ajustes · Código) */
   .sec{display:flex;flex-direction:column;min-height:0;border-bottom:1px solid var(--line)}
+  /* faz o "escondido" valer: sem esta linha o display:flex acima vence o atributo
+     hidden, e a seção Camadas ficava à mostra (vazia) mesmo mandada esconder.
+     É a armadilha nº 6 do handoff — a mesma que já mordeu o #dropzone. */
+  .sec[hidden]{display:none}
   .sec-head{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;user-select:none;
     background:#12161c;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);font-weight:600}
   .sec-head:hover{background:#161b22}
@@ -548,8 +555,27 @@ async function fotosQueFaltaram(doc){
   })));
   // naturalWidth 0 = o navegador não conseguiu desenhar. getAttribute pega o endereço
   // CRU escrito na peça (o `.src` viraria um endereço interno do iframe e atrapalharia).
-  return imgs.filter(im => im.naturalWidth === 0 && refLocal(im.getAttribute('src')));
+  // DOIS casos contam como "não apareceu":
+  //  • endereço LOCAL que não carregou = o arquivo não está lá (nome trocado, caminho errado);
+  //  • endereço INTERNO nosso (blob:) que não carregou = o arquivo ESTÁ na pasta, mas o
+  //    navegador não conseguiu abrir (corrompido, ou não é imagem de verdade).
+  // O 2º caso era o buraco: numa peça aberta pela PASTA, toda foto vira endereço interno,
+  // então uma foto corrompida saía do radar e o slide abria vazio, calado — exatamente o
+  // acidente que este aviso existe pra evitar.
+  return imgs.filter(im => {
+    if(im.naturalWidth !== 0) return false;
+    const src = im.getAttribute('src');
+    return refLocal(src) || originalRefByBlob.has(src);
+  });
 }
+// nome do arquivo pra MOSTRAR: se o endereço é interno (blob:), devolve o caminho de
+// verdade que a peça escreveu — é o que o usuário precisa procurar na pasta dele.
+function caminhoHumano(im){
+  const src = im.getAttribute('src') || '';
+  return String(originalRefByBlob.get(src) || src).replace(/^\.\//, '');
+}
+// esta foto ESTÁ na pasta (só não abriu)? é o que separa "faltou" de "corrompido"
+function veioDaPasta(im){ return originalRefByBlob.has(im.getAttribute('src')); }
 
 async function checarFotosFaltando(){
   const box = document.getElementById('avisoFotos');
@@ -572,13 +598,14 @@ async function checarFotosFaltando(){
   const nomes = [];
   const ul = document.createElement('ul');
   faltando.forEach(im => {
-    const caminho = im.getAttribute('src').replace(/^\.\//, '');
+    const caminho = caminhoHumano(im);
     nomes.push(caminho);
     const li = document.createElement('li');
     const cod = document.createElement('code'); cod.textContent = caminho;
     li.appendChild(cod);
     const alt = (im.getAttribute('alt') || '').trim();
     if(alt) li.appendChild(document.createTextNode(' — "' + alt + '"'));
+    if(veioDaPasta(im)) li.appendChild(document.createTextNode(' — está na pasta, mas não abriu'));
     const sn = slideNumDe(im);
     if(sn){
       const on = document.createElement('span');
@@ -599,6 +626,19 @@ async function checarFotosFaltando(){
     : 'Esta peça usa fotos que ficam na pasta dela. Abra pelo botão "📁 Abrir peça" e escolha a PASTA '
       + '(não o arquivo solto) — aí as fotos carregam sozinhas.';
   box.appendChild(como);
+
+  // as marcadas com "está na pasta, mas não abriu" são outro problema: o arquivo foi
+  // achado, o navegador é que não conseguiu desenhar. Renomear não resolve — o conselho
+  // tem que ser outro, senão o usuário fica renomeando um arquivo que já está certo.
+  if(faltando.some(veioDaPasta)){
+    const corr = document.createElement('div');
+    corr.className = 'af-como';
+    corr.innerHTML = '<b>As marcadas como "está na pasta, mas não abriu":</b> o arquivo foi encontrado, '
+      + 'mas o navegador não conseguiu desenhar. Costuma ser foto pela metade (o Google Drive ainda '
+      + 'sincronizando) ou arquivo que só tem nome de imagem. Espere o Drive ficar VERDE e abra de novo; '
+      + 'se continuar, troque a foto por outra cópia.';
+    box.appendChild(corr);
+  }
 
   const aviso2 = document.createElement('div');
   aviso2.className = 'af-como';
@@ -876,6 +916,7 @@ function undo(){
   crumbEl.textContent = '↩ desfeito' + (history.length ? '' : ' — (nada mais para desfazer)');
   renderSlideBar();
   renderLayers();
+  checarFotosFaltando();   // o retrato pode trazer de volta uma foto quebrada: refaz o aviso
   if(win) win.scrollTo(sx, sy);
   updateUndoBtn(); updateRemoveBtn();
 }
@@ -981,7 +1022,11 @@ function renderChildren(el){
 // de todos. Centralizando aqui, um nome novo entra num ponto só e vale pra tudo.
 const PELICULA_RE = /(?:overlay|scrim|veil)/i;
 function isPelicula(el){ return !!(el && el.classList && [...el.classList].some(c => PELICULA_RE.test(c))); }
-function acharPelicula(slide){ return slide ? slide.querySelector('[class*="scrim"],[class*="overlay"],[class*="veil"]') : null; }
+// o " i" no fim de cada pedaço = "tanto faz maiúscula ou minúscula". Sem ele, esta
+// busca e o isPelicula acima DISCORDAVAM: numa peça com a classe escrita "Veil" ou
+// "Overlay" (maiúscula), o painel de Camadas dizia "Escurecimento" mas os "Atalhos da
+// capa" e o botão 🎚️ da foto respondiam "não achei a película desta capa".
+function acharPelicula(slide){ return slide ? slide.querySelector('[class*="scrim" i],[class*="overlay" i],[class*="veil" i]') : null; }
 
 function renderCapaAtalhos(el){
   const bar = document.getElementById('capa-atalhos');
@@ -1061,6 +1106,12 @@ function collectLayers(slide){
 }
 function slideForLayers(){
   const doc = iframe.contentDocument;
+  // CAMADA TRAVADA MANDA (conserto da auditoria): com o cadeado ligado, clicar na
+  // prévia não seleciona nada de propósito — o único jeito de destravar é o cadeado
+  // da lista. Se a lista trocasse pro slide à vista, bastava rolar pra longe e o
+  // cadeado sumia: prévia "congelada", sem nada clicável e sem como destravar.
+  // Enquanto houver trava, a lista fica no slide dela.
+  if(layerLock){ const s = slideOf(layerLock); if(s && doc && s !== doc.body) return s; }
   if(selected){
     const s = slideOf(selected);
     if(s && doc && s !== doc.body){
@@ -1821,11 +1872,16 @@ textToolsEl.addEventListener('click', function(ev){
 document.getElementById('apply').addEventListener('click', function(){
   if(showingFull){ alert('Você está vendo o código todo. Clique num elemento na prévia para editar só ele.'); return; }
   if(!selected){ alert('Clique num elemento na prévia primeiro.'); return; }
+  // encerra a digitação ANTES de trocar o elemento (armadilha nº 1 do handoff: toda
+  // variável que aponta pra um elemento tem que ser zerada nos pontos onde o DOM
+  // troca). Sem isto, "editingEl"/"svgEditingEl" ficavam apontando pra um elemento
+  // que deixou de existir, e o clique seguinte na prévia era engolido.
+  if(editingEl || svgEditingEl) stopTextEdit();
   try{
     const antes = snapshotHtml();       // retrato de antes (só grava no Desfazer se MUDAR)
     clearSel(selected);
     selected.outerHTML = codeEl.value;  // o navegador re-renderiza fiel; CSS global intacto
-    selected = null; layerLock = null;
+    selected = null; layerLock = null; editingEl = null; svgEditingEl = null;
     hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
     updateRemoveBtn();
     renderSlideBar();   // mantém a barra de slides em dia se algo mudou
@@ -1842,6 +1898,11 @@ document.getElementById('full').addEventListener('click', function(){
   if(!doc) return;
   if(editingEl || svgEditingEl) stopTextEdit();   // se estava digitando, encerra ANTES (senão a digitação continua "fantasma" por baixo)
   clearSel(selected);
+  // SOLTA o elemento (conserto da auditoria): o realce era apagado mas a variável
+  // continuava apontando pra ele — e aí ele ainda respondia ao ARRASTE do mouse na
+  // prévia, movendo a peça "sozinho" e trocando o código todo da caixa pelo código
+  // só daquele elemento, sem ninguém pedir. Clicar na prévia seleciona de novo.
+  selected = null; layerLock = null;
   showingFull = true;
   hideAllTools(); navEl.innerHTML = ''; navEl.style.display = 'none'; document.getElementById('capa-atalhos').style.display = 'none';
   crumbEl.textContent = '(documento inteiro — somente leitura)';
@@ -1876,10 +1937,19 @@ document.addEventListener('keydown', handleGlobalKeys);
 // (o antigo "📂 Abrir HTML" saiu: virou UMA porta só — o "📁 Abrir peça", que pede a
 //  PASTA. Toda peça mora numa pasta, e assim as imagens vêm juntas. Pra abrir um HTML
 //  solto, é só ARRASTAR ele pra cima do editor — isso continua funcionando.)
+// ORDEM IMPORTA (conserto da auditoria): o "esquecer a pasta" só pode acontecer
+// DEPOIS de saber que existe HTML pra colar. Antes ele era a primeira linha — quem
+// clicasse aqui com a área de transferência vazia (ou cancelasse a janelinha)
+// perdia, na peça que já estava aberta, a pasta do Salvar, o nome do arquivo e os
+// endereços internos das fotos (que somem 3 segundos depois). Mesmo cuidado que o
+// loadFolder já tinha: só troca o estado quando a peça nova realmente entra.
 document.getElementById('paste').addEventListener('click', async function(){
+  let t = null;
+  try{ t = await navigator.clipboard.readText(); }
+  catch{ t = prompt('Cole o HTML aqui:'); }
+  if(!t) return;          // nada pra colar: a peça aberta fica exatamente como estava
   forgetFolderAssets();   // colado: não tem pasta de origem
-  try{ const t = await navigator.clipboard.readText(); if(t) loadHtml(t); }
-  catch{ const t = prompt('Cole o HTML aqui:'); if(t) loadHtml(t); }
+  loadHtml(t);
 });
 
 // ---- Abrir PASTA (HTML + imagens juntos, e leve) ----------------------
@@ -2037,19 +2107,26 @@ async function loadFolder(entries, dePasta, candidateHandle){
     if(alvo) achados.push({ ref, alvo });
   }
 
-  // uma URL interna por ARQUIVO (imagens encolhidas; o resto direto)
-  const urlPorRel = new Map();
-  for(const { alvo } of achados){
-    if(urlPorRel.has(alvo.rel)) continue;
+  // uma URL interna por ARQUIVO **e por caminho escrito**. O "e por caminho escrito"
+  // é conserto da auditoria: quando a mesma foto era citada de DUAS maneiras
+  // diferentes (ex.: "./fotos/a.jpg" num slide e "../peca/fotos/a.jpg" noutro), as
+  // duas dividiam o mesmo endereço interno — e no Salvar as duas voltavam com o
+  // caminho da ÚLTIMA, quebrando a outra. Na peça comum (um jeito só de citar cada
+  // foto) nada muda: continua uma URL por arquivo, como sempre foi.
+  const urlPorRef = new Map();
+  const chaveDe = (ref, alvo) => alvo.rel + ' ' + ref.caminho;
+  for(const { ref, alvo } of achados){
+    const chave = chaveDe(ref, alvo);
+    if(urlPorRef.has(chave)) continue;
     const url = isImageFile(alvo.en.file) ? await shrinkToUrl(alvo.en.file) : URL.createObjectURL(alvo.en.file);
-    urlPorRel.set(alvo.rel, url);
+    urlPorRef.set(chave, url);
     blobsVivos.push(url);
     assetFileByRef.set(alvo.rel, alvo.en.file);   // arquivo ORIGINAL (alta) p/ o Gerar PNG
   }
   // troca do mais LONGO pro mais curto, pra um caminho curto nunca comer um longo
   achados.sort((a, b) => b.ref.de.length - a.ref.de.length);
   for(const { ref, alvo } of achados){
-    const url = urlPorRel.get(alvo.rel);
+    const url = urlPorRef.get(chaveDe(ref, alvo));
     // no Salvar, devolvo o endereço EXATO que a peça escreveu (ref.caminho) — preserva
     // `../pasta-irmã/x.jpg` e o `%20` do espaço, em vez de forçar tudo pra `./…`.
     originalRefByBlob.set(url, ref.caminho);
@@ -2108,6 +2185,15 @@ document.getElementById('folderInput').addEventListener('change', function(e){
     if(!isFiles(e.dataTransfer)) return;
     e.preventDefault(); esconderDrop();
     const items = e.dataTransfer.items ? Array.prototype.slice.call(e.dataTransfer.items) : [];
+    // LER TUDO AGORA, antes de qualquer espera. O navegador "tranca" os dados do
+    // arraste assim que este pedaço de código para pra esperar (o 1º await lá
+    // embaixo): depois disso, o webkitGetAsEntry devolve nada e a lista de arquivos
+    // fica vazia. As rotas 2 e 3 liam DEPOIS da espera — então, quando a rota 1 não
+    // servia (um HTML solto, ou navegador sem a rota moderna), o arquivo largado
+    // simplesmente não abria e nada era dito. Agora as três rotas usam o que foi
+    // colhido aqui, com o arraste ainda "quente".
+    const entriesAgora = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
+    const soltosAgora  = Array.prototype.slice.call(e.dataTransfer.files || []);
     // 1) rota moderna: HANDLE da pasta -> permite salvar de volta nela
     for(const it of items){
       if(it.kind === 'file' && it.getAsFileSystemHandle){
@@ -2118,15 +2204,13 @@ document.getElementById('folderInput').addEventListener('change', function(e){
       }
     }
     // 2) fallback: lê os arquivos da pasta via entries (salvar cai em "Salvar como"/download)
-    const entries = items.map(it => it.webkitGetAsEntry && it.webkitGetAsEntry()).filter(Boolean);
-    if(entries.length){
+    if(entriesAgora.length){
       const files = [];
-      for(const en of entries){ if(en.isDirectory){ await walkDir(en, '', files); } else { await walkFile(en, '', files); } }
+      for(const en of entriesAgora){ if(en.isDirectory){ await walkDir(en, '', files); } else { await walkFile(en, '', files); } }
       if(files.length){ loadFolder(files, true); return; }   // sem handle de escrita: loadFolder zera o dirHandle só se carregar
     }
     // 3) último caso: arquivos soltos, sem estrutura de pasta
-    const plain = Array.prototype.slice.call(e.dataTransfer.files || []);
-    if(plain.length){ loadFolder(plain.map(f => ({ file: f, key: f.name })), false); }
+    if(soltosAgora.length){ loadFolder(soltosAgora.map(f => ({ file: f, key: f.name })), false); }
   });
   function walkFile(entry, prefix, out){
     return new Promise(res => entry.file(f => { out.push({ file: f, key: prefix + entry.name }); res(); }, () => res()));
@@ -2560,17 +2644,23 @@ loadHtml(SAMPLE);
     if(now !== null && now !== ovBefore && typeof pushHistory === 'function') pushHistory(ovBefore);
     ovBefore = null;
   }
+  // CONSERTO 2 (auditoria 2026-08-20) — o "antes" preso, agora pela raiz.
+  // O de 2026-08-02 tapou o caso do clique-sem-mexer, mas sobraram dois furos:
+  //   • encostar na barrinha e sair de TAB: o 'keydown' guardava o retrato, e o
+  //     'keyup' já caía no elemento seguinte — ninguém confirmava.
+  //   • abrir a paleta de cor e DESISTIR: o 'pointerdown' guardava, e sem escolher
+  //     cor não vem 'input' nem 'change' — ninguém confirmava.
+  // Nos dois, o retrato velho ficava pendurado e era usado na PRÓXIMA mexida: um
+  // único Ctrl+Z voltava tudo o que tinha sido feito no meio (testado: mover o
+  // título + mexer na película sumiam juntos, sem passo intermediário).
+  // A raiz era guardar o retrato ANTES de saber se algo ia mudar. Agora o retrato é
+  // tirado no 'input' — o primeiro momento em que a mudança é certa, e ainda antes
+  // de tocarmos na peça. Sem 'input', nada é guardado, então não sobra nada preso.
   ['geral','topo','meio','baixo'].forEach(k => {
     const r = el('ov-s-' + k);
     if(r){
-      r.addEventListener('pointerdown', ovGrab);
-      r.addEventListener('keydown', ovGrab);
-      r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
+      r.addEventListener('input', (e) => { ovGrab(); st[k] = +e.target.value; aplicar(); });
       r.addEventListener('change', ovCommit);
-      // CONSERTO (2026-08-02): sem estes dois, clicar na barrinha SEM mexer deixava o
-      // "antes" preso (o 'change' não dispara quando o valor não muda). Aí, depois de
-      // outras edições, o próximo arrasto gravava aquele retrato VELHO — e um Ctrl+Z
-      // voltava demais, levando as edições do meio junto.
       r.addEventListener('pointerup', ovCommit);
       r.addEventListener('keyup', ovCommit);
     }
@@ -2578,8 +2668,8 @@ loadHtml(SAMPLE);
   document.querySelectorAll('.ov-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
   const pick = el('ov-picker');
   if(pick){
-    pick.addEventListener('pointerdown', ovGrab);
-    pick.addEventListener('input', (e) => { const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
+    // idem: o retrato sai no 'input' (cor escolhida de verdade), não ao abrir a paleta
+    pick.addEventListener('input', (e) => { ovGrab(); const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
     pick.addEventListener('change', ovCommit);
   }
   const reset = el('ov-reset');
@@ -2649,22 +2739,21 @@ loadHtml(SAMPLE);
   function grab(){ if(antes == null && typeof snapshotHtml === 'function') antes = snapshotHtml(); }
   function commit(){ if(antes == null) return; const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null; if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes); antes = null; }
 
+  // o retrato do Desfazer sai no 'input' — ver o CONSERTO 2 comentado no painel da
+  // película (guardar antes disso deixava retrato preso ao sair de Tab / desistir da cor)
   ['size','int','blur'].forEach(k => {
     const r = el('bk-s-' + k);
     if(r){
-      r.addEventListener('pointerdown', grab);
-      r.addEventListener('keydown', grab);
-      r.addEventListener('input', (e) => { st[k] = +e.target.value; aplicar(); });
+      r.addEventListener('input', (e) => { grab(); st[k] = +e.target.value; aplicar(); });
       r.addEventListener('change', commit);
-      r.addEventListener('pointerup', commit);   // ver o CONSERTO comentado no painel da película
+      r.addEventListener('pointerup', commit);
       r.addEventListener('keyup', commit);
     }
   });
   document.querySelectorAll('.bk-cor').forEach(btn => btn.addEventListener('click', () => { comHistorico(() => { st.cor = btn.dataset.cor; marcarCor(btn); aplicar(); }); }));
   const pick = el('bk-picker');
   if(pick){
-    pick.addEventListener('pointerdown', grab);
-    pick.addEventListener('input', (e) => { const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
+    pick.addEventListener('input', (e) => { grab(); const n = parseInt(e.target.value.slice(1), 16); st.cor = ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255); marcarCor(null); aplicar(); });
     pick.addEventListener('change', commit);
   }
   // mover / centralizar o brilho (usa as funções que já existem no editor)
@@ -2776,10 +2865,10 @@ loadHtml(SAMPLE);
     if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes);
     antes = null;
   }
-  slider.addEventListener('pointerdown', grab);
-  slider.addEventListener('keydown', grab);
+  // o retrato do Desfazer sai aqui, no 'input' — ver o CONSERTO 2 no painel da película
   slider.addEventListener('input', () => {
     const el = alvo(); if(!el) return;
+    grab();
     const pct = +slider.value;
     valEl.textContent = pct + '%';
     aplicarEm(el, pct);

@@ -84,7 +84,11 @@ const server = createServer(async (req, res) => {
 
     // ---- arquivos do editor (estáticos) ----
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end('método não permitido'); return }
-    let urlPath = decodeURIComponent((req.url || '/').split('?')[0])
+    // endereço mal formado (ex.: um "%" solto) faz o decodeURIComponent explodir.
+    // Antes isso virava um erro 500 com mensagem tecnica; agora vira um 400 curto.
+    let urlPath
+    try { urlPath = decodeURIComponent((req.url || '/').split('?')[0]) }
+    catch { res.writeHead(400); res.end('endereco invalido'); return }
     if (urlPath === '/') urlPath = '/editor.html'
     const filePath = normalize(join(ROOT, urlPath))
     // trava anti "subir de pasta": só serve o que está DENTRO do projeto

@@ -6,7 +6,14 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-08-09 · **Motivo:** 🧭 **CONSOLIDAÇÃO PRA TROCA DE PC** + 🔍 **auditoria completa da
+**Atualizado:** 2026-08-20 · **Motivo:** 🔍🛠️ **AUDITORIA COMPLETA + 13 DEFEITOS CORRIGIDOS** (o Carlos
+pediu: *"faça uma auditoria completa e corrija todos os erros e bugs"*). Vistoria do `editor.html` inteiro,
+do `server.mjs` e do robô do PNG, com **prova no navegador** de cada defeito **antes e depois** do conserto.
+Destaques: o **Desfazer comia duas edições de uma vez** · a **prévia congelava** com o cadeado ligado · o
+**"Colar HTML" descartava a peça aberta** mesmo sem nada pra colar · o painel **Camadas não escondia** ·
+**foto corrompida abria calada**. Nada quebrou: carrossel 2160×2700 ✅, salvar limpo ✅, 0 erro de JS ✅.
+Detalhes no bloco `🔍 AUDITORIA 2026-08-20` logo abaixo do FOCO. · Antes,
+em **2026-08-09**: 🧭 **CONSOLIDAÇÃO PRA TROCA DE PC** + 🔍 **auditoria completa da
 EDIÇÃO DE HTML DO CLIENTE** (o foco real deste mundo), pedida pelo Carlos depois de uma temporada mexendo no
 livrinho. **Resultado: nada quebrou** — ver o bloco `🎯 O FOCO` logo abaixo. · Antes, 📖 o **subsistema
 Livrinho 14×21** (molde ✅, auditoria do Gerar PNG ✅, a peça declara a largura ✅, painel de Transparência ✅,
@@ -93,11 +100,96 @@ gradiente em texto, foto, overlay, brilho). **Veredito: nada quebrou.**
 3. Abra **pela pasta**, edite (código + texto ao vivo + mover + zoom), **Desfaça**, **Remova**.
 4. Confira o **Salvar**: sem `__ya_`, sem `contenteditable`, sem `data:image`, gradiente intacto.
 5. **Gerar PNG** tem que sair **2160×2700**.
-6. **0 erro de JavaScript** no console (só o `favicon.ico` 404, que é inofensivo e antigo).
+6. **0 erro de JavaScript** no console — agora é **zero mesmo**: o 404 do `favicon.ico`, que sempre
+   sujava o console, saiu em 20/08 (um ícone vazio no `<head>`). Se aparecer erro, é erro de verdade.
 > Se mexeu no **robô do PNG** (`scripts/render-core.mjs`), o padrão-ouro é o **teste de hash**:
 > guarde uma cópia do arquivo ANTES, renderize o mesmo carrossel com as duas versões **na mesma
 > rodada** e compare o SHA-256. ⚠️ Compare sempre **na mesma execução** — slide com **texto em
 > gradiente** dá hash diferente entre rodadas separadas (variação de rasterização do Chrome).
+---
+
+## 🔍 AUDITORIA 2026-08-20 — 13 defeitos achados e corrigidos
+
+O Carlos pediu: *"faça uma auditoria completa e corrija todos os erros e bugs"*. Vistoria do
+`editor.html` linha a linha, do `server.mjs` e do `scripts/render-core.mjs`, mais teste no navegador
+(Playwright) **provando cada defeito antes e depois** do conserto. Tudo publicado.
+
+> ⚠️ **Lição de método (vale pras próximas IAs):** dentro do `editor.html`, `history` é uma variável
+> **do editor** (a pilha do Desfazer), mas de FORA — no console ou num teste — `window.history` é o
+> **histórico do navegador**. Medir por ali dá número errado e inventa bug que não existe. Meça pelo
+> **comportamento**: o botão `#undo` está ligado? o que a peça mostra depois de UM Desfazer?
+> E confira se a aba está **desenhando** (`document.visibilityState`): aba escondida **não dispara
+> evento de rolagem**, e aí parece que o painel de camadas não segue o slide — mas segue.
+
+### Os 5 que doíam de verdade (todos reproduzidos no navegador)
+
+1. **O Desfazer comia duas edições de uma vez.** Encostar numa barrinha (Escurecer/Clarear, Brilho ou
+   Transparência) e sair de **Tab** — ou abrir a paleta de cor e **desistir** — deixava um "retrato"
+   preso. Esse retrato velho era usado na **próxima** mexida: um único Ctrl+Z voltava tudo o que
+   tinha sido feito no meio, **sem passo intermediário pra recuperar**. Provado: mover o título +
+   mexer na película sumiam juntos. **Raiz:** o retrato era tirado *antes* de saber se algo ia mudar
+   (no `pointerdown`/`keydown`). **Conserto:** o retrato passou a ser tirado no `input` — o primeiro
+   instante em que a mudança é certa e a peça ainda não foi tocada. Sem mexida, nada fica preso.
+   (O conserto de 02/08 tinha tapado só o caso do clique-sem-mexer.)
+2. **A prévia congelava com o cadeado ligado.** Travava uma camada no slide 1, rolava pra longe → a
+   lista passava a mostrar o slide à vista, **o cadeado sumia da lista** e clicar na prévia não
+   selecionava mais nada (travado é assim de propósito). Ficava sem saída até rolar de volta.
+   **Conserto:** enquanto houver trava, a lista fica no slide dela — o cadeado está sempre ao alcance.
+3. **O "📋 Colar HTML" descartava a peça aberta mesmo sem nada pra colar.** Ele "esquecia a pasta"
+   na **primeira linha**, antes de olhar a área de transferência. Com ela vazia (ou cancelando a
+   janelinha), a peça continuava na tela mas **perdia a pasta do Salvar, o nome do arquivo e os
+   endereços das fotos** — que somem 3 segundos depois. **Conserto:** só esquece depois de ter HTML
+   em mãos (mesmo cuidado que o `loadFolder` já tinha).
+4. **O painel "Camadas" não escondia.** O `.sec` tem `display:flex` no CSS, que vence o atributo
+   `hidden` — a seção aparecia vazia mesmo mandada sumir (53 px de nada na tela). É a **armadilha
+   nº 6 do handoff**, reintroduzida. **Conserto:** `.sec[hidden]{display:none}`.
+5. **Arraste "fantasma" depois de "Ver código todo".** O realce era apagado mas a variável continuava
+   apontando pro elemento: ele ainda respondia ao arraste do mouse — **movia a peça sozinho** e
+   trocava o código todo da caixa pelo código só daquele elemento. **Conserto:** soltar o elemento.
+
+### Os 8 achados na leitura do código
+
+6. **Foto corrompida abria calada.** O aviso de "foto não apareceu" só olhava endereços **locais** —
+   mas numa peça aberta pela pasta toda foto vira endereço interno. Resultado: arquivo **encontrado
+   mas ilegível** (foto pela metade, Drive sincronizando) passava batido e o slide abria vazio, sem
+   avisar — exatamente o acidente que esse aviso existe pra evitar. **Conserto:** agora entra na
+   lista, marcada **"está na pasta, mas não abriu"**, com o caminho de verdade e um conselho próprio
+   (esperar o Drive ficar VERDE / trocar a cópia) — porque renomear não resolve esse caso.
+7. **Arrastar-e-soltar lia os dados tarde demais.** As rotas reserva (`webkitGetAsEntry` e a lista de
+   arquivos) eram lidas **depois** de uma espera, e o navegador **tranca** os dados do arraste nesse
+   ponto. Quando a rota moderna não servia (HTML solto, navegador sem ela), o arquivo não abria e
+   nada era dito. **Conserto:** colher tudo no primeiro instante, com o arraste ainda "quente".
+8. **Película com maiúscula ficava invisível pra metade do editor.** O painel de Camadas reconhecia
+   `Veil`/`Overlay` (busca sem diferenciar maiúscula), mas os "Atalhos da capa" e o botão 🎚️ da foto
+   **não** — e respondiam *"não achei a película desta capa"*. **Conserto:** as duas buscas agora
+   ignoram maiúscula/minúscula.
+9. **"Aplicar mudança" não encerrava a digitação.** `editingEl`/`svgEditingEl` podiam ficar apontando
+   pra um elemento que deixou de existir (armadilha nº 1 do handoff). **Conserto:** encerra antes de
+   trocar o elemento, e zera as duas.
+10. **Salvar podia trocar o caminho de uma foto.** Quando a mesma foto era citada de **dois jeitos**
+    (`fotos/a.jpg` e `./fotos/a.jpg`), as duas dividiam o mesmo endereço interno e no Salvar as duas
+    voltavam com o caminho da **última** — a outra quebrava. **Conserto:** um endereço interno por
+    arquivo **e por caminho escrito**. Na peça comum nada muda.
+11. **O aviso de foto não era refeito depois do Desfazer** (podia ficar desatualizado). Corrigido.
+12. **`server.mjs`: endereço mal formado virava erro 500.** Agora vira um **400** curto.
+13. **404 do `favicon.ico` a cada abertura.** Sujava o console e podia esconder erro de verdade.
+    Corrigido com um ícone vazio no `<head>`. **Console agora: 0 erro, 0 aviso.**
+
+### O que foi testado DEPOIS (tudo passou)
+Carrossel 3 slides → **PNG 2160×2700** ✅ · abrir pela pasta com religação das fotos ✅ · Salvar
+devolve **o caminho exato** que a peça escreveu ✅ · salvar **sem marcador interno** ✅ · painel certo
+pra cada elemento (foto/película/brilho/texto) ✅ · foto: setas, zoom, **espelhar sobrevive ao zoom**,
+↺ desfazer ✅ · editar texto no lugar ✅ · **texto de desenho (SVG)** ✅ · Adicionar brilho + Desfazer ✅ ·
+3 edições = **3 Desfazeres** ✅ · Remover + Desfazer ✅ · Colar com conteúdo ✅ · barra de slides ✅ ·
+camadas com olho e cadeado ✅ · servidor: 400/200/404 nas rotas certas ✅ · **0 erro de JS** ✅.
+
+### O que NÃO foi mexido (de propósito)
+- **Barrinhas do Brilho com valor fora da escala** (ex.: um brilho de 800 px numa barra que vai até
+  600): o número mostrado é o verdadeiro, só a barrinha fica no limite. "Consertar" isso faria o
+  brilho **encolher sozinho** na próxima mexida — o remédio seria pior.
+- **Escape não fecha a janela do Gerar PNG.** É falta de conforto, não defeito; e Escape já tem dono
+  em outros lugares (encerrar digitação, fechar a janelinha de escolher HTML).
+
 ---
 
 **(2026-07-28 a 08-02) 📖 SUBSISTEMA LIVRINHO 14×21 — TUDO FEITO, e ⏸️ PAUSADO em 09/08 a pedido do Carlos
