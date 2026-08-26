@@ -6,7 +6,17 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-08-20 · **Motivo:** 🔍🛠️ **AUDITORIA COMPLETA + 13 DEFEITOS CORRIGIDOS** (o Carlos
+**Atualizado:** 2026-08-26 · **Motivo:** 🚚 **A PASTA DO MUNDO MUDOU DE LUGAR** (`D:\PORTAL IDEA\` →
+`D:\WORKSPACE\Special Vision\`) — **nenhum código quebrou** (tudo usa caminho relativo); só os **mapas
+escritos** apontavam pro lugar velho e foram corrigidos (ver "Caminhos importantes"). · Junto,
+🫧 **o painel de Transparência foi REMOVIDO** a pedido dele (ver "perguntas em aberto") e
+🔎 **caiu uma armadilha antiga de auditoria**: o `editor.html` tinha um **caractere invisível** (NUL,
+na linha do `chaveDe`, no salvar com imagem referenciada) que fazia o `grep` tratar o arquivo como
+**binário** e devolver **resultado incompleto sem avisar** — foi o que quase me fez remover o painel
+pela metade nesta sessão. Trocado pela forma escrita `\u0000` (o navegador entende igual). **Se um dia
+uma busca no `editor.html` parecer "sem resultado", desconfie disso de novo.** Testado no navegador:
+0 erro de JS, painéis certos por tipo de elemento, e **Gerar PNG 2160×2700 ✅**. · Antes,
+em **2026-08-20**: 🔍🛠️ **AUDITORIA COMPLETA + 13 DEFEITOS CORRIGIDOS** (o Carlos
 pediu: *"faça uma auditoria completa e corrija todos os erros e bugs"*). Vistoria do `editor.html` inteiro,
 do `server.mjs` e do robô do PNG, com **prova no navegador** de cada defeito **antes e depois** do conserto.
 Destaques: o **Desfazer comia duas edições de uma vez** · a **prévia congelava** com o cadeado ligado · o
@@ -960,9 +970,12 @@ importantes que definem o rumo:
    virou distração e **está pausado**. (Detalhes no bloco `🎯 O FOCO`, no topo.)
 2. **Pediu a auditoria** dessa área. Feita, **nada quebrado**, resultado no mesmo bloco.
 
-### As 2 perguntas em aberto (esperando resposta DELE — não decida sozinho)
-1. 🫧 **O painel de Transparência** aparece hoje em **qualquer** peça (inclusive as de cliente).
-   Ele quer assim, ou prefere que apareça **só no livrinho**? Eu ofereci tirar; ele não respondeu.
+### As perguntas em aberto (esperando resposta DELE — não decida sozinho)
+1. ✅ **RESPONDIDA em 2026-08-26** — 🫧 **O painel de Transparência**: ele mandou **tirar de vez**.
+   Removido do `editor.html` (painel + o bloco de código dele + os 4 fios). O código vive no
+   histórico do Git (commit anterior a essa remoção) se um dia o livrinho voltar. As peças que já
+   foram editadas com ele **continuam iguais** — o que ele escrevia era CSS de verdade
+   (`opacity` / cor com transparência) dentro do elemento, não uma marca do editor.
 2. 🎨 **O painel de Cor do texto** ficou **pronto e testado numa Prévia A**, mas **ele não chegou a
    aprovar** — a sessão virou antes. O código está guardado em
    [`logs/handoff/PENDENTE-painel-cor-do-texto.md`](logs/handoff/PENDENTE-painel-cor-do-texto.md)
