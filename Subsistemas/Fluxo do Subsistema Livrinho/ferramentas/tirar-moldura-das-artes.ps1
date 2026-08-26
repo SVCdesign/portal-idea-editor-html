@@ -4,8 +4,24 @@
 # Le de assets-originais (o backup) e grava em assets.
 Add-Type -AssemblyName System.Drawing
 
+# AVISO (vistoria de 2026-08-26): os DOIS caminhos abaixo estao MORTOS — a pasta
+# D:\00- CODIGO\matrix-editor-reference NAO existe mais neste PC. Rodar assim nao
+# funciona: troque $ORIG e $DEST pelas pastas certas antes de usar. (Nao tem relacao
+# com a mudanca do mundo pra D:\WORKSPACE\Special Vision — ja tinha sumido antes.)
 $ORIG = "D:\00- CODIGO\matrix-editor-reference\assets-originais"
 $DEST = "D:\00- CODIGO\matrix-editor-reference\assets"
+
+# trava amigavel: avisa em portugues comum em vez de estourar um erro tecnico
+if (-not (Test-Path $ORIG)) {
+  Write-Host ""
+  Write-Host "  Nao achei a pasta das artes originais:"
+  Write-Host "    $ORIG"
+  Write-Host ""
+  Write-Host '  Esse caminho nao existe mais neste PC. Abra este arquivo, troque as linhas'
+  Write-Host '  $ORIG e $DEST pelas pastas certas, e rode de novo.'
+  Write-Host ""
+  exit 1
+}
 $LARG = 1696
 $ALT  = 2528
 $ALVO = $LARG / $ALT

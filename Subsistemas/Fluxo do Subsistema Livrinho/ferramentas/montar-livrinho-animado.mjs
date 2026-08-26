@@ -3,10 +3,25 @@
 // páginas na máquina de virar folha. Nenhuma edição é redigitada — as páginas
 // entram inteiras, com o CSS original, então tudo o que o Carlos ajustou vai junto.
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 
+// ⚠️ AVISO (vistoria de 2026-08-26): os DOIS caminhos abaixo estão MORTOS — as pastas
+// `D:/00- CODIGO/matrix-editor-reference` e `D:/00- CODIGO/livrinho-o-trem-das-aguas-PARA-ENVIAR`
+// NÃO existem mais neste PC. Rodar este script do jeito que está NÃO vai funcionar:
+// aponte ENTRADA/SAIDA pras pastas de verdade antes de usar (ver "CAMINHOS QUE MORRERAM"
+// no STATUS-AGORA.md). Isso NÃO tem relação com a mudança do mundo para
+// `D:\WORKSPACE\Special Vision\` — essas pastas já tinham sumido antes disso.
 const ENTRADA = 'D:/00- CODIGO/matrix-editor-reference/molde-livrinho-14x21.html'
 const SAIDA   = 'D:/00- CODIGO/livrinho-o-trem-das-aguas-PARA-ENVIAR'
 const TITULO  = 'O Trem das Águas — São Lourenço'
+
+// trava amigável: avisa em português comum em vez de estourar um erro técnico
+if (!existsSync(ENTRADA)) {
+  console.error('\n  Não achei a peça de entrada:\n    ' + ENTRADA
+    + '\n\n  Esse caminho não existe mais neste PC. Abra este arquivo, troque a linha ENTRADA'
+    + '\n  (e a SAIDA) pelas pastas certas, e rode de novo.\n')
+  process.exit(1)
+}
 
 const bruto = await readFile(ENTRADA, 'utf8')
 

@@ -74,7 +74,7 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   `Fluxo do Subsistema [nome]`. 1ª casa: **Slide Mestre** — ver
   `Subsistemas/Fluxo do Subsistema Slide Mestre/LEIA-PRIMEIRO.md`.
 - `STATUS-AGORA.md` — retrato vivo de onde paramos.
-- Conversa com o mundo central: pasta neutra `D:\PORTAL IDEA\conversa-entre-mundos\`
+- Conversa com o mundo central: pasta neutra `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`
   (local-only, fora do Git). O usuário é a ponte.
 
 ## Convenção de publicação (casa)

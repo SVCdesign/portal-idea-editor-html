@@ -915,7 +915,12 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 - `scripts/render-core.mjs` — o robô que gera os PNGs fiéis (playwright-core + Chrome).
 
 ## Caminhos importantes
-- Mundo local: `D:\PORTAL IDEA\portal-idea-editor-html`
+- Mundo local: `D:\WORKSPACE\Special Vision\portal-idea-editor-html`
+  - ⚠️ **A pasta MUDOU DE LUGAR em 2026-08-26.** Antes era `D:\PORTAL IDEA\portal-idea-editor-html`
+    (essa pasta hoje está **vazia** — o ecossistema inteiro foi pra `D:\WORKSPACE\Special Vision\`).
+    **Nenhum código quebrou:** o `.bat`, o `server.mjs` e os ganchos usam caminho relativo
+    (“a pasta onde eu estou”). Só os **mapas escritos** apontavam pro lugar velho — corrigidos.
+- Conversa entre mundos (local-only, fora do Git): `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`
 - Editor: `editor.html` · Abrir: `Abrir-Editor-HTML.bat` · Desligar: `Desligar-Editor-HTML.bat`
 - GitHub (privado): https://github.com/SVCdesign/portal-idea-editor-html
 - Arquivo de teste do usuário: `D:\TEMPORARIA\01\` (capa + pasta `assets`)

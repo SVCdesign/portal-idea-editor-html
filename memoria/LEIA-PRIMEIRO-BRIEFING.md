@@ -4,6 +4,12 @@
 >
 > **Para quem este briefing fala:** em parte pro próximo chat da IA central (pra ela saber onde paramos), e em parte pra **a IA que vai cuidar do mundo novo `portal-idea-editor-html`** — que não tem nome próprio (é só "a IA do editor").
 
+> **📍 Carimbo de 2026-08-26 — os endereços mudaram (o texto abaixo NÃO foi alterado):**
+> este briefing é **história** e ficou exatamente como foi escrito em 2026-06-21. Só que as pastas
+> saíram do lugar: onde se lê `D:\PORTAL IDEA\portal-idea-editor-html`, hoje é
+> `D:\WORKSPACE\Special Vision\portal-idea-editor-html`; e `D:\PORTAL IDEA\conversa-entre-mundos\`
+> hoje é `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`. A pasta `D:\PORTAL IDEA\` está vazia.
+
 ---
 
 ## 1. O que é o mundo `portal-idea-editor-html`
