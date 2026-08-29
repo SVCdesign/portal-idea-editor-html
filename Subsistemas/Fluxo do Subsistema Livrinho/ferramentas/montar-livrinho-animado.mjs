@@ -5,7 +5,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 
-// ⚠️ AVISO (vistoria de 2026-08-26): os DOIS caminhos abaixo estão MORTOS — as pastas
+// ⚠️ AVISO (vistoria de 2026-08-29): os DOIS caminhos abaixo estão MORTOS — as pastas
 // `D:/00- CODIGO/matrix-editor-reference` e `D:/00- CODIGO/livrinho-o-trem-das-aguas-PARA-ENVIAR`
 // NÃO existem mais neste PC. Rodar este script do jeito que está NÃO vai funcionar:
 // aponte ENTRADA/SAIDA pras pastas de verdade antes de usar (ver "CAMINHOS QUE MORRERAM"

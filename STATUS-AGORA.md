@@ -6,7 +6,7 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-08-26 · **Motivo:** 🚚 **A PASTA DO MUNDO MUDOU DE LUGAR** (`D:\PORTAL IDEA\` →
+**Atualizado:** 2026-08-29 · **Motivo:** 🚚 **A PASTA DO MUNDO MUDOU DE LUGAR** (`D:\PORTAL IDEA\` →
 `D:\WORKSPACE\Special Vision\`) — **nenhum código quebrou** (tudo usa caminho relativo); só os **mapas
 escritos** apontavam pro lugar velho e foram corrigidos (ver "Caminhos importantes"). · Junto,
 🫧 **o painel de Transparência foi REMOVIDO** a pedido dele (ver "perguntas em aberto") e
@@ -77,7 +77,26 @@ gradiente em texto, foto, overlay, brilho). **Veredito: nada quebrou.**
   com o painel de sempre em qualquer elemento com texto ou foto. Não substitui nada. O Carlos foi
   avisado e **ficou de dizer** se quer que ele apareça só no livrinho — **pergunta em aberto.**
 
-### 🚚 TROCA DE PC — estado em 2026-08-09
+### 🚚 TROCA DE PC — estado em 2026-08-29 (o mais recente)
+- **Git:** `main` = `origin/main` (0 atrás / 0 à frente), **nada pendente pra salvar**. Último
+  commit: `a3dc29f`. No PC novo: **`git pull`** e está tudo aqui.
+- ⚠️ **A PASTA MUDOU DE LUGAR:** o mundo agora vive em
+  `D:\WORKSPACE\Special Vision\portal-idea-editor-html` (antes `D:\PORTAL IDEA\`, hoje vazia).
+  **Ponha no MESMO lugar no PC novo** — não por causa do código (ele usa caminho relativo e roda de
+  qualquer pasta), mas porque os mundos vizinhos e a `conversa-entre-mundos` são irmãos dele ali
+  dentro de `D:\WORKSPACE\Special Vision\`.
+- **O que NÃO viaja pelo Git** (copie à mão ou refaça):
+  - `previas/` — 10 prévias aqui (local-only). ⚠️ `previa-cor-do-texto.html` é a feature que ainda
+    espera aprovação — o código dela está salvo em `logs/handoff/PENDENTE-painel-cor-do-texto.md`.
+  - `D:\WORKSPACE\Special Vision\conversa-entre-mundos\` — ~615 KB, local-only.
+  - `node_modules/` — **não precisa copiar**: o `Abrir-Editor-HTML.bat` instala sozinho na primeira
+    vez no PC novo (precisa de internet nessa primeira vez).
+  - `.claude/settings.local.json` e `.codex/` — configurações locais, ficam de fora do Git.
+  - **Fotos/fontes das peças** — vêm pelo **Google Drive**. Confirme o **Drive VERDE** dos dois lados.
+- **Chegando no PC novo:** `git pull` → dois cliques em `Abrir-Editor-HTML.bat` → o editor abre em
+  `http://localhost:4599/editor.html`. Se pedir, deixe instalar a peça do robô (é o "Gerar PNG").
+
+### 🚚 TROCA DE PC — estado em 2026-08-09 (histórico)
 - **Código + texto:** tudo **commitado e no GitHub** (`main` = `origin/main`, working tree limpo).
   No PC novo, um **`git pull`** traz tudo. **Nada de código pendente.**
 - **Assets pesados (fotos das peças) NÃO vêm pelo Git** — vêm pelo **Google Drive**. Confirme o
@@ -926,7 +945,7 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
 
 ## Caminhos importantes
 - Mundo local: `D:\WORKSPACE\Special Vision\portal-idea-editor-html`
-  - ⚠️ **A pasta MUDOU DE LUGAR em 2026-08-26.** Antes era `D:\PORTAL IDEA\portal-idea-editor-html`
+  - ⚠️ **A pasta MUDOU DE LUGAR em 2026-08-29.** Antes era `D:\PORTAL IDEA\portal-idea-editor-html`
     (essa pasta hoje está **vazia** — o ecossistema inteiro foi pra `D:\WORKSPACE\Special Vision\`).
     **Nenhum código quebrou:** o `.bat`, o `server.mjs` e os ganchos usam caminho relativo
     (“a pasta onde eu estou”). Só os **mapas escritos** apontavam pro lugar velho — corrigidos.
@@ -971,7 +990,7 @@ importantes que definem o rumo:
 2. **Pediu a auditoria** dessa área. Feita, **nada quebrado**, resultado no mesmo bloco.
 
 ### As perguntas em aberto (esperando resposta DELE — não decida sozinho)
-1. ✅ **RESPONDIDA em 2026-08-26** — 🫧 **O painel de Transparência**: ele mandou **tirar de vez**.
+1. ✅ **RESPONDIDA em 2026-08-29** — 🫧 **O painel de Transparência**: ele mandou **tirar de vez**.
    Removido do `editor.html` (painel + o bloco de código dele + os 4 fios). O código vive no
    histórico do Git (commit anterior a essa remoção) se um dia o livrinho voltar. As peças que já
    foram editadas com ele **continuam iguais** — o que ele escrevia era CSS de verdade

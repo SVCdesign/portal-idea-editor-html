@@ -4,7 +4,7 @@
 # Le de assets-originais (o backup) e grava em assets.
 Add-Type -AssemblyName System.Drawing
 
-# AVISO (vistoria de 2026-08-26): os DOIS caminhos abaixo estao MORTOS — a pasta
+# AVISO (vistoria de 2026-08-29): os DOIS caminhos abaixo estao MORTOS — a pasta
 # D:\00- CODIGO\matrix-editor-reference NAO existe mais neste PC. Rodar assim nao
 # funciona: troque $ORIG e $DEST pelas pastas certas antes de usar. (Nao tem relacao
 # com a mudanca do mundo pra D:\WORKSPACE\Special Vision — ja tinha sumido antes.)
