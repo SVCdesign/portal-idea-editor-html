@@ -1,7 +1,10 @@
 # 🎨 PENDENTE — painel "Cor do texto" (código guardado, NÃO está no editor)
 
 > **Criado em:** 2026-08-09, na consolidação para troca de PC.
-> **Estado:** ⏸️ **feito e testado numa Prévia A, aguardando o "vai" do Carlos.**
+> **Estado:** ⏸️ **aguardando o "vai" do Carlos.** A Prévia A foi **remontada em 2026-08-29**
+> (ver o bloco "ATUALIZAÇÃO 2026-08-29" logo abaixo) — agora ela também pinta **texto de
+> desenho (SVG)**, e os pontos de encaixe da receita mudaram porque o painel de
+> Transparência foi removido do editor nesse mesmo dia.
 > **Por que este arquivo existe:** a prévia vivia em `previas/`, que é **local-only**
 > (está no `.gitignore`) — ou seja, **não viaja na troca de PC**. Sem este arquivo, o
 > código se perderia e a próxima IA teria que reescrever do zero.
@@ -36,6 +39,60 @@ lugares indicados, e trocar o `SAMPLE`.
 2. Perguntar a ele: **"quer auditoria antes?"** (regra do mundo, nunca pular).
 3. Aplicar no `editor.html`, testar **e rodar a regressão do carrossel**
    (peça de cliente: abrir pasta → editar → Salvar limpo → Gerar PNG 2160×2700).
+
+---
+
+# ⚠️ ATUALIZAÇÃO 2026-08-29 — leia ANTES de usar a receita abaixo
+
+A receita foi conferida contra o editor de hoje. **Ela ainda serve** (todas as funções de apoio
+existem, o "aplicar em todas" traz o próprio motorzinho e não depende de nada removido, e nenhum
+nome bate com o que já existe). Mudaram **três coisas**:
+
+**1. Os pontos de encaixe.** O painel de Transparência **foi removido do editor em 2026-08-29**, então
+"antes do bloco da Transparência" não existe mais:
+- o **HTML** entra **logo depois** do bloco do Brilho (`<div id="bokehtools">…</div>`);
+- na amarração **(c)**, acrescente depois da linha do **`bokehToolsEl`** (não do `transpToolsEl`).
+
+**2. Texto de DESENHO (SVG) — decisão do Carlos: o painel TEM que pintar isso também.**
+A receita original mostrava o painel para qualquer coisa com texto, mas pintava só com `color`.
+Texto de desenho não se pinta com `color`, e sim com `fill` — **provado no navegador**: mudar
+`color` num `<text>` de SVG não muda nada na tela. O painel apareceria sem funcionar. As mudanças,
+todas dentro do bloco 3 (JS):
+```js
+// (i) reconhecer o desenho (usa a função que o editor já tem, com teste de reserva)
+const ehDesenho = (el) => (typeof isSvgText === 'function') ? isSvgText(el)
+  : (!!el && el.namespaceURI === 'http://www.w3.org/2000/svg' && (el.tagName === 'text' || el.tagName === 'tspan'));
+
+// (ii) LER a cor pelo caminho certo (substitui o paraHex(getComputedStyle(el).color) solto)
+function corDe(el){ if(!el) return null; const s = getComputedStyle(el);
+  return paraHex(ehDesenho(el) ? s.fill : s.color); }
+
+// (iii) PINTAR pelo caminho certo (dentro de pintar()):
+if(ehDesenho(el)) el.style.fill = hex; else el.style.color = hex;
+
+// (iv) VOLTAR AO ORIGINAL limpa os dois (dentro do bReset), pra não sobrar meia-pintura:
+el.style.removeProperty('color'); el.style.removeProperty('fill');
+```
+Em `coresDaPeca` e em `__corSync`, trocar as leituras de cor por `corDe(...)` — assim os atalhos
+também enxergam as cores dos desenhos.
+
+**3. O que foi testado na Prévia A remontada** (`previas/previa-cor-do-texto.html`, exemplo de 3
+páginas já embutido, com um selo em SVG na página 3):
+- painel aparece junto do "Ajustar texto"; leu `#1b2a4a` do título ✅
+- atalhos vieram da peça: `#1b2a4a`, `#7b6048`, `#e2653a` (esse último é do **desenho**) ✅
+- pintar o título mudou só ele; o parágrafo ao lado ficou intacto ✅
+- **texto de desenho:** leu `#e2653a`, pintou de verde, e o aviso explicou o caso ✅
+- "voltar ao original" devolveu a cor de origem e **apagou o `style` inteiro** ✅
+- "aplicar em todas": *"pintei 2 elementos, em 2 páginas (1 já estava assim)"*, 3 títulos iguais ✅
+- **Desfazer** voltou só a última ação ✅ · **0 erro de JS** ✅
+- **salvar sai limpo:** o HTML final tinha só os dois estilos de cor e **nenhuma marca do editor** ✅
+
+⚠️ **A prévia não viaja** (`previas/` é local-only). Pra remontá-la noutro PC: copie o `editor.html`,
+cole os 3 blocos nos lugares corrigidos acima, aplique as 4 amarrações e troque o `SAMPLE`.
+**Cuidado com uma armadilha:** o `editor.html` tem **DOIS** `</body>` — um dentro do exemplo (que é
+só texto) e o de verdade, no fim. O bloco 3 vai no **último**; no primeiro, ele some junto com o
+exemplo quando você trocar o `SAMPLE`. (Caí nessa ao montar a prévia — o painel aparecia e não
+funcionava.)
 
 ---
 
