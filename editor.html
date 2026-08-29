@@ -170,6 +170,12 @@
   .ov-pick{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);
     border:1px solid #36404c;border-radius:8px;padding:2px 8px;cursor:pointer}
   .ov-pick input[type=color]{width:22px;height:22px;border:none;background:none;padding:0;cursor:pointer}
+  /* atalhos de cor: bolinhas com as cores que a peça já usa */
+  .cor-atalhos{display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .cor-at{width:26px;height:26px;min-width:26px;padding:0;border-radius:50%;
+          border:2px solid var(--line);cursor:pointer}
+  .cor-at:hover{border-color:var(--ink)}
+  .cor-at.primary{border-color:var(--accent);box-shadow:0 0 0 2px rgba(43,196,196,.35)}
   .ov-sliders{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   .ov-row{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
   .ov-row span{display:flex;justify-content:space-between}
@@ -362,6 +368,25 @@
             <label class="ov-row"><span>Suavidade (borrado) <b id="bk-v-blur">40px</b></span><input type="range" id="bk-s-blur" min="0" max="120" value="40"></label>
           </div>
         </div>
+        <!-- 🎨 COR DO TEXTO: aparece JUNTO com o painel específico (não no lugar dele).
+             A cor é HERDADA pelos filhos, então dá pra pintar o cartão inteiro de uma vez
+             (clicando na caixa) ou só o título (clicando no título). Texto de DESENHO (SVG)
+             entra pelo caminho dele (fill) — ver o bloco de código lá embaixo. -->
+        <div id="cortools" class="tools" hidden>
+          <div class="tlabel">🎨 Cor do texto — escolha livre, ou um atalho das cores que a peça já usa:</div>
+          <div class="tgrid">
+            <label class="ov-pick" title="abrir a paleta e escolher qualquer cor"><input type="color" id="cor-picker" value="#3a2415"> escolher cor</label>
+            <span class="sep"></span>
+            <span class="ov-lab">Da peça:</span>
+            <span id="cor-atalhos" class="cor-atalhos"></span>
+          </div>
+          <div class="tgrid" style="margin-top:10px">
+            <button id="cor-todas" title="pinta com esta cor todos os elementos iguais, em todas as páginas">📄 Aplicar em todas as páginas</button>
+            <span class="sep"></span>
+            <button id="cor-reset">↺ Voltar ao original</button>
+            <span class="hint" id="cor-aviso"></span>
+          </div>
+        </div>
           </div>
         </div>
         <div class="sec codigo" id="sec-codigo">
@@ -415,6 +440,7 @@ const photoToolsEl = document.getElementById('phototools');
 const textToolsEl = document.getElementById('texttools');
 const overlayToolsEl = document.getElementById('overlaytools');
 const bokehToolsEl = document.getElementById('bokehtools');
+const corToolsEl = document.getElementById('cortools');
 const slideBar = document.getElementById('slidebar');
 let selected = null;     // o elemento clicado dentro da prévia
 let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
@@ -1180,7 +1206,7 @@ function setPreviewCursor(c){
   const body = iframe.contentDocument && iframe.contentDocument.body;
   if(body) body.style.cursor = c;
 }
-function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; setPreviewCursor(''); }
+function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; corToolsEl.hidden = true; setPreviewCursor(''); }
 
 // é um elemento de texto? (tag de texto comum, ou tem texto escrito direto nele)
 const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
@@ -1200,8 +1226,13 @@ function showToolsFor(el){
   textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
   overlayToolsEl.hidden = !ovl;  // overlay: escurecer/clarear/cor
   bokehToolsEl.hidden = !bok;    // brilho: tamanho/cor/intensidade/suavidade
+  // cor do texto: só faz sentido onde HÁ texto (a cor é herdada, então vale tanto no
+  // título quanto na caixa que o contém). Foto, película e brilho ficam de fora.
+  const comTexto = !!(el && !img && !ovl && !bok && (el.textContent || '').trim());
+  corToolsEl.hidden = !comTexto;
   if(ovl && window.__ovSync) window.__ovSync();
   if(bok && window.__bkSync) window.__bkSync();
+  if(comTexto && window.__corSync) window.__corSync(el);
   setPreviewCursor(img ? 'grab' : (el ? 'move' : ''));   // texto/elemento: dá pra arrastar
 }
 
@@ -2746,6 +2777,174 @@ loadHtml(SAMPLE);
         case 'cy':    if(typeof centerOnSlide === 'function') centerOnSlide('v'); break;
       }
     });
+  });
+})();
+</script>
+<script>
+/* ---- 🎨 COR DO TEXTO: escolha livre + atalhos com as cores que a peça já usa ----
+   A cor é HERDADA pelos filhos: pintar a caixa pinta o título e o parágrafo juntos;
+   pintar só o título pinta só ele. Os atalhos são lidos da própria peça, então são
+   sempre as cores daquele trabalho — não uma paleta genérica.
+
+   TEXTO DE DESENHO (SVG): o desenho não se pinta com 'color', e sim com 'fill'.
+   Sem isto o painel apareceria e o clique não faria nada (provado no navegador em
+   2026-08-29). Cada leitura/pintura escolhe o caminho certo pelo tipo do elemento —
+   e o "voltar ao original" limpa os dois, pra não sobrar meia-pintura. */
+(function(){
+  const picker  = document.getElementById('cor-picker');
+  const atalhos = document.getElementById('cor-atalhos');
+  const bTodas  = document.getElementById('cor-todas');
+  const bReset  = document.getElementById('cor-reset');
+  const avisoEl = document.getElementById('cor-aviso');
+  let antes = null;
+
+  const alvo = () => (typeof selected !== 'undefined' ? selected : null);
+  const avisar = (t) => { if(avisoEl) avisoEl.textContent = t || ''; };
+  const hex2 = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+
+  // é texto de DESENHO? usa a função que o editor já tem; se um dia ela sumir,
+  // o teste de reserva faz o mesmo trabalho.
+  const ehDesenho = (el) => (typeof isSvgText === 'function')
+    ? isSvgText(el)
+    : (!!el && el.namespaceURI === 'http://www.w3.org/2000/svg'
+       && (el.tagName === 'text' || el.tagName === 'tspan'));
+
+  // "rgb(58, 36, 21)" -> "#3a2415" (o <input type=color> só entende hexadecimal)
+  function paraHex(cor){
+    const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(cor || '');
+    if(!m) return null;
+    return '#' + hex2(+m[1]) + hex2(+m[2]) + hex2(+m[3]);
+  }
+
+  // a cor ATUAL do elemento, pelo caminho certo (desenho pinta com 'fill')
+  function corDe(el){
+    if(!el) return null;
+    const s = getComputedStyle(el);
+    return paraHex(ehDesenho(el) ? s.fill : s.color);
+  }
+
+  // as cores que a peça JÁ usa: varre os textos do slide atual (e, se for pouco,
+  // o resto da peça) e devolve as mais frequentes, sem repetir.
+  function coresDaPeca(el){
+    const doc = iframe.contentDocument; if(!doc) return [];
+    const raiz = (typeof slideOf === 'function' && slideOf(el)) || doc.body;
+    const conta = new Map();
+    const olhar = (escopo) => {
+      escopo.querySelectorAll('*').forEach(n => {
+        if(!(n.textContent || '').trim()) return;
+        if(n.children.length && !Array.from(n.childNodes).some(c => c.nodeType === 3 && c.textContent.trim())) return;
+        const h = corDe(n);
+        if(h) conta.set(h, (conta.get(h) || 0) + 1);
+      });
+    };
+    olhar(raiz);
+    if(conta.size < 3 && doc.body) olhar(doc.body);
+    return [...conta.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(e => e[0]);
+  }
+
+  function marcar(hex){
+    atalhos.querySelectorAll('.cor-at').forEach(b => b.classList.toggle('primary', b.dataset.cor === hex));
+  }
+
+  // pinta pelo caminho certo. O estilo escrito no elemento vence o fill="..." que
+  // veio no desenho, então dá pra repintar arte pronta sem mexer no arquivo original.
+  function pintar(el, hex){
+    const antesDoStyle = el.getAttribute('style') || '';
+    if(ehDesenho(el)) el.style.fill = hex; else el.style.color = hex;
+    return (el.getAttribute('style') || '') !== antesDoStyle;
+  }
+
+  // deixa o painel refletindo o elemento selecionado (chamado pelo showToolsFor)
+  window.__corSync = function(el){
+    if(!el) return;
+    const atual = corDe(el) || '#000000';
+    picker.value = atual;
+    atalhos.innerHTML = '';
+    coresDaPeca(el).forEach(h => {
+      const b = document.createElement('button');
+      b.className = 'cor-at'; b.dataset.cor = h; b.style.background = h;
+      b.title = 'usar ' + h;
+      atalhos.appendChild(b);
+    });
+    marcar(atual);
+    avisar(ehDesenho(el) ? 'este é um texto de desenho — a cor entra pelo caminho dele.' : '');
+  };
+
+  function grab(){ if(antes == null && typeof snapshotHtml === 'function') antes = snapshotHtml(); }
+  function commit(){
+    if(antes == null) return;
+    const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null;
+    if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes);
+    antes = null;
+  }
+
+  picker.addEventListener('pointerdown', grab);
+  picker.addEventListener('input', () => {
+    const el = alvo(); if(!el) return;
+    grab();                                   // a paleta do sistema não dispara pointerdown
+    pintar(el, picker.value);
+    marcar(picker.value);
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  });
+  picker.addEventListener('change', commit);
+  picker.addEventListener('blur', commit);
+
+  atalhos.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.cor-at'); if(!b) return;
+    const el = alvo(); if(!el) return;
+    comHistorico(() => { pintar(el, b.dataset.cor); });
+    picker.value = b.dataset.cor;
+    marcar(b.dataset.cor);
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  });
+
+  // "o mesmo elemento" nas outras páginas = mesma etiqueta + mesmas classes
+  function seletorDe(el){
+    const cls = Array.from(el.classList).filter(c => c.indexOf('__ya_') !== 0);
+    if(!cls.length) return null;
+    const esc = (c) => (window.CSS && CSS.escape) ? CSS.escape(c) : c;
+    return el.tagName.toLowerCase() + '.' + cls.map(esc).join('.');
+  }
+
+  bTodas.addEventListener('click', () => {
+    const el = alvo(); if(!el) return;
+    const sel = seletorDe(el);
+    if(!sel){ avisar('este elemento não tem classe pra eu reconhecer nas outras páginas — pinte um por um.'); return; }
+    const doc = iframe.contentDocument; if(!doc) return;
+    let paginas = (typeof slideList === 'function' && slideList().length) ? slideList() : [doc.body];
+    const hex = picker.value;
+    let n = 0, tocadas = 0, iguais = 0, achados = 0;
+    comHistorico(() => {
+      for(const s of paginas){
+        let mexeu = false;
+        s.querySelectorAll(sel).forEach(e => {
+          achados++;
+          if(pintar(e, hex)){ n++; mexeu = true; } else { iguais++; }
+        });
+        if(mexeu) tocadas++;
+      }
+    });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    if(!achados){ avisar('não achei nenhum elemento igual nas outras páginas.'); return; }
+    avisar(n
+      ? '✅ pintei ' + n + (n === 1 ? ' elemento' : ' elementos') + ', em ' + tocadas
+        + (tocadas === 1 ? ' página' : ' páginas')
+        + (iguais ? ' (' + iguais + ' já estava' + (iguais > 1 ? 'm' : '') + ' assim)' : '')
+        + '. Um ↩ Desfazer volta tudo.'
+      : 'achei ' + achados + (achados === 1 ? ' elemento igual, mas ele já estava' : ' elementos iguais, mas já estavam')
+        + ' nessa cor — nada mudou.');
+  });
+
+  bReset.addEventListener('click', () => {
+    const el = alvo(); if(!el) return;
+    comHistorico(() => {
+      el.style.removeProperty('color');
+      el.style.removeProperty('fill');     // desenho: limpa o caminho dele também
+      if(el.getAttribute('style') === '') el.removeAttribute('style');
+    });
+    window.__corSync(el);
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    avisar('voltou à cor original.');
   });
 })();
 </script>

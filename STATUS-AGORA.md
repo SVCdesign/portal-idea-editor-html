@@ -6,7 +6,11 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-08-29 · **Motivo:** 🚚 **A PASTA DO MUNDO MUDOU DE LUGAR** (`D:\PORTAL IDEA\` →
+**Atualizado:** 2026-08-29 · **Motivo:** 🎨 **PAINEL "COR DO TEXTO" NO AR** (o Carlos avaliou
+a Prévia A e mandou implementar) — muda a cor de qualquer texto da peça, com atalhos lidos da
+própria peça e "aplicar em todas as páginas"; **pinta também texto de DESENHO (SVG)**, decisão
+dele depois que a auditoria mostrou que o desenho se pinta por outro caminho. · No mesmo dia:
+🚚 **A PASTA DO MUNDO MUDOU DE LUGAR** (`D:\PORTAL IDEA\` →
 `D:\WORKSPACE\Special Vision\`) — **nenhum código quebrou** (tudo usa caminho relativo); só os **mapas
 escritos** apontavam pro lugar velho e foram corrigidos (ver "Caminhos importantes"). · Junto,
 🫧 **o painel de Transparência foi REMOVIDO** a pedido dele (ver "perguntas em aberto") e
@@ -989,16 +993,24 @@ importantes que definem o rumo:
    virou distração e **está pausado**. (Detalhes no bloco `🎯 O FOCO`, no topo.)
 2. **Pediu a auditoria** dessa área. Feita, **nada quebrado**, resultado no mesmo bloco.
 
-### As perguntas em aberto (esperando resposta DELE — não decida sozinho)
+### As perguntas que estavam em aberto — ✅ AMBAS RESPONDIDAS em 2026-08-29
+(o texto ~~riscado~~ é o estado antigo, mantido pra contar a história)
 1. ✅ **RESPONDIDA em 2026-08-29** — 🫧 **O painel de Transparência**: ele mandou **tirar de vez**.
    Removido do `editor.html` (painel + o bloco de código dele + os 4 fios). O código vive no
    histórico do Git (commit anterior a essa remoção) se um dia o livrinho voltar. As peças que já
    foram editadas com ele **continuam iguais** — o que ele escrevia era CSS de verdade
    (`opacity` / cor com transparência) dentro do elemento, não uma marca do editor.
-2. 🎨 **O painel de Cor do texto** ficou **pronto e testado numa Prévia A**, mas **ele não chegou a
+2. ✅ **RESPONDIDA em 2026-08-29** — 🎨 **O painel de Cor do texto**: ele avaliou a Prévia A e
+   mandou implementar. **Está no `editor.html`**, com um acréscimo decidido por ele: pinta também
+   **texto de desenho (SVG)**, que se pinta por `fill` e não por `color`. Testado no navegador
+   (leitura da cor · pintura · atalhos vindos da peça · aplicar em todas · Desfazer passo a passo ·
+   salvar limpo · **Gerar PNG 3 slides em 2160×2700**). ⚠️ Ressalva: pintar a caixa só "desce" a
+   cor pros filhos **sem cor própria** — ver o aviso no topo de
+   [`logs/handoff/PENDENTE-painel-cor-do-texto.md`](logs/handoff/PENDENTE-painel-cor-do-texto.md).
+   ~~O painel de Cor do texto ficou **pronto e testado numa Prévia A**, mas **ele não chegou a
    aprovar** — a sessão virou antes. O código está guardado em
    [`logs/handoff/PENDENTE-painel-cor-do-texto.md`](logs/handoff/PENDENTE-painel-cor-do-texto.md)
-   (a prévia em si **não viaja**: `previas/` é local-only). **Não aplique sem o "vai" dele.**
+   (a prévia em si **não viaja**: `previas/` é local-only). **Não aplique sem o "vai" dele.**~~
 
 ### Se ele quiser retomar o livrinho (só se ele pedir)
 Está tudo pronto em `Subsistemas/Fluxo do Subsistema Livrinho/` — molde, receita pro outro

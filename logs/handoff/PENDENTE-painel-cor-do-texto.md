@@ -1,4 +1,16 @@
-# 🎨 PENDENTE — painel "Cor do texto" (código guardado, NÃO está no editor)
+# 🎨 ~~PENDENTE~~ **APLICADO** — painel "Cor do texto" (JÁ ESTÁ no editor)
+
+> ✅ **APLICADO NO `editor.html` EM 2026-08-29**, com o "vai" do Carlos ("pode implementar"),
+> depois de ele avaliar a Prévia A. O painel está no editor de verdade, testado no navegador,
+> **inclusive pintando texto de desenho (SVG)**. Este arquivo deixou de ser uma pendência e
+> virou **registro** — o histórico da decisão e o mapa de como a costura foi feita.
+>
+> ⚠️ **Uma ressalva honesta sobre a "herança"** (o texto mais abaixo promete demais): pintar a
+> caixa só desce a cor pros filhos que **não têm cor própria**. Como quase toda peça define a cor
+> de cada texto no CSS (`.titulo{color:…}`), na prática **pintar o cartão costuma NÃO mudar o
+> título nem o parágrafo** — é assim que o CSS funciona, não é defeito. Pinte o texto em si, ou
+> use o "aplicar em todas as páginas". Se um dia isso incomodar, dá pra criar um botão
+> "pintar também o que está dentro" — **não foi feito, e ninguém pediu.**
 
 > **Criado em:** 2026-08-09, na consolidação para troca de PC.
 > **Estado:** ⏸️ **aguardando o "vai" do Carlos.** A Prévia A foi **remontada em 2026-08-29**
