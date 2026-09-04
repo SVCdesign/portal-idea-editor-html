@@ -96,6 +96,12 @@
   .tools .tgrid{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .tools .sep{width:1px;align-self:stretch;background:var(--line);margin:0 4px}
   .tools button{min-width:40px;font-size:14px}
+  .tools .weight-row{margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+  .weight-ctl{display:flex;align-items:center;gap:7px;color:var(--ink);font-size:12px}
+  .weight-ctl input[type=range]{width:128px;accent-color:var(--accent)}
+  .weight-ctl b{min-width:32px;text-align:right;color:var(--accent)}
+  .weight-check{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;cursor:pointer}
+  .weight-check input{accent-color:var(--accent)}
 
   /* barra de navegação entre slides */
   #slidebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
@@ -321,6 +327,13 @@
             <span class="sep"></span>
             <button data-tact="reset" title="desfazer os ajustes de texto">↺ desfazer</button>
           </div>
+          <div class="tgrid weight-row">
+            <button data-tact="weightApply" title="aplicar o peso escolhido nas palavras selecionadas"><b>B</b></button>
+            <label class="weight-ctl" title="400 é normal; 700 é negrito; 900 é bem forte">Peso <input type="range" id="txt-weight" min="400" max="900" step="100" value="700"><b id="txt-weight-v">700</b></label>
+            <label class="weight-check" title="reforça visualmente quando a fonte não tem negrito real"><input type="checkbox" id="txt-weight-boost"> reforço visual</label>
+            <button data-tact="weightClear" title="tirar o negrito/reforço das palavras selecionadas">limpar</button>
+            <span class="hint" id="txt-weight-aviso"></span>
+          </div>
         </div>
         <div id="overlaytools" class="tools" hidden>
           <div class="tlabel">🎚️ Escurecer / Clarear a foto — a "película" (overlay) por cima da imagem. Clique na área da foto pra selecionar a película:</div>
@@ -442,6 +455,10 @@ const overlayToolsEl = document.getElementById('overlaytools');
 const bokehToolsEl = document.getElementById('bokehtools');
 const corToolsEl = document.getElementById('cortools');
 const slideBar = document.getElementById('slidebar');
+const txtWeightEl = document.getElementById('txt-weight');
+const txtWeightValEl = document.getElementById('txt-weight-v');
+const txtWeightBoostEl = document.getElementById('txt-weight-boost');
+const txtWeightAvisoEl = document.getElementById('txt-weight-aviso');
 let selected = null;     // o elemento clicado dentro da prévia
 let editingEl = null;    // o texto em edição "no lugar" (digitando direto na prévia)
 let svgEditingEl = null; // texto de DESENHO (SVG <text>/<tspan>) em edição pela caixinha flutuante
@@ -753,10 +770,11 @@ function wirePreview(){
   }, true);
 
   // teclas na edição: Shift+Enter quebra linha (<br>); Enter/Esc terminam;
-  // Ctrl/Cmd+B/I/U bloqueados (mantém texto puro, sem negrito/itálico acidental)
+  // Ctrl/Cmd+B usa o nosso negrito controlado; I/U continuam bloqueados pra evitar sujeira.
   doc.addEventListener('keydown', function(ev){
     if(!editingEl) return;
-    if((ev.ctrlKey || ev.metaKey) && ['b','i','u'].includes((ev.key||'').toLowerCase())){ ev.preventDefault(); return; }
+    if((ev.ctrlKey || ev.metaKey) && (ev.key||'').toLowerCase() === 'b'){ ev.preventDefault(); applyWeightToSelection(false); return; }
+    if((ev.ctrlKey || ev.metaKey) && ['i','u'].includes((ev.key||'').toLowerCase())){ ev.preventDefault(); return; }
     if(ev.key === 'Enter' && ev.shiftKey){ ev.preventDefault(); insertLineBreak(); return; }
     if(ev.key === 'Enter' || ev.key === 'Escape'){ ev.preventDefault(); stopTextEdit(); }
   }, true);
@@ -1214,7 +1232,9 @@ const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
 function isTextEl(el){
   if(!el || el.nodeType !== 1) return false;
   if(TEXT_TAGS.has(el.tagName)) return true;
-  return Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
+  if(Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim())) return true;
+  const kids = Array.from(el.children || []);
+  return !!kids.length && kids.every(k => TEXT_TAGS.has(k.tagName)) && !!(el.textContent || '').trim();
 }
 function showToolsFor(el){
   const img = (el && el.tagName === 'IMG');
@@ -1224,6 +1244,10 @@ function showToolsFor(el){
   toolsEl.hidden = img || txt || ovl || bok;   // comum (mover/zoom) só para o resto
   photoToolsEl.hidden = !img;    // imagens: ajustar a foto
   textToolsEl.hidden = !txt;     // textos: tamanho + largura da caixa
+  if(txt){
+    syncWeightLabel();
+    setWeightAviso(isSvgText(el) ? 'texto de desenho: negrito por palavras ainda não mexe aqui.' : '');
+  }
   overlayToolsEl.hidden = !ovl;  // overlay: escurecer/clarear/cor
   bokehToolsEl.hidden = !bok;    // brilho: tamanho/cor/intensidade/suavidade
   // cor do texto: só faz sentido onde HÁ texto (a cor é herdada, então vale tanto no
@@ -1688,6 +1712,82 @@ function onEditPaste(ev){
   const text = (ev.clipboardData && ev.clipboardData.getData('text/plain')) || '';
   iframe.contentDocument.execCommand('insertText', false, text);
 }
+function setWeightAviso(t){ if(txtWeightAvisoEl) txtWeightAvisoEl.textContent = t || ''; }
+function syncWeightLabel(){
+  if(txtWeightValEl && txtWeightEl) txtWeightValEl.textContent = txtWeightEl.value;
+}
+function selectedTextRange(){
+  const doc = iframe.contentDocument;
+  if(!doc || !editingEl || isSvgText(editingEl)) return null;
+  const sel = doc.getSelection();
+  if(!sel || !sel.rangeCount) return null;
+  const r = sel.getRangeAt(0);
+  if(r.collapsed) return null;
+  const box = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
+  if(!box || !editingEl.contains(box)) return null;
+  return r;
+}
+function removeEmptyWeightSpans(root){
+  Array.from(root.querySelectorAll ? root.querySelectorAll('span') : []).reverse().forEach(sp => {
+    if(sp.getAttribute('style') || sp.attributes.length) return;
+    const p = sp.parentNode; if(!p) return;
+    while(sp.firstChild) p.insertBefore(sp.firstChild, sp);
+    p.removeChild(sp);
+  });
+}
+function clearWeightIn(root){
+  const all = [];
+  if(root.nodeType === 1) all.push(root);
+  if(root.querySelectorAll) all.push(...root.querySelectorAll('*'));
+  all.forEach(el => {
+    if(!el.style) return;
+    el.style.removeProperty('font-weight');
+    el.style.removeProperty('text-shadow');
+    el.style.removeProperty('-webkit-text-stroke');
+    if(el.getAttribute('style') === '') el.removeAttribute('style');
+  });
+  removeEmptyWeightSpans(root);
+}
+function applyWeightToSelection(quiet){
+  syncWeightLabel();
+  const r = selectedTextRange();
+  if(!r){
+    if(!quiet) setWeightAviso('clique em "Editar aqui", selecione as palavras e aplique.');
+    return false;
+  }
+  const frag = r.extractContents();
+  clearWeightIn(frag);
+  const sp = iframe.contentDocument.createElement('span');
+  sp.style.fontWeight = txtWeightEl ? txtWeightEl.value : '700';
+  if(txtWeightBoostEl && txtWeightBoostEl.checked){
+    sp.style.textShadow = '0.28px 0 0 currentColor, -0.28px 0 0 currentColor';
+  }
+  sp.appendChild(frag);
+  r.insertNode(sp);
+  const sel = iframe.contentDocument.getSelection();
+  const keep = iframe.contentDocument.createRange();
+  keep.selectNode(sp);
+  sel.removeAllRanges(); sel.addRange(keep);
+  refreshCodeBox();
+  setWeightAviso(txtWeightBoostEl && txtWeightBoostEl.checked
+    ? 'peso aplicado com reforço visual. Enter confirma; Ctrl+Z desfaz.'
+    : 'peso aplicado. Enter confirma; Ctrl+Z desfaz.');
+  return true;
+}
+function clearWeightSelection(){
+  const r = selectedTextRange();
+  if(!r){ setWeightAviso('selecione as palavras que quer limpar.'); return false; }
+  const frag = r.extractContents();
+  clearWeightIn(frag);
+  const mark = iframe.contentDocument.createElement('span');
+  mark.appendChild(frag);
+  r.insertNode(mark);
+  while(mark.firstChild) mark.parentNode.insertBefore(mark.firstChild, mark);
+  mark.remove();
+  refreshCodeBox();
+  setWeightAviso('negrito/reforço removido do trecho selecionado.');
+  return true;
+}
 // Shift+Enter = quebra de linha (<br>) onde está o cursor
 function insertLineBreak(){
   const doc = iframe.contentDocument;
@@ -1852,9 +1952,26 @@ function closeSvgTextEdit(save){
   }
 }
 
+textToolsEl.addEventListener('mousedown', function(ev){
+  if(ev.target.closest('[data-tact="weightApply"], [data-tact="weightClear"]')) ev.preventDefault();
+});
+if(txtWeightEl){
+  txtWeightEl.addEventListener('input', () => {
+    syncWeightLabel();
+    applyWeightToSelection(true);
+  });
+}
+if(txtWeightBoostEl){
+  txtWeightBoostEl.addEventListener('change', () => {
+    applyWeightToSelection(true);
+  });
+}
+
 textToolsEl.addEventListener('click', function(ev){
   const b = ev.target.closest('button'); if(!b || !selected) return;
   if(b.dataset.tact === 'edit'){ startTextEdit(selected); return; }   // "edit" cuida do próprio Desfazer (ao terminar de digitar)
+  if(b.dataset.tact === 'weightApply'){ applyWeightToSelection(false); return; }
+  if(b.dataset.tact === 'weightClear'){ clearWeightSelection(); return; }
   comHistorico(() => {
     const STEP = 6;
     switch(b.dataset.tact){

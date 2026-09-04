@@ -6,7 +6,16 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-08-29 · **Motivo:** 🎨 **PAINEL "COR DO TEXTO" NO AR** (o Carlos avaliou
+**Atualizado:** 2026-09-04 · **Motivo:** 🅱️ **NEGRITO POR PALAVRAS NO PAINEL DE TEXTO** —
+o Carlos pediu uma opção para colocar negrito em palavras específicas, com intensidade ajustável.
+Entrou no `editor.html`: botão **B**, controle de **Peso** (`400` a `900`), opção **reforço visual**
+para quando a fonte não tiver negrito real, botão **limpar**, e Ctrl+B usando o caminho controlado
+do editor (sem o negrito automático/sujo do navegador). Auditoria antes: o trecho de texto estava
+saudável; cuidado aplicado para o editor continuar reconhecendo caixas que viram `<span>` após o
+negrito. Limite assumido: texto de DESENHO/SVG mostra aviso e não recebe negrito por palavras nesta
+primeira versão, porque usa a caixinha especial do SVG e pode perder estilos por partes. Testado no
+navegador: aplicar peso `800`, ligar reforço visual, limpar, aplicar `700`, Desfazer ✅; **Gerar PNG
+2160×2700 ✅**. · Antes, em **2026-08-29**: 🎨 **PAINEL "COR DO TEXTO" NO AR** (o Carlos avaliou
 a Prévia A e mandou implementar) — muda a cor de qualquer texto da peça, com atalhos lidos da
 própria peça e "aplicar em todas as páginas"; **pinta também texto de DESENHO (SVG)**, decisão
 dele depois que a auditoria mostrou que o desenho se pinta por outro caminho. · No mesmo dia:
