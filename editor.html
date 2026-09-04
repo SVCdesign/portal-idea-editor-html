@@ -479,6 +479,7 @@ const MAX_HISTORY_BYTES = 80 * 1024 * 1024;   // teto de MEMÓRIA do histórico 
 let history = [];          // pilha de retratos (innerHTML do <html>) — estados anteriores
 let dragBefore = null;     // retrato de antes de arrastar (commit só se algo mudou)
 let textBefore = null;     // retrato de antes de digitar num texto (commit só se mudou)
+let lastTextRange = null;  // última seleção de palavras dentro do texto em edição
 let ovBefore = null;       // retrato de antes de mexer no escurecer/clarear (slider)
 
 // ---- 1) Carrega um HTML na prévia (srcdoc = o navegador renderiza fiel) ----
@@ -1716,69 +1717,139 @@ function setWeightAviso(t){ if(txtWeightAvisoEl) txtWeightAvisoEl.textContent = 
 function syncWeightLabel(){
   if(txtWeightValEl && txtWeightEl) txtWeightValEl.textContent = txtWeightEl.value;
 }
-function selectedTextRange(){
+function rangeDentroDoTexto(r){
+  if(!r || !editingEl) return false;
+  const box = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
+  return !!(box && editingEl.contains(box));
+}
+function rememberTextRange(){
   const doc = iframe.contentDocument;
   if(!doc || !editingEl || isSvgText(editingEl)) return null;
   const sel = doc.getSelection();
   if(!sel || !sel.rangeCount) return null;
   const r = sel.getRangeAt(0);
   if(r.collapsed) return null;
-  const box = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
-  if(!box || !editingEl.contains(box)) return null;
-  return r;
+  if(!rangeDentroDoTexto(r)) return null;
+  lastTextRange = r.cloneRange();
+  return lastTextRange;
 }
-function removeEmptyWeightSpans(root){
+function selectedTextRange(){
+  const r = rememberTextRange();
+  if(r) return r;
+  if(lastTextRange && rangeDentroDoTexto(lastTextRange)) return lastTextRange;
+  return null;
+}
+function isOwnWeightSpan(el){
+  if(!el || el.nodeType !== 1 || el.tagName !== 'SPAN' || !el.style || !el.style.fontWeight) return false;
+  const allowed = new Set(['font-weight','text-shadow','filter']);
+  return Array.from(el.attributes || []).every(a => {
+    if(a.name !== 'style') return false;
+    return Array.from(el.style).every(p => allowed.has(p));
+  });
+}
+function unwrapSpan(sp){
+  const p = sp && sp.parentNode; if(!p) return;
+  while(sp.firstChild) p.insertBefore(sp.firstChild, sp);
+  p.removeChild(sp);
+}
+function removeEmptySpans(root){
   Array.from(root.querySelectorAll ? root.querySelectorAll('span') : []).reverse().forEach(sp => {
     if(sp.getAttribute('style') || sp.attributes.length) return;
-    const p = sp.parentNode; if(!p) return;
-    while(sp.firstChild) p.insertBefore(sp.firstChild, sp);
-    p.removeChild(sp);
+    unwrapSpan(sp);
   });
 }
-function clearWeightIn(root){
-  const all = [];
-  if(root.nodeType === 1) all.push(root);
-  if(root.querySelectorAll) all.push(...root.querySelectorAll('*'));
-  all.forEach(el => {
-    if(!el.style) return;
-    el.style.removeProperty('font-weight');
-    el.style.removeProperty('text-shadow');
-    el.style.removeProperty('-webkit-text-stroke');
-    if(el.getAttribute('style') === '') el.removeAttribute('style');
+function unwrapOwnWeightSpans(root){
+  if(root.nodeType === 1 && isOwnWeightSpan(root)) unwrapSpan(root);
+  Array.from(root.querySelectorAll ? root.querySelectorAll('span') : []).reverse().forEach(sp => {
+    if(isOwnWeightSpan(sp)) unwrapSpan(sp);
   });
-  removeEmptyWeightSpans(root);
+  removeEmptySpans(root);
+}
+function nearestOwnWeightSpan(r){
+  if(!r) return null;
+  if(r.startContainer === r.endContainer && r.endOffset === r.startOffset + 1){
+    const node = r.startContainer.childNodes && r.startContainer.childNodes[r.startOffset];
+    if(isOwnWeightSpan(node)) return node;
+  }
+  let n = r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement;
+  while(n && n !== editingEl){
+    if(isOwnWeightSpan(n) && n.textContent === r.toString()) return n;
+    n = n.parentElement;
+  }
+  return null;
+}
+function corEhTransparente(cor){
+  const m = /rgba?\(\s*[\d.]+[,\s]+[\d.]+[,\s]+[\d.]+(?:[,\s/]+([\d.]+))?/i.exec(cor || '');
+  return !!(m && m[1] !== undefined && +m[1] <= 0.05);
+}
+function applyBoostStyle(sp, baseEl){
+  sp.style.removeProperty('text-shadow');
+  sp.style.removeProperty('filter');
+  if(!txtWeightBoostEl || !txtWeightBoostEl.checked) return;
+  const cs = getComputedStyle(baseEl || editingEl || sp);
+  if(corEhTransparente(cs.color)){
+    sp.style.filter = 'drop-shadow(0.32px 0 0 rgba(255,255,255,.45)) drop-shadow(-0.32px 0 0 rgba(0,0,0,.28))';
+  }else{
+    sp.style.textShadow = '0.28px 0 0 currentColor, -0.28px 0 0 currentColor';
+  }
 }
 function applyWeightToSelection(quiet){
   syncWeightLabel();
+  if(selected && isSvgText(selected)){
+    setWeightAviso('texto de desenho: negrito por palavras ainda não mexe aqui.');
+    return false;
+  }
   const r = selectedTextRange();
   if(!r){
     if(!quiet) setWeightAviso('clique em "Editar aqui", selecione as palavras e aplique.');
     return false;
   }
+  const own = nearestOwnWeightSpan(r);
+  if(own){
+    own.style.fontWeight = txtWeightEl ? txtWeightEl.value : '700';
+    applyBoostStyle(own, own);
+    const keep = iframe.contentDocument.createRange();
+    keep.selectNode(own);
+    const sel = iframe.contentDocument.getSelection();
+    sel.removeAllRanges(); sel.addRange(keep);
+    lastTextRange = keep.cloneRange();
+    refreshCodeBox();
+    setWeightAviso('peso atualizado. Confirme a edição; depois o ↩ Desfazer volta.');
+    return true;
+  }
   const frag = r.extractContents();
-  clearWeightIn(frag);
   const sp = iframe.contentDocument.createElement('span');
   sp.style.fontWeight = txtWeightEl ? txtWeightEl.value : '700';
-  if(txtWeightBoostEl && txtWeightBoostEl.checked){
-    sp.style.textShadow = '0.28px 0 0 currentColor, -0.28px 0 0 currentColor';
-  }
+  applyBoostStyle(sp, r.startContainer && r.startContainer.parentElement);
   sp.appendChild(frag);
   r.insertNode(sp);
   const sel = iframe.contentDocument.getSelection();
   const keep = iframe.contentDocument.createRange();
   keep.selectNode(sp);
   sel.removeAllRanges(); sel.addRange(keep);
+  lastTextRange = keep.cloneRange();
   refreshCodeBox();
   setWeightAviso(txtWeightBoostEl && txtWeightBoostEl.checked
-    ? 'peso aplicado com reforço visual. Enter confirma; Ctrl+Z desfaz.'
-    : 'peso aplicado. Enter confirma; Ctrl+Z desfaz.');
+    ? 'peso aplicado com reforço visual. Confirme a edição; depois o ↩ Desfazer volta.'
+    : 'peso aplicado. Confirme a edição; depois o ↩ Desfazer volta.');
   return true;
 }
 function clearWeightSelection(){
+  if(selected && isSvgText(selected)){ setWeightAviso('texto de desenho: negrito por palavras ainda não mexe aqui.'); return false; }
   const r = selectedTextRange();
   if(!r){ setWeightAviso('selecione as palavras que quer limpar.'); return false; }
+  const own = nearestOwnWeightSpan(r);
+  if(own){
+    const keep = iframe.contentDocument.createRange();
+    keep.selectNodeContents(own);
+    unwrapSpan(own);
+    refreshCodeBox();
+    setWeightAviso('negrito/reforço removido do trecho selecionado.');
+    lastTextRange = null;
+    return true;
+  }
   const frag = r.extractContents();
-  clearWeightIn(frag);
+  unwrapOwnWeightSpans(frag);
   const mark = iframe.contentDocument.createElement('span');
   mark.appendChild(frag);
   r.insertNode(mark);
@@ -1809,6 +1880,7 @@ function startTextEdit(el, x, y){
   // (contenteditable "abre mas trava"). Usamos uma caixinha flutuante por cima.
   if(isSvgText(el)){ startSvgTextEdit(el); return; }
   textBefore = snapshotHtml();             // retrato de antes de digitar (commit só se mudar)
+  lastTextRange = null;
   editingEl = el;
   el.setAttribute('contenteditable', 'true');    // normal (permite <br> no Shift+Enter)
   el.classList.add('__ya_editing');
@@ -1828,6 +1900,7 @@ function stopTextEdit(){
   if(svgEditingEl){ closeSvgTextEdit(true); return; }   // caixinha SVG: faz o próprio commit
   if(!editingEl) return;
   const el = editingEl; editingEl = null;
+  lastTextRange = null;
   el.removeEventListener('blur', onEditBlur);
   el.removeEventListener('input', onEditInput);
   el.removeEventListener('paste', onEditPaste);
@@ -1953,7 +2026,11 @@ function closeSvgTextEdit(save){
 }
 
 textToolsEl.addEventListener('mousedown', function(ev){
+  if(ev.target.closest('.weight-row')) rememberTextRange();
   if(ev.target.closest('[data-tact="weightApply"], [data-tact="weightClear"]')) ev.preventDefault();
+});
+textToolsEl.addEventListener('pointerdown', function(ev){
+  if(ev.target.closest('.weight-row')) rememberTextRange();
 });
 if(txtWeightEl){
   txtWeightEl.addEventListener('input', () => {

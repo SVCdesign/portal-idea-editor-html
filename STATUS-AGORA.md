@@ -6,7 +6,16 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-09-04 · **Motivo:** 🅱️ **NEGRITO POR PALAVRAS NO PAINEL DE TEXTO** —
+**Atualizado:** 2026-09-04 · **Motivo:** 🛡️ **REFUTAÇÃO DO NEGRITO CORRIGIDA** — depois da
+implementação do negrito por palavras, o Carlos mandou um agente limpo tentar refutar. O Ampere
+achou 5 pontos; corrigidos os importantes: o reforço visual agora não some em texto com gradiente
+(usa outro caminho quando a cor real do texto é transparente), o checkbox/slider guardam a seleção
+da palavra antes de perder o foco, trocar o peso atualiza o trecho em vez de criar `<span>` dentro
+de `<span>`, e aplicar/limpar não apaga mais sombra/brilho original que já existia dentro da peça.
+Também ajustada a mensagem de Desfazer (só depois de confirmar a edição) e o aviso de texto
+DESENHO/SVG. Testado no navegador: caso simples, checkbox antes do B, gradiente, trecho atravessando
+um `span` com sombra própria, limpar preservando sombra original, HTML limpo e **Gerar PNG
+2160×2700 ✅**. · Antes, no mesmo dia: 🅱️ **NEGRITO POR PALAVRAS NO PAINEL DE TEXTO** —
 o Carlos pediu uma opção para colocar negrito em palavras específicas, com intensidade ajustável.
 Entrou no `editor.html`: botão **B**, controle de **Peso** (`400` a `900`), opção **reforço visual**
 para quando a fonte não tiver negrito real, botão **limpar**, e Ctrl+B usando o caminho controlado
