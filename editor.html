@@ -182,6 +182,10 @@
           border:2px solid var(--line);cursor:pointer}
   .cor-at:hover{border-color:var(--ink)}
   .cor-at.primary{border-color:var(--accent);box-shadow:0 0 0 2px rgba(43,196,196,.35)}
+  .grad-presets{gap:6px;margin-top:8px}
+  .grad-presets button{min-width:auto;padding:5px 10px;font-size:12px}
+  .grad-midbox{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .grad-midbox[hidden]{display:none}
   .ov-sliders{display:flex;flex-direction:column;gap:10px;margin-top:12px}
   .ov-row{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
   .ov-row span{display:flex;justify-content:space-between}
@@ -400,6 +404,33 @@
             <span class="hint" id="cor-aviso"></span>
           </div>
         </div>
+        <div id="gradtools" class="tools" hidden>
+          <div class="tlabel">🌈 Degradê do texto — escolha as cores e a direção. O texto continua HTML fiel, sem virar imagem:</div>
+          <div class="tgrid ov-cores">
+            <label class="ov-pick" title="cor do começo do degradê"><input type="color" id="grad-c1" value="#8be6f5"> início</label>
+            <label class="ov-pick" title="cor do fim do degradê"><input type="color" id="grad-c2" value="#6b66cc"> fim</label>
+            <label class="weight-check" title="liga uma terceira cor no meio do degradê"><input type="checkbox" id="grad-mid-on"> cor do meio</label>
+          </div>
+          <div class="grad-midbox" id="grad-midbox" hidden>
+            <label class="ov-pick" title="cor que aparece no meio do degradê"><input type="color" id="grad-cmid" value="#82b7ff"> meio</label>
+            <label class="ov-row"><span>Mistura <b id="grad-v-stop">50%</b></span><input type="range" id="grad-stop" min="5" max="95" value="50"></label>
+          </div>
+          <div class="ov-sliders">
+            <label class="ov-row"><span>Direção <b id="grad-v-angle">90°</b></span><input type="range" id="grad-angle" min="0" max="360" value="90"></label>
+          </div>
+          <div class="tgrid grad-presets">
+            <button class="grad-pre" data-grad="azul" title="azul claro para lilás">Azul/lilás</button>
+            <button class="grad-pre" data-grad="marca" title="cores da marca">Marca</button>
+            <button class="grad-pre" data-grad="rosa" title="rosa para dourado">Rosa/ouro</button>
+            <button class="grad-pre" data-grad="verde" title="verde para azul">Verde/azul</button>
+          </div>
+          <div class="tgrid" style="margin-top:10px">
+            <button id="grad-todas" title="aplica este degradê nos elementos iguais, em todas as páginas">📄 Aplicar em todas as páginas</button>
+            <span class="sep"></span>
+            <button id="grad-reset">↺ Voltar ao original</button>
+            <span class="hint" id="grad-aviso"></span>
+          </div>
+        </div>
           </div>
         </div>
         <div class="sec codigo" id="sec-codigo">
@@ -454,6 +485,7 @@ const textToolsEl = document.getElementById('texttools');
 const overlayToolsEl = document.getElementById('overlaytools');
 const bokehToolsEl = document.getElementById('bokehtools');
 const corToolsEl = document.getElementById('cortools');
+const gradToolsEl = document.getElementById('gradtools');
 const slideBar = document.getElementById('slidebar');
 const txtWeightEl = document.getElementById('txt-weight');
 const txtWeightValEl = document.getElementById('txt-weight-v');
@@ -1225,7 +1257,7 @@ function setPreviewCursor(c){
   const body = iframe.contentDocument && iframe.contentDocument.body;
   if(body) body.style.cursor = c;
 }
-function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; corToolsEl.hidden = true; setPreviewCursor(''); }
+function hideAllTools(){ toolsEl.hidden = true; photoToolsEl.hidden = true; textToolsEl.hidden = true; overlayToolsEl.hidden = true; bokehToolsEl.hidden = true; corToolsEl.hidden = true; gradToolsEl.hidden = true; setPreviewCursor(''); }
 
 // é um elemento de texto? (tag de texto comum, ou tem texto escrito direto nele)
 const TEXT_TAGS = new Set(['P','H1','H2','H3','H4','H5','H6','SPAN','A','LI',
@@ -1255,9 +1287,11 @@ function showToolsFor(el){
   // título quanto na caixa que o contém). Foto, película e brilho ficam de fora.
   const comTexto = !!(el && !img && !ovl && !bok && (el.textContent || '').trim());
   corToolsEl.hidden = !comTexto;
+  gradToolsEl.hidden = !comTexto;
   if(ovl && window.__ovSync) window.__ovSync();
   if(bok && window.__bkSync) window.__bkSync();
   if(comTexto && window.__corSync) window.__corSync(el);
+  if(comTexto && window.__gradSync) window.__gradSync(el);
   setPreviewCursor(img ? 'grab' : (el ? 'move' : ''));   // texto/elemento: dá pra arrastar
 }
 
@@ -2882,6 +2916,245 @@ loadHtml(SAMPLE);
     });
     window.__ovSync();   // fora do histórico: só re-lê os controles, não muda a peça
   });
+})();
+
+/* ---- 🌈 DEGRADÊ DO TEXTO: cores + direção, sem transformar texto em imagem ----
+   Texto comum recebe o caminho fiel do CSS: linear-gradient + background-clip:text.
+   Texto de DESENHO (SVG) fica fora deste primeiro passo, porque precisa criar um
+   <linearGradient> dentro do próprio SVG e isso é outro caminho, mais delicado. */
+(function(){
+  const c1      = document.getElementById('grad-c1');
+  const c2      = document.getElementById('grad-c2');
+  const cmid    = document.getElementById('grad-cmid');
+  const midOn   = document.getElementById('grad-mid-on');
+  const midBox  = document.getElementById('grad-midbox');
+  const angle   = document.getElementById('grad-angle');
+  const stop    = document.getElementById('grad-stop');
+  const vAngle  = document.getElementById('grad-v-angle');
+  const vStop   = document.getElementById('grad-v-stop');
+  const bTodas  = document.getElementById('grad-todas');
+  const bReset  = document.getElementById('grad-reset');
+  const avisoEl = document.getElementById('grad-aviso');
+  let antes = null;
+
+  const alvo = () => (typeof selected !== 'undefined' ? selected : null);
+  const avisar = (t) => { if(avisoEl) avisoEl.textContent = t || ''; };
+  const hex2 = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+  const presets = {
+    azul:  { c1:'#8be6f5', c2:'#6b66cc', cmid:'#82b7ff', mid:true,  angle:90,  stop:52 },
+    marca: { c1:'#2bc4c4', c2:'#ff7a2f', cmid:'#6b66cc', mid:true,  angle:90,  stop:58 },
+    rosa:  { c1:'#ff5fa2', c2:'#ffd166', cmid:'#ff8bd4', mid:true,  angle:18,  stop:44 },
+    verde: { c1:'#8dffca', c2:'#7678ff', cmid:'#5bd7ff', mid:true,  angle:110, stop:56 }
+  };
+
+  const ehDesenho = (el) => (typeof isSvgText === 'function')
+    ? isSvgText(el)
+    : (!!el && el.namespaceURI === 'http://www.w3.org/2000/svg'
+       && (el.tagName === 'text' || el.tagName === 'tspan'));
+
+  function paraHex(cor){
+    if(!cor) return null;
+    const hex = String(cor).trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if(hex){
+      const h = hex[1];
+      return '#' + (h.length === 3 ? h.split('').map(x => x + x).join('') : h).toLowerCase();
+    }
+    const m = /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i.exec(cor);
+    if(!m) return null;
+    return '#' + hex2(+m[1]) + hex2(+m[2]) + hex2(+m[3]);
+  }
+
+  function splitTopLevel(s){
+    const out = [];
+    let cur = '', depth = 0;
+    for(const ch of String(s || '')){
+      if(ch === '(') depth++;
+      else if(ch === ')' && depth) depth--;
+      if(ch === ',' && depth === 0){ out.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    if(cur.trim()) out.push(cur.trim());
+    return out;
+  }
+
+  function readGradient(el){
+    if(!el) return null;
+    let bg = (el.style && el.style.backgroundImage) || '';
+    if(!/linear-gradient/i.test(bg)) bg = getComputedStyle(el).backgroundImage || '';
+    const m = /linear-gradient\((.*)\)/i.exec(bg);
+    if(!m) return null;
+    const args = splitTopLevel(m[1]);
+    if(args.length < 2) return null;
+    let a = args[0], stops = args.slice(1);
+    if(!/(deg|turn|rad|to\s+)/i.test(a)){ a = '90deg'; stops = args; }
+    let grau = parseFloat(a);
+    if(/to\s+right/i.test(a)) grau = 90;
+    else if(/to\s+left/i.test(a)) grau = 270;
+    else if(/to\s+bottom/i.test(a)) grau = 180;
+    else if(/to\s+top/i.test(a)) grau = 0;
+    if(!Number.isFinite(grau)) grau = 90;
+
+    const parsed = stops.map(s => {
+      const color = paraHex((s.match(/rgba?\([^)]+\)|#[0-9a-f]{3,6}/i) || [])[0]);
+      const pctMatch = s.match(/(-?[\d.]+)%\s*$/);
+      return { color, pct: pctMatch ? Math.round(parseFloat(pctMatch[1])) : null };
+    }).filter(s => s.color);
+    if(parsed.length < 2) return null;
+    const middle = parsed.length > 2 ? parsed[Math.floor(parsed.length / 2)] : null;
+    return {
+      c1: parsed[0].color,
+      c2: parsed[parsed.length - 1].color,
+      cmid: middle ? middle.color : '#82b7ff',
+      mid: !!middle,
+      angle: Math.max(0, Math.min(360, Math.round(grau))),
+      stop: middle && middle.pct != null ? Math.max(5, Math.min(95, middle.pct)) : 50
+    };
+  }
+
+  function state(){
+    return {
+      c1: c1.value,
+      c2: c2.value,
+      cmid: cmid.value,
+      mid: midOn.checked,
+      angle: angle.value,
+      stop: stop.value
+    };
+  }
+
+  function gradient(st){
+    return st.mid
+      ? 'linear-gradient(' + st.angle + 'deg, ' + st.c1 + ' 0%, ' + st.cmid + ' ' + st.stop + '%, ' + st.c2 + ' 100%)'
+      : 'linear-gradient(' + st.angle + 'deg, ' + st.c1 + ' 0%, ' + st.c2 + ' 100%)';
+  }
+
+  function labels(){
+    if(vAngle) vAngle.textContent = angle.value + '°';
+    if(vStop) vStop.textContent = stop.value + '%';
+    if(midBox) midBox.hidden = !midOn.checked;
+  }
+
+  function setDisabled(disabled){
+    [c1, c2, cmid, midOn, angle, stop, bTodas, bReset].forEach(el => { if(el) el.disabled = !!disabled; });
+  }
+
+  function aplicar(el, st){
+    if(!el || ehDesenho(el)) return false;
+    const antesDoStyle = el.getAttribute('style') || '';
+    el.style.backgroundImage = gradient(st);
+    el.style.setProperty('background-clip', 'text');
+    el.style.setProperty('-webkit-background-clip', 'text');
+    el.style.color = 'transparent';
+    el.style.setProperty('-webkit-text-fill-color', 'transparent');
+    return (el.getAttribute('style') || '') !== antesDoStyle;
+  }
+
+  function limpar(el){
+    if(!el || ehDesenho(el)) return false;
+    const antesDoStyle = el.getAttribute('style') || '';
+    el.style.removeProperty('background-image');
+    el.style.removeProperty('background-clip');
+    el.style.removeProperty('-webkit-background-clip');
+    el.style.removeProperty('-webkit-text-fill-color');
+    el.style.removeProperty('color');
+    if(el.getAttribute('style') === '') el.removeAttribute('style');
+    return (el.getAttribute('style') || '') !== antesDoStyle;
+  }
+
+  function setState(st){
+    c1.value = st.c1;
+    c2.value = st.c2;
+    cmid.value = st.cmid;
+    midOn.checked = !!st.mid;
+    angle.value = st.angle;
+    stop.value = st.stop;
+    labels();
+  }
+
+  function applyFromControls(){
+    labels();
+    const el = alvo(); if(!el || ehDesenho(el)) return;
+    aplicar(el, state());
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  }
+
+  function grab(){ if(antes == null && typeof snapshotHtml === 'function') antes = snapshotHtml(); }
+  function commit(){
+    if(antes == null) return;
+    const now = (typeof snapshotHtml === 'function') ? snapshotHtml() : null;
+    if(now !== null && now !== antes && typeof pushHistory === 'function') pushHistory(antes);
+    antes = null;
+  }
+
+  window.__gradSync = function(el){
+    if(!el) return;
+    const desenho = ehDesenho(el);
+    setDisabled(desenho);
+    const atual = !desenho && readGradient(el);
+    if(atual) setState(atual);
+    else labels();
+    avisar(desenho
+      ? 'texto de desenho/SVG ainda não recebe degradê neste primeiro passo.'
+      : (atual ? 'degradê atual lido da peça.' : 'pronto para aplicar degradê neste texto.'));
+  };
+
+  [c1, c2, cmid, angle, stop].forEach(ctrl => {
+    ctrl.addEventListener('input', () => { grab(); applyFromControls(); });
+    ctrl.addEventListener('change', commit);
+    ctrl.addEventListener('blur', commit);
+    ctrl.addEventListener('pointerup', commit);
+    ctrl.addEventListener('keyup', commit);
+  });
+
+  midOn.addEventListener('change', () => {
+    const el = alvo(); if(!el || ehDesenho(el)) return;
+    comHistorico(() => { labels(); aplicar(el, state()); });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+  });
+
+  document.querySelectorAll('.grad-pre').forEach(btn => btn.addEventListener('click', () => {
+    const el = alvo(); if(!el || ehDesenho(el)) return;
+    const p = presets[btn.dataset.grad]; if(!p) return;
+    comHistorico(() => { setState(p); aplicar(el, state()); });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    avisar('atalho aplicado. Um ↩ Desfazer volta.');
+  }));
+
+  bTodas.addEventListener('click', () => {
+    const el = alvo(); if(!el || ehDesenho(el)) return;
+    const cls = Array.from(el.classList).filter(c => c.indexOf('__ya_') !== 0);
+    if(!cls.length){ avisar('este elemento não tem classe pra eu reconhecer nas outras páginas — aplique um por um.'); return; }
+    const esc = (c) => (window.CSS && CSS.escape) ? CSS.escape(c) : c;
+    const sel = el.tagName.toLowerCase() + '.' + cls.map(esc).join('.');
+    const doc = iframe.contentDocument; if(!doc) return;
+    const paginas = (typeof slideList === 'function' && slideList().length) ? slideList() : [doc.body];
+    const st = state();
+    let n = 0, tocadas = 0, achados = 0;
+    comHistorico(() => {
+      for(const s of paginas){
+        let mexeu = false;
+        s.querySelectorAll(sel).forEach(e => {
+          achados++;
+          if(!ehDesenho(e) && aplicar(e, st)){ n++; mexeu = true; }
+        });
+        if(mexeu) tocadas++;
+      }
+    });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    if(!achados){ avisar('não achei nenhum elemento igual nas outras páginas.'); return; }
+    avisar(n
+      ? '✅ apliquei degradê em ' + n + (n === 1 ? ' elemento' : ' elementos') + ', em ' + tocadas + (tocadas === 1 ? ' página' : ' páginas') + '.'
+      : 'achei elementos iguais, mas eles já estavam com esse degradê.');
+  });
+
+  bReset.addEventListener('click', () => {
+    const el = alvo(); if(!el || ehDesenho(el)) return;
+    comHistorico(() => { limpar(el); });
+    if(typeof refreshCodeBox === 'function') refreshCodeBox();
+    avisar('degradê removido deste texto.');
+  });
+
+  labels();
 })();
 </script>
 <script>

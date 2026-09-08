@@ -6,7 +6,18 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-09-04 · **Motivo:** 🛡️ **REFUTAÇÃO DO NEGRITO CORRIGIDA** — depois da
+**Atualizado:** 2026-09-08 · **Motivo:** 🌈 **DEGRADÊ NO TEXTO IMPLEMENTADO** — o Carlos pediu uma
+função para aplicar degradê em textos, inspirado no exemplo azul/lilás. Primeiro saiu uma **Prévia B**
+local em `previas/previa-degrade-texto.html`; depois ele aprovou a implementação. Antes do código,
+auditoria focada em texto/cor/negrito: achado principal foi que degradê de texto precisa de painel
+próprio, porque a cor comum vira transparente; texto de DESENHO/SVG fica de fora neste MVP por usar
+outro mecanismo (`fill`/`linearGradient` dentro do SVG). Entrou no `editor.html`: painel **🌈
+Degradê do texto** para texto normal, com cor inicial, cor final, terceira cor opcional, direção,
+mistura, atalhos prontos, **Aplicar em todas as páginas** e **Voltar ao original**. O CSS é escrito
+inline no elemento (`linear-gradient` + `background-clip:text` + texto transparente), sem transformar
+texto em imagem e sem reprocessar o CSS da peça. Testado no Chrome real: aplicar, ler degradê atual,
+remover, Desfazer, aviso/bloqueio em SVG, aplicar em textos iguais de 2 slides, HTML final limpo e
+**Gerar PNG 2160×2700 ✅**. · Antes, em 2026-09-04: 🛡️ **REFUTAÇÃO DO NEGRITO CORRIGIDA** — depois da
 implementação do negrito por palavras, o Carlos mandou um agente limpo tentar refutar. O Ampere
 achou 5 pontos; corrigidos os importantes: o reforço visual agora não some em texto com gradiente
 (usa outro caminho quando a cor real do texto é transparente), o checkbox/slider guardam a seleção
