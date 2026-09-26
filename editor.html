@@ -1401,6 +1401,41 @@ function addImageBackground(dataURL){
   crumbEl.textContent = '🖼️ imagem de fundo adicionada — enquadre ao lado; use "🎚️ Escurecer/Clarear" pra regular a película · Ctrl+Z desfaz';
 }
 
+// ---- 🔄 O QUE O EDITOR NÃO GERENCIA, ELE PRESERVA (giro/inclinação) ----
+// O editor só sabe escrever MOVER (translate) e AUMENTAR (scale) — e, na foto, o
+// ESPELHO (scaleX(-1)). Antes ele reescrevia o `transform` INTEIRO, então um
+// rotate()/skew() que vinha do design ia pro lixo no 1º toque de mover/aumentar.
+// Foi medido de fora pelo sistema-de-ideias (16/09/2026): um relógio que saiu com
+// `rotate(-12deg)` voltou reto do editor. Agora esses pedaços são guardados e
+// recolocados NO FIM, pela mesma ideia que já salva o espelho.
+// Bônus do mesmo conserto: `translate(-50%,-50%)` (o truque de centralizar do
+// design) também para de ser apagado, porque em % não é do editor — no elemento o
+// editor move em px.
+// ⚠️ LIMITE ASSUMIDO: isto vale pro `transform` escrito NO elemento (style=""). Se
+// o giro vier de uma CLASSE na folha de estilo, o inline continua vencendo (como
+// sempre foi) — não piorou, mas não está resolvido.
+function tfPartes(el){
+  const t = (el && el.style && el.style.transform) || '';
+  const out = []; const re = /([a-zA-Z0-9]+)\(([^()]*)\)/g; let m;
+  while((m = re.exec(t))) out.push({ todo: m[0].trim(), fn: m[1].toLowerCase(), args: m[2] });
+  return out;
+}
+// no ELEMENTO (texto/caixa/desenho) o editor é dono de: mover em px + aumentar
+function ehMeuNoElemento(p){
+  if(p.fn === 'scale') return true;
+  if(p.fn === 'translate' || p.fn === 'translatex' || p.fn === 'translatey') return !/%/.test(p.args);
+  return false;
+}
+// na FOTO o editor é dono de: pan em % + zoom + espelho (scaleX)
+function ehMeuNaFoto(p){
+  if(p.fn === 'scale' || p.fn === 'scalex') return true;
+  if(p.fn === 'translate') return /%/.test(p.args);
+  return false;
+}
+// devolve, em texto, só os pedaços que NÃO são do editor (ex.: "rotate(-12deg)")
+function tfExtras(el, ehMeu){ return tfPartes(el).filter(p => !ehMeu(p)).map(p => p.todo).join(' '); }
+function tfJuntar(a, b){ return [a || '', b || ''].filter(Boolean).join(' '); }
+
 // ---- ajustes visuais: o Editor HTML escreve o transform por você ------
 // lê os ajustes já aplicados (mover/zoom) que estão no style do elemento
 function getTf(el){
@@ -1410,14 +1445,20 @@ function getTf(el){
   return { tx: mt ? +mt[1] : 0, ty: mt ? +mt[2] : 0, s: ms ? +ms[1] : 1 };
 }
 function setTf(el, v){
+  const extras = tfExtras(el, ehMeuNoElemento);   // giro/inclinação/centralização do design
   if(v.tx === 0 && v.ty === 0 && v.s === 1){
-    el.style.removeProperty('transform');
-    if(!el.getAttribute('style')) el.removeAttribute('style');
+    if(extras){ el.style.transform = extras; }    // voltar ao normal = volta ao do DESIGN
+    else{
+      el.style.removeProperty('transform');
+      if(!el.getAttribute('style')) el.removeAttribute('style');
+    }
   }else{
     // texto "em linha" (ex.: o <span> do título com gradiente) IGNORA transform;
     // vira inline-block pra o mover/zoom valer (mesma técnica da ferramenta de caixa)
     if(getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
-    el.style.transform = 'translate(' + v.tx + 'px, ' + v.ty + 'px) scale(' + (+v.s.toFixed(3)) + ')';
+    // os extras vão no FIM: giram/centralizam o elemento primeiro, e o mover/aumentar
+    // do editor vale por fora (seta pra direita continua indo pra direita na tela)
+    el.style.transform = tfJuntar('translate(' + v.tx + 'px, ' + v.ty + 'px) scale(' + (+v.s.toFixed(3)) + ')', extras);
   }
   refreshCodeBox();
 }
@@ -1586,7 +1627,8 @@ function cleanStyle(el){ if(!el.getAttribute('style')) el.removeAttribute('style
 // que recoloca o espelho. (`scale\(` não casa com `scaleX(` — getZoom segue OK.)
 function getFlipX(el){ return /scaleX\(-1\)/.test((el.style && el.style.transform) || ''); }
 function setPhotoTf(el, base, flip){
-  const t = (base || '') + (flip ? ((base ? ' ' : '') + 'scaleX(-1)') : '');
+  const extras = tfExtras(el, ehMeuNaFoto);       // giro/inclinação do design: preserva
+  const t = tfJuntar(tfJuntar(base, flip ? 'scaleX(-1)' : ''), extras);
   if(t) el.style.transform = t; else el.style.removeProperty('transform');
 }
 // monta o pedaço de zoom/pan do transform (vazio quando não há zoom)
@@ -1667,7 +1709,8 @@ function zoomPhoto(f){
 // ↺ desfazer: volta ao enquadramento original do design (tira tudo que injetei)
 function resetPhoto(){
   const el = selected; if(!el || el.tagName !== 'IMG') return;
-  el.style.removeProperty('transform');
+  const extras = tfExtras(el, ehMeuNaFoto);       // o giro do design fica; o resto sai
+  if(extras) el.style.transform = extras; else el.style.removeProperty('transform');
   el.style.removeProperty('object-position');
   el.style.removeProperty('object-fit');
   cleanStyle(el);
@@ -1720,7 +1763,9 @@ function changeWidth(delta){
 }
 function resetText(){
   if(!selected) return;
+  const extras = tfExtras(selected, ehMeuNoElemento);   // o giro do design fica; o resto sai
   ['font-size','width','max-width','display','transform'].forEach(p => selected.style.removeProperty(p));
+  if(extras) selected.style.transform = extras;
   if(!selected.getAttribute('style')) selected.removeAttribute('style');
   refreshCodeBox();
 }

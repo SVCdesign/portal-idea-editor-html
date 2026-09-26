@@ -6,7 +6,20 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-09-08 · **Motivo:** 🌈 **DEGRADÊ NO TEXTO IMPLEMENTADO** — o Carlos pediu uma
+**Atualizado:** 2026-09-26 · **Motivo:** 🔄 **O GIRO DA PEÇA PAROU DE SUMIR + O CANAL DE CONVERSA
+MUDOU DE CASA** — o `sistema-de-ideias` (quem cria o HTML das peças) deixou um recado e um ensinamento na
+caixa nova e mediu, de fora, que um elemento girado (`rotate(-12deg)`) voltava **reto** do editor.
+Auditoria confirmou: era **bug nosso** — o editor lia só `translate`+`scale` e **reescrevia o `transform`
+inteiro**, jogando fora giro/inclinação. Consertado: o que não é do editor agora é guardado e recolocado no
+fim (mesma ideia que já salvava o espelho). **Caiu um segundo defeito junto:** `translate(-50%,-50%)` (o
+truque de centralizar) também era apagado — um selo centralizado pulava ~152 px ao receber uma seta.
+Testado no Chrome: setas, arrastar com mouse, zoom, Desfazer, "voltar ao normal", foto (enquadrar/zoom/
+espelhar/↺), regressão de peça de cliente com gradiente+foto+película+brilho, HTML salvo limpo, 0 erro de
+JS e **Gerar PNG 2160×2700 ✅**. ⚠️ Limite assumido: vale pro `transform` escrito NO elemento; vindo de
+uma **classe**, o giro ainda se perde (como sempre foi). Junto, o **canal de conversa entre sistemas**
+virou um repositório só no GitHub (`dialogos-entre-sistemas`) — o boot dos guias aponta pra lá e a
+`conversa-entre-mundos` virou história (ver "Caminhos importantes"). · Antes, em 2026-09-08:
+🌈 **DEGRADÊ NO TEXTO IMPLEMENTADO** — o Carlos pediu uma
 função para aplicar degradê em textos, inspirado no exemplo azul/lilás. Primeiro saiu uma **Prévia B**
 local em `previas/previa-degrade-texto.html`; depois ele aprovou a implementação. Antes do código,
 auditoria focada em texto/cor/negrito: achado principal foi que degradê de texto precisa de painel
@@ -75,6 +88,28 @@ saiu a ✏️ **edição de TEXTO de DESENHO (SVG)** (a "caixinha de digitar" po
 saíram cinco frentes — (1) 🗂️ **nova organização `Subsistemas/`**, (2) 🧩 **PAINEL DE CAMADAS no `editor.html`**
 (✅ completo, 3 passos) e (3) 🪟 **painéis que RECOLHEM** (fim do aperto na direita) e (4) 🔍 **auditoria
 profunda + 7 bugs corrigidos** e (5) 📁 **arrastar-e-soltar a pasta** — tudo no ar e testado.
+
+---
+## 🔄 O QUE O EDITOR NÃO GERENCIA, ELE PRESERVA (2026-09-26) — armadilha que caiu
+
+**O defeito:** o editor lia do `transform` só `translate` (em px) e `scale`, e depois **reescrevia a
+linha inteira**. Tudo o que estivesse ali e não fosse isso — `rotate()`, `skew()`, e o
+`translate(-50%,-50%)` de centralizar — ia pro lixo no **primeiro toque** de mover/aumentar. Quem
+descobriu foi o `sistema-de-ideias`, medindo de fora: um relógio que saiu com `rotate(-12deg)` voltou
+**reto**.
+
+**O conserto** (funções `tfPartes` / `tfExtras` / `tfJuntar` no `editor.html`): os pedaços que **não são
+do editor** são guardados e recolocados **no fim** do `transform` — a mesma ideia que já salvava o
+espelho (`scaleX(-1)`). Passa por `setTf` (elemento), `setPhotoTf` (foto), `resetPhoto` e `resetText`.
+No elemento, o editor é dono do `translate` **em px** + `scale`; na foto, do `translate` **em %** +
+`scale` + `scaleX`. O resto é do design e não se toca.
+
+⚠️ **Limite assumido:** vale pro `transform` escrito **no elemento** (`style="..."`). Se o giro vier de
+uma **classe** na folha de estilo, o inline continua vencendo e o giro se perde — **como sempre foi**.
+Não piorou; não está resolvido. Só mexer nisso se o Carlos pedir.
+
+🚨 **Pra quem for evoluir isto:** ⛔ **nunca** volte a montar o `transform` do zero. Se precisar de uma
+propriedade nova, some ao que `tfExtras` devolve, senão o giro some de novo e ninguém percebe na hora.
 
 ---
 ## 🎯 O FOCO DESTE MUNDO — leia antes de qualquer coisa (2026-08-09)
@@ -150,8 +185,10 @@ gradiente em texto, foto, overlay, brilho). **Veredito: nada quebrou.**
   Se um texto antigo apontar pra elas, ignore. A pasta de **referência** do outro sistema no Drive
   (`E:\…\matrix-books\livrinho-sao-lourenco-maria-fumaca\matrix-portable-preview`) **ainda existe**
   — é só leitura, **não mexer nela**.
-- **Pendências NÃO-código (dependem do Carlos):** (1) turno-02 esperando resposta do mundo editorial
-  (`dialogos-entre-mundos/sistema-de-ideas-html-sv/.../2026-07-23-imagem-referenciada-vs-embutida/`);
+- **Pendências NÃO-código (dependem do Carlos):** (1) ~~turno-02 esperando resposta do mundo
+  editorial~~ ✅ **RESPONDIDO em 2026-09-26** no canal novo (escolhemos receber o **mapa de fotos** como
+  **comentário no topo do HTML**; ler o comentário ainda **não foi implementado** e só entra se o Carlos
+  mandar);
   (2) perguntar ao **html-studio** se ele lê os **dois** mecanismos de enquadramento ao mesmo tempo
   (`object-position` + `transform`).
 
@@ -982,7 +1019,12 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
     (essa pasta hoje está **vazia** — o ecossistema inteiro foi pra `D:\WORKSPACE\Special Vision\`).
     **Nenhum código quebrou:** o `.bat`, o `server.mjs` e os ganchos usam caminho relativo
     (“a pasta onde eu estou”). Só os **mapas escritos** apontavam pro lugar velho — corrigidos.
-- Conversa entre mundos (local-only, fora do Git): `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`
+- **Conversa entre sistemas (o canal de hoje, no Git):**
+  `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\sistema-de-ideias-e-editor-html\`
+  (GitHub privado `SVCdesign/dialogos-entre-sistemas`). Nosso nome lá é **`editor-html`**; escrevemos
+  **só** em `de-editor-html\` e marcamos o que lemos em `lido-ate\editor-html.md`.
+  📜 História (não se aponta mais, não se apaga): `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`
+  e a pasta `dialogos-entre-mundos/` aqui dentro.
 - Editor: `editor.html` · Abrir: `Abrir-Editor-HTML.bat` · Desligar: `Desligar-Editor-HTML.bat`
 - GitHub (privado): https://github.com/SVCdesign/portal-idea-editor-html
 - Arquivo de teste do usuário: `D:\TEMPORARIA\01\` (capa + pasta `assets`)

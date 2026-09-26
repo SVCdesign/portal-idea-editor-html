@@ -7,7 +7,14 @@
 1. Leia este guia.
 2. Leia `STATUS-AGORA.md` (raiz) — onde paramos e qual o próximo passo.
 3. Leia `memoria/LEIA-PRIMEIRO-BRIEFING.md` — a semente: por que este mundo existe.
-4. Se for mexer no editor, abra-o pelo atalho `Abrir-Editor-HTML.bat` (dois cliques —
+4. Confira a **caixa de correio entre sistemas** — o canal **único** (decisão do Carlos,
+   2026-09-26): `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\sistema-de-ideias-e-editor-html\`.
+   De `git pull` lá dentro, leia o que for mais novo que `lido-ate\editor-html.md` nas pastas
+   `de-sistema-de-ideias\` e `ensinamentos\de-sistema-de-ideias\`, e atualize o marcador.
+   Nosso nome no canal é **`editor-html`** e a gente escreve **só** em `de-editor-html\`.
+   Duas regras que não se negociam lá: nenhuma credencial (chave/token/senha), e o nome do
+   membro protegido não se escreve em lugar nenhum (escreve-se `(a pessoa protegida)`).
+5. Se for mexer no editor, abra-o pelo atalho `Abrir-Editor-HTML.bat` (dois cliques —
    liga o endereço local e abre no Chrome). NÃO abra `editor.html` direto: vira
    `file://` e o "salvar na pasta" não funciona.
 
@@ -74,8 +81,15 @@ na prévia → o código dele aparece e dá pra editar ao vivo, sem tocar no res
   `Fluxo do Subsistema [nome]`. 1ª casa: **Slide Mestre** — ver
   `Subsistemas/Fluxo do Subsistema Slide Mestre/LEIA-PRIMEIRO.md`.
 - `STATUS-AGORA.md` — retrato vivo de onde paramos.
-- Conversa com o mundo central: pasta neutra `D:\WORKSPACE\Special Vision\conversa-entre-mundos\`
-  (local-only, fora do Git). O usuário é a ponte.
+- Conversa com os outros sistemas do Carlos: **um repositório só**, privado, no GitHub —
+  `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\` (`SVCdesign/dialogos-entre-sistemas`).
+  A nossa conversa com quem **cria o HTML das peças** fica em
+  `sistema-de-ideias-e-editor-html\`; as regras de todos os pares, em `regras-comuns\LEIA.md`.
+  Os dois lados escrevem no mesmo repositório e dão `git pull` — o Carlos não carrega mais
+  arquivo na mão.
+  📜 **História, não se aponta mais e não se apaga:** a pasta local
+  `D:\WORKSPACE\Special Vision\conversa-entre-mundos\` e as pastas `dialogos-entre-mundos/`
+  (a conversa de julho/2026 sobre foto embutida × referenciada está lá).
 
 ## Convenção de publicação (casa)
 - **Auto-publicar após SUCESSO (regra do Carlos, 2026-07-01):** toda implementação
