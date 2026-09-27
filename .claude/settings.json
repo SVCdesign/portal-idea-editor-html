@@ -9,6 +9,12 @@
             "command": "node scripts/sync-guard.mjs boot",
             "timeout": 30,
             "statusMessage": "Conferindo sincronizacao com o remoto..."
+          },
+          {
+            "type": "command",
+            "command": "node scripts/caixa-de-correio.mjs",
+            "timeout": 30,
+            "statusMessage": "Vendo se chegou recado na caixa de correio..."
           }
         ]
       }
@@ -41,6 +47,7 @@
       "Bash(git --version)",
       "Bash(node scripts/sync-guard.mjs)",
       "Bash(node scripts/sync-guard.mjs *)",
+      "Bash(node scripts/caixa-de-correio.mjs)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push)",

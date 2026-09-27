@@ -7,13 +7,22 @@
 1. Leia este guia.
 2. Leia `STATUS-AGORA.md` (raiz) — onde paramos e qual o próximo passo.
 3. Leia `memoria/LEIA-PRIMEIRO-BRIEFING.md` — a semente: por que este mundo existe.
-4. Confira a **caixa de correio entre sistemas** — o canal **único** (decisão do Carlos,
-   2026-09-26): `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\sistema-de-ideias-e-editor-html\`.
-   De `git pull` lá dentro, leia o que for mais novo que `lido-ate\editor-html.md` nas pastas
-   `de-sistema-de-ideias\` e `ensinamentos\de-sistema-de-ideias\`, e atualize o marcador.
-   Nosso nome no canal é **`editor-html`** e a gente escreve **só** em `de-editor-html\`.
-   Duas regras que não se negociam lá: nenhuma credencial (chave/token/senha), e o nome do
-   membro protegido não se escreve em lugar nenhum (escreve-se `(a pessoa protegida)`).
+4. **Veja a caixa de correio entre sistemas** — o canal **único** (decisão do Carlos, 2026-09-26):
+   `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\sistema-de-ideias-e-editor-html\`.
+   👀 **Isto é automático:** o vigia `scripts/caixa-de-correio.mjs` roda no gancho de boot, dá o
+   `git pull` na caixa e imprime, no começo do chat, uma destas linhas:
+   - 📭 **"Caixa em dia"** → nada novo, siga a vida.
+   - 📬 **"TEM N RECADO(S) NOVO(S)"** + a lista → **leia os arquivos ANTES de começar qualquer
+     outra coisa**, atualize o marcador `lido-ate\editor-html.md` e, se responder, escreva **só** em
+     `de-editor-html\` (um recado = um arquivo, molde em `moldes\`).
+   - 🟡 **"nao achei a caixa" / "nao consegui atualizar"** → o automático falhou; confira **na mão**
+     (`git pull` lá dentro e compare as pastas `de-sistema-de-ideias\` e
+     `ensinamentos\de-sistema-de-ideias\` com o marcador) e avise o Carlos.
+   ⚠️ **Nunca confie na ausência do aviso:** se não apareceu nada no começo do chat, o gancho pode
+   não ter rodado — rode `node scripts/caixa-de-correio.mjs` e veja com os próprios olhos.
+   Nosso nome no canal é **`editor-html`**. Duas regras que não se negociam lá: nenhuma credencial
+   (chave/token/senha), e o nome do membro protegido não se escreve em lugar nenhum (escreve-se
+   `(a pessoa protegida)`).
 5. Se for mexer no editor, abra-o pelo atalho `Abrir-Editor-HTML.bat` (dois cliques —
    liga o endereço local e abre no Chrome). NÃO abra `editor.html` direto: vira
    `file://` e o "salvar na pasta" não funciona.

@@ -6,7 +6,15 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-09-26 · **Motivo:** 🔄 **O GIRO DA PEÇA PAROU DE SUMIR + O CANAL DE CONVERSA
+**Atualizado:** 2026-09-27 · **Motivo:** 📬 **O BOOT AGORA AVISA SOZINHO SE CHEGOU RECADO** —
+o Carlos pediu uma conferência automática da caixa de correio no começo de cada chat. Entrou o vigia
+`scripts/caixa-de-correio.mjs`, ligado como **segundo gancho** de SessionStart (separado do
+`sync-guard.mjs`, pra um não derrubar o outro): ele dá `git pull --ff-only` na caixa, compara os `.md`
+das pastas do outro sistema com o nosso marcador `lido-ate/editor-html.md` e imprime 📭 caixa em dia,
+📬 a lista do que chegou, ou 🟡 não achei / não consegui atualizar. ⛔ Ele **nunca** toca no repositório
+do editor e **nunca** trava a sessão (sai sempre com código 0). Testado nos três casos (em dia, 2 recados
+novos, caixa ausente) numa cópia de mentira — ⛔ sem escrever nada na pasta do outro lado. ⚠️ O gancho em
+si só se prova no **próximo chat**, quando o boot rodar. · Antes, em 2026-09-26: 🔄 **O GIRO DA PEÇA PAROU DE SUMIR + O CANAL DE CONVERSA
 MUDOU DE CASA** — o `sistema-de-ideias` (quem cria o HTML das peças) deixou um recado e um ensinamento na
 caixa nova e mediu, de fora, que um elemento girado (`rotate(-12deg)`) voltava **reto** do editor.
 Auditoria confirmou: era **bug nosso** — o editor lia só `translate`+`scale` e **reescrevia o `transform`
@@ -1019,6 +1027,8 @@ No turno-07 (2026-07-01) o html-studio **aceitou o alinhamento de papéis e fech
     (essa pasta hoje está **vazia** — o ecossistema inteiro foi pra `D:\WORKSPACE\Special Vision\`).
     **Nenhum código quebrou:** o `.bat`, o `server.mjs` e os ganchos usam caminho relativo
     (“a pasta onde eu estou”). Só os **mapas escritos** apontavam pro lugar velho — corrigidos.
+- 📬 **O boot avisa sozinho:** `scripts/caixa-de-correio.mjs` (gancho de SessionStart) confere a
+  caixa e imprime se chegou recado. Pra rodar na mão: `node scripts/caixa-de-correio.mjs`.
 - **Conversa entre sistemas (o canal de hoje, no Git):**
   `D:\WORKSPACE\Special Vision\dialogos-entre-sistemas\sistema-de-ideias-e-editor-html\`
   (GitHub privado `SVCdesign/dialogos-entre-sistemas`). Nosso nome lá é **`editor-html`**; escrevemos
