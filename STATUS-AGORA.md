@@ -6,7 +6,11 @@
 > conhecidas** (pra não reintroduzir bugs), como testar e como publicar. Este STATUS é o **resumo**;
 > o handoff é o **manual**.
 
-**Atualizado:** 2026-09-27 · **Motivo:** 📬 **O BOOT AGORA AVISA SOZINHO SE CHEGOU RECADO** —
+**Atualizado:** 2026-09-29 · **Motivo:** 🚚 **TROCA DE PC** — conferido na hora: os **dois**
+repositórios (o do editor e o da caixa de correio) estão iguais ao remoto, sem nada pendente, e não há
+frente de código aberta nem bug conhecido. 🆕 **Atenção no PC novo: agora são DOIS clones, lado a
+lado** — ver "TROCA DE PC — estado em 2026-09-29". · Antes, em 2026-09-27:
+📬 **O BOOT AVISA SOZINHO SE CHEGOU RECADO** —
 o Carlos pediu uma conferência automática da caixa de correio no começo de cada chat. Entrou o vigia
 `scripts/caixa-de-correio.mjs`, ligado como **segundo gancho** de SessionStart (separado do
 `sync-guard.mjs`, pra um não derrubar o outro): ele dá `git pull --ff-only` na caixa, compara os `.md`
@@ -153,7 +157,29 @@ gradiente em texto, foto, overlay, brilho). **Veredito: nada quebrou.**
   com o painel de sempre em qualquer elemento com texto ou foto. Não substitui nada. O Carlos foi
   avisado e **ficou de dizer** se quer que ele apareça só no livrinho — **pergunta em aberto.**
 
-### 🚚 TROCA DE PC — estado em 2026-08-29 (o mais recente)
+### 🚚 TROCA DE PC — estado em 2026-09-29 (O MAIS RECENTE)
+- **Git, os DOIS repositórios, conferidos na hora:**
+  - `portal-idea-editor-html` → `main` = `origin/main` (0 atrás / 0 à frente), nada pendente.
+    Último commit: `eaecaf0`.
+  - `dialogos-entre-sistemas` (a caixa de correio) → também 0/0 e limpo.
+- 🆕 **O PC NOVO PRECISA DE DOIS CLONES, NÃO DE UM.** Desde 26/09 a conversa entre os sistemas mora
+  num repositório próprio. Se ele não for clonado, o vigia do boot vai dizer 🟡 "nao achei a caixa"
+  e **recado nenhum chega**:
+  ```text
+  D:\WORKSPACE\Special Vision\portal-idea-editor-html      (SVCdesign/portal-idea-editor-html)
+  D:\WORKSPACE\Special Vision\dialogos-entre-sistemas      (SVCdesign/dialogos-entre-sistemas)
+  ```
+  Os dois são **privados** e têm que ficar **lado a lado**, dentro de `D:\WORKSPACE\Special Vision\`.
+- **Nada de código em aberto:** o último trabalho (giro preservado + vigia da caixa) está feito,
+  testado no navegador e publicado. **Nenhum bug conhecido.**
+- **O que não viaja** (mesma lista de sempre): `previas/` (672 KB), `node_modules/` (13 MB, volta com
+  o próprio `.bat`), `.codex/` e `.claude/settings.local.json`, e as **fotos/fontes das peças**, que
+  vêm pelo **Google Drive** — confirme o **Drive VERDE** dos dois lados.
+- **Chegando no PC novo:** clonar os dois → `npm install` (ou deixar o `.bat` instalar) → abrir o chat:
+  o boot deve imprimir o quadro da **sincronização** e o da **caixa de correio**. Se o segundo disser
+  🟡, o clone da caixa faltou.
+
+### 🚚 TROCA DE PC — estado em 2026-08-29 (histórico)
 - **Git:** `main` = `origin/main` (0 atrás / 0 à frente), **nada pendente pra salvar**. Último
   commit: `a3dc29f`. No PC novo: **`git pull`** e está tudo aqui.
 - ⚠️ **A PASTA MUDOU DE LUGAR:** o mundo agora vive em
